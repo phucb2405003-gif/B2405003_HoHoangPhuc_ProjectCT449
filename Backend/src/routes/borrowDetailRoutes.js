@@ -3,19 +3,22 @@ const borrowDetailController = require("../controllers/borrowDetailController");
 
 const router = express.Router();
 
-// GET /api/borrow-details → lấy tất cả chi tiết mượn
+// Lấy tất cả chi tiết
 router.get("/", borrowDetailController.findAll);
 
-// GET /api/borrow-details/:id → lấy một chi tiết
-router.get("/:id", borrowDetailController.findOne);
-
-// POST /api/borrow-details → thêm chi tiết mượn
+// Thêm chi tiết
 router.post("/", borrowDetailController.create);
 
-// PUT /api/borrow-details/:id → cập nhật chi tiết
-router.put("/:id", borrowDetailController.update);
+// Cập nhật theo mã phiếu + mã sách
+router.put(
+    "/:maPhieu/:maSach",
+    borrowDetailController.update
+);
 
-// DELETE /api/borrow-details/:id → xóa chi tiết
-router.delete("/:id", borrowDetailController.remove);
+// Xóa theo mã phiếu + mã sách
+router.delete(
+    "/:maPhieu/:maSach",
+    borrowDetailController.remove
+);
 
 module.exports = router;

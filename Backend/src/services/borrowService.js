@@ -1,58 +1,57 @@
-const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
 const { BORROW_COLLECTION } = require("../models/Borrow");
 
-// Lấy collection mượn sách
+// Lấy collection borrowings
 async function getCollection() {
     const db = await connectDB();
     return db.collection(BORROW_COLLECTION);
 }
 
-// Lấy tất cả phiếu mượn
+// Lấy toàn bộ phiếu mượn
 async function findAll() {
     const collection = await getCollection();
 
     return await collection.find({}).toArray();
 }
 
-// Lấy một phiếu mượn theo ID
-async function findOne(id) {
+// Lấy 1 phiếu mượn theo mã phiếu
+async function findOne(maPhieu) {
     const collection = await getCollection();
 
     return await collection.findOne({
-        _id: new ObjectId(id),
+        maPhieu: maPhieu
     });
 }
 
-// Thêm phiếu mượn
+// Tạo phiếu mượn mới
 async function create(borrow) {
     const collection = await getCollection();
 
     const result = await collection.insertOne(borrow);
 
     return await collection.findOne({
-        _id: result.insertedId,
+        _id: result.insertedId
     });
 }
 
-// Cập nhật phiếu mượn
-async function update(id, borrow) {
+// Cập nhật phiếu mượn theo mã phiếu
+async function update(maPhieu, borrow) {
     const collection = await getCollection();
 
     await collection.updateOne(
-        { _id: new ObjectId(id) },
+        { maPhieu: maPhieu },
         { $set: borrow }
     );
 
-    return await findOne(id);
+    return await findOne(maPhieu);
 }
 
-// Xóa phiếu mượn
-async function remove(id) {
+// Xóa phiếu mượn theo mã phiếu
+async function remove(maPhieu) {
     const collection = await getCollection();
 
     return await collection.deleteOne({
-        _id: new ObjectId(id),
+        maPhieu: maPhieu
     });
 }
 
@@ -61,5 +60,5 @@ module.exports = {
     findOne,
     create,
     update,
-    remove,
+    remove
 };

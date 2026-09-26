@@ -1,30 +1,29 @@
-const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
 const { USER_COLLECTION } = require("../models/User");
 
-// Lấy collection users từ MongoDB
+// Lấy collection độc giả
 async function getCollection() {
     const db = await connectDB();
     return db.collection(USER_COLLECTION);
 }
 
-// Lấy tất cả người dùng
+// Lấy tất cả độc giả
 async function findAll() {
     const collection = await getCollection();
 
     return await collection.find({}).toArray();
 }
 
-// Lấy một người dùng theo _id
-async function findOne(id) {
+// Tìm theo mã độc giả
+async function findOne(maDocGia) {
     const collection = await getCollection();
 
     return await collection.findOne({
-        _id: new ObjectId(id),
+        maDocGia: maDocGia,
     });
 }
 
-// Thêm người dùng
+// Thêm độc giả
 async function create(user) {
     const collection = await getCollection();
 
@@ -35,24 +34,24 @@ async function create(user) {
     });
 }
 
-// Cập nhật người dùng
-async function update(id, user) {
+// Cập nhật theo mã độc giả
+async function update(maDocGia, user) {
     const collection = await getCollection();
 
     await collection.updateOne(
-        { _id: new ObjectId(id) },
+        { maDocGia: maDocGia },
         { $set: user }
     );
 
-    return await findOne(id);
+    return await findOne(maDocGia);
 }
 
-// Xóa người dùng
-async function remove(id) {
+// Xóa theo mã độc giả
+async function remove(maDocGia) {
     const collection = await getCollection();
 
     return await collection.deleteOne({
-        _id: new ObjectId(id),
+        maDocGia: maDocGia,
     });
 }
 

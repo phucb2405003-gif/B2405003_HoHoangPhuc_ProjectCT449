@@ -1,5 +1,3 @@
-const BORROW_DETAIL_COLLECTION = "borrowings_detail"; // Collection chi tiết mượn sách
+const BORROW_DETAIL_COLLECTION = "borrowings_detail";
 
-module.exports = {
-    BORROW_DETAIL_COLLECTION,
-};
+module.exports = { BORROW_DETAIL_COLLECTION };

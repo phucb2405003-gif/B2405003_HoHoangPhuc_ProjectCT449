@@ -1,100 +1,128 @@
 const borrowDetailService = require("../services/borrowDetailService");
 
-// Lấy tất cả chi tiết mượn
+// Lấy tất cả chi tiết phiếu mượn
 async function findAll(req, res) {
     try {
         const borrowDetails = await borrowDetailService.findAll();
 
-        res.json(borrowDetails); // Trả danh sách chi tiết mượn
+        res.json(borrowDetails);
     } catch (error) {
+        console.error("Loi lay chi tiet phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi lấy danh sách chi tiết mượn",
-            error: error.message,
+            message: "Khong the lay chi tiet phieu muon"
         });
     }
 }
 
-// Lấy một chi tiết mượn theo ID
-async function findOne(req, res) {
+// Lấy danh sách sách trong một phiếu mượn
+async function findByMaPhieu(req, res) {
     try {
-        const borrowDetail = await borrowDetailService.findOne(
-            req.params.id
-        );
+        const { maPhieu } = req.params;
 
-        if (!borrowDetail) {
-            return res.status(404).json({
-                message: "Không tìm thấy chi tiết mượn",
-            });
-        }
+        const borrowDetails =
+            await borrowDetailService.findByMaPhieu(maPhieu);
 
-        res.json(borrowDetail); // Trả thông tin chi tiết mượn
+        res.json(borrowDetails);
     } catch (error) {
+        console.error("Loi lay sach trong phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi lấy chi tiết mượn",
-            error: error.message,
+            message: "Khong the lay sach trong phieu muon"
         });
     }
 }
 
-// Thêm chi tiết mượn
+// Thêm sách vào phiếu mượn
 async function create(req, res) {
     try {
-        const borrowDetail = await borrowDetailService.create(req.body);
+        const borrowDetail = req.body;
 
-        res.status(201).json(borrowDetail); // 201 = tạo thành công
+        const newBorrowDetail =
+            await borrowDetailService.create(borrowDetail);
+
+        res.status(201).json(newBorrowDetail);
     } catch (error) {
+        console.error("Loi them sach vao phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi thêm chi tiết mượn",
-            error: error.message,
+            message: "Khong the them sach vao phieu muon"
         });
     }
 }
 
-// Cập nhật chi tiết mượn
+// Cập nhật số lượng / thông tin sách
 async function update(req, res) {
     try {
-        const borrowDetail = await borrowDetailService.update(
-            req.params.id,
-            req.body
+        const { maPhieu, maSach } = req.params;
+        const borrowDetail = req.body;
+
+        const borrowDetails =
+            await borrowDetailService.findByMaPhieu(maPhieu);
+
+        const exists = borrowDetails.some(
+            (item) => item.maSach === maSach
         );
 
-        res.json(borrowDetail); // Trả dữ liệu sau khi cập nhật
-    } catch (error) {
-        res.status(500).json({
-            message: "Lỗi khi cập nhật chi tiết mượn",
-            error: error.message,
-        });
-    }
-}
-
-// Xóa chi tiết mượn
-async function remove(req, res) {
-    try {
-        const result = await borrowDetailService.remove(
-            req.params.id
-        );
-
-        if (result.deletedCount === 0) {
+        if (!exists) {
             return res.status(404).json({
-                message: "Không tìm thấy chi tiết mượn",
+                message: "Khong tim thay chi tiet phieu muon"
             });
         }
 
+        const updatedBorrowDetail =
+            await borrowDetailService.update(
+                maPhieu,
+                maSach,
+                borrowDetail
+            );
+
+        res.json(updatedBorrowDetail);
+    } catch (error) {
+        console.error("Loi cap nhat chi tiet phieu muon:", error);
+
+        res.status(500).json({
+            message: "Khong the cap nhat chi tiet phieu muon"
+        });
+    }
+}
+
+// Xóa sách khỏi phiếu mượn
+async function remove(req, res) {
+    try {
+        const { maPhieu, maSach } = req.params;
+
+        const borrowDetails =
+            await borrowDetailService.findByMaPhieu(maPhieu);
+
+        const exists = borrowDetails.some(
+            (item) => item.maSach === maSach
+        );
+
+        if (!exists) {
+            return res.status(404).json({
+                message: "Khong tim thay chi tiet phieu muon"
+            });
+        }
+
+        await borrowDetailService.remove(maPhieu, maSach);
+
         res.json({
-            message: "Xóa chi tiết mượn thành công",
+            message: "Xoa sach khoi phieu muon thanh cong"
         });
     } catch (error) {
+        console.error("Loi xoa sach khoi phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi xóa chi tiết mượn",
-            error: error.message,
+            message: "Khong the xoa sach khoi phieu muon"
         });
     }
 }
 
 module.exports = {
     findAll,
-    findOne,
+    findByMaPhieu,
     create,
     update,
-    remove,
+    remove
 };

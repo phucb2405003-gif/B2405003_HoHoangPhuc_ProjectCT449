@@ -1,8 +1,7 @@
-const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
 const { BOOK_COLLECTION } = require("../models/Book");
 
-// Lấy collection sách từ MongoDB
+// Lấy collection sách
 async function getCollection() {
     const db = await connectDB();
     return db.collection(BOOK_COLLECTION);
@@ -15,12 +14,12 @@ async function findAll() {
     return await collection.find({}).toArray();
 }
 
-// Lấy một sách theo MongoDB _id
-async function findOne(id) {
+// Lấy sách theo mã sách
+async function findOne(maSach) {
     const collection = await getCollection();
 
     return await collection.findOne({
-        _id: new ObjectId(id),
+        maSach: maSach, // Tìm bằng mã sách
     });
 }
 
@@ -35,24 +34,24 @@ async function create(book) {
     });
 }
 
-// Cập nhật sách
-async function update(id, book) {
+// Cập nhật theo mã sách
+async function update(maSach, book) {
     const collection = await getCollection();
 
     await collection.updateOne(
-        { _id: new ObjectId(id) },
+        { maSach: maSach }, // Không dùng _id
         { $set: book }
     );
 
-    return await findOne(id);
+    return await findOne(maSach);
 }
 
-// Xóa sách
-async function remove(id) {
+// Xóa theo mã sách
+async function remove(maSach) {
     const collection = await getCollection();
 
     return await collection.deleteOne({
-        _id: new ObjectId(id),
+        maSach: maSach, // Xóa bằng mã sách
     });
 }
 

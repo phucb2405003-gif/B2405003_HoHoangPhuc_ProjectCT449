@@ -17,7 +17,7 @@ async function findAll(req, res) {
 // Lấy một người dùng theo ID
 async function findOne(req, res) {
     try {
-        const user = await userService.findOne(req.params.id);
+        const user = await userService.findOne(req.params.maDocGia);
 
         if (!user) {
             return res.status(404).json({
@@ -52,7 +52,7 @@ async function create(req, res) {
 async function update(req, res) {
     try {
         const user = await userService.update(
-            req.params.id,
+            req.params.maDocGia,
             req.body
         );
 
@@ -68,7 +68,7 @@ async function update(req, res) {
 // Xóa người dùng
 async function remove(req, res) {
     try {
-        const result = await userService.remove(req.params.id);
+        const result = await userService.remove(req.params.maDocGia);
 
         if (result.deletedCount === 0) {
             return res.status(404).json({

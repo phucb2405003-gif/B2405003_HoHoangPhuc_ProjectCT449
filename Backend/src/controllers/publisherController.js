@@ -17,7 +17,7 @@ async function findAll(req, res) {
 // Lấy một nhà xuất bản theo ID
 async function findOne(req, res) {
     try {
-        const publisher = await publisherService.findOne(req.params.id);
+        const publisher = await publisherService.findOne(req.params.maNXB);
 
         if (!publisher) {
             return res.status(404).json({
@@ -52,7 +52,7 @@ async function create(req, res) {
 async function update(req, res) {
     try {
         const publisher = await publisherService.update(
-            req.params.id,
+            req.params.maNXB,
             req.body
         );
 
@@ -68,7 +68,7 @@ async function update(req, res) {
 // Xóa nhà xuất bản
 async function remove(req, res) {
     try {
-        const result = await publisherService.remove(req.params.id);
+        const result = await publisherService.remove(req.params.maNXB);
 
         if (result.deletedCount === 0) {
             return res.status(404).json({

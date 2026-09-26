@@ -1,88 +1,117 @@
 const borrowService = require("../services/borrowService");
 
-// Lấy tất cả phiếu mượn
+// GET /api/borrows
+// Lấy toàn bộ phiếu mượn
 async function findAll(req, res) {
     try {
         const borrows = await borrowService.findAll();
 
-        res.json(borrows); // Trả danh sách phiếu mượn
+        res.json(borrows);
     } catch (error) {
+        console.error("Loi lay danh sach phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi lấy danh sách phiếu mượn",
-            error: error.message,
+            message: "Khong the lay danh sach phieu muon"
         });
     }
 }
 
-// Lấy một phiếu mượn theo ID
+// GET /api/borrows/:maPhieu
+// Lấy 1 phiếu mượn theo mã phiếu
 async function findOne(req, res) {
     try {
-        const borrow = await borrowService.findOne(req.params.id);
+        const { maPhieu } = req.params;
+
+        const borrow = await borrowService.findOne(maPhieu);
 
         if (!borrow) {
             return res.status(404).json({
-                message: "Không tìm thấy phiếu mượn",
+                message: "Khong tim thay phieu muon"
             });
         }
 
-        res.json(borrow); // Trả thông tin phiếu mượn
+        res.json(borrow);
     } catch (error) {
+        console.error("Loi tim phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi lấy thông tin phiếu mượn",
-            error: error.message,
+            message: "Khong the tim phieu muon"
         });
     }
 }
 
-// Tạo phiếu mượn
+// POST /api/borrows
+// Tạo phiếu mượn mới
 async function create(req, res) {
     try {
-        const borrow = await borrowService.create(req.body);
+        const borrow = req.body;
 
-        res.status(201).json(borrow); // 201 = tạo thành công
+        const newBorrow = await borrowService.create(borrow);
+
+        res.status(201).json(newBorrow);
     } catch (error) {
+        console.error("Loi tao phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi tạo phiếu mượn",
-            error: error.message,
+            message: "Khong the tao phieu muon"
         });
     }
 }
 
-// Cập nhật phiếu mượn
+// PUT /api/borrows/:maPhieu
+// Cập nhật phiếu mượn theo mã phiếu
 async function update(req, res) {
     try {
-        const borrow = await borrowService.update(
-            req.params.id,
-            req.body
-        );
+        const { maPhieu } = req.params;
+        const borrow = req.body;
 
-        res.json(borrow); // Trả phiếu mượn sau khi cập nhật
-    } catch (error) {
-        res.status(500).json({
-            message: "Lỗi khi cập nhật phiếu mượn",
-            error: error.message,
-        });
-    }
-}
+        const oldBorrow = await borrowService.findOne(maPhieu);
 
-// Xóa phiếu mượn
-async function remove(req, res) {
-    try {
-        const result = await borrowService.remove(req.params.id);
-
-        if (result.deletedCount === 0) {
+        if (!oldBorrow) {
             return res.status(404).json({
-                message: "Không tìm thấy phiếu mượn",
+                message: "Khong tim thay phieu muon"
             });
         }
 
+        const updatedBorrow = await borrowService.update(
+            maPhieu,
+            borrow
+        );
+
+        res.json(updatedBorrow);
+    } catch (error) {
+        console.error("Loi cap nhat phieu muon:", error);
+
+        res.status(500).json({
+            message: "Khong the cap nhat phieu muon"
+        });
+    }
+}
+
+// DELETE /api/borrows/:maPhieu
+// Xóa phiếu mượn theo mã phiếu
+async function remove(req, res) {
+    try {
+        const { maPhieu } = req.params;
+
+        const oldBorrow = await borrowService.findOne(maPhieu);
+
+        if (!oldBorrow) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
+
+        await borrowService.remove(maPhieu);
+
         res.json({
-            message: "Xóa phiếu mượn thành công",
+            message: "Xoa phieu muon thanh cong"
         });
     } catch (error) {
+        console.error("Loi xoa phieu muon:", error);
+
         res.status(500).json({
-            message: "Lỗi khi xóa phiếu mượn",
-            error: error.message,
+            message: "Khong the xoa phieu muon"
         });
     }
 }
@@ -92,5 +121,5 @@ module.exports = {
     findOne,
     create,
     update,
-    remove,
+    remove
 };

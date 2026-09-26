@@ -17,7 +17,7 @@ async function findAll(req, res) {
 // Lấy một sách theo ID
 async function findOne(req, res) {
     try {
-        const book = await bookService.findOne(req.params.id);
+        const book = await bookService.findOne(req.params.maSach);
 
         if (!book) {
             return res.status(404).json({
@@ -52,7 +52,7 @@ async function create(req, res) {
 async function update(req, res) {
     try {
         const book = await bookService.update(
-            req.params.id,
+            req.params.maSach,
             req.body
         );
 
@@ -68,7 +68,7 @@ async function update(req, res) {
 // Xóa sách
 async function remove(req, res) {
     try {
-        const result = await bookService.remove(req.params.id);
+        const result = await bookService.remove(req.params.maSach);
 
         if (result.deletedCount === 0) {
             return res.status(404).json({

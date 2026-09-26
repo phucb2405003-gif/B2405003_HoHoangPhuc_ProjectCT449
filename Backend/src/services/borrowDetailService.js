@@ -1,67 +1,71 @@
-const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
-const {
-    BORROW_DETAIL_COLLECTION,
-} = require("../models/BorrowDetail");
+const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 
-// Lấy collection chi tiết mượn sách
 async function getCollection() {
     const db = await connectDB();
     return db.collection(BORROW_DETAIL_COLLECTION);
 }
 
-// Lấy tất cả chi tiết mượn
+// Lấy tất cả chi tiết phiếu mượn
 async function findAll() {
     const collection = await getCollection();
-
     return await collection.find({}).toArray();
 }
 
-// Lấy một chi tiết theo ID
-async function findOne(id) {
+// Lấy các sách trong một phiếu mượn
+async function findByMaPhieu(maPhieu) {
     const collection = await getCollection();
 
-    return await collection.findOne({
-        _id: new ObjectId(id),
-    });
+    return await collection.find({
+        maPhieu: maPhieu
+    }).toArray();
 }
 
-// Thêm chi tiết mượn
+// Thêm chi tiết phiếu mượn
 async function create(borrowDetail) {
     const collection = await getCollection();
 
     const result = await collection.insertOne(borrowDetail);
 
     return await collection.findOne({
-        _id: result.insertedId,
+        _id: result.insertedId
     });
 }
 
-// Cập nhật chi tiết mượn
-async function update(id, borrowDetail) {
+// Cập nhật theo mã phiếu + mã sách
+async function update(maPhieu, maSach, borrowDetail) {
     const collection = await getCollection();
 
     await collection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: borrowDetail }
+        {
+            maPhieu: maPhieu,
+            maSach: maSach
+        },
+        {
+            $set: borrowDetail
+        }
     );
 
-    return await findOne(id);
+    return await collection.findOne({
+        maPhieu: maPhieu,
+        maSach: maSach
+    });
 }
 
-// Xóa chi tiết mượn
-async function remove(id) {
+// Xóa theo mã phiếu + mã sách
+async function remove(maPhieu, maSach) {
     const collection = await getCollection();
 
     return await collection.deleteOne({
-        _id: new ObjectId(id),
+        maPhieu: maPhieu,
+        maSach: maSach
     });
 }
 
 module.exports = {
     findAll,
-    findOne,
+    findByMaPhieu,
     create,
     update,
-    remove,
+    remove
 };

@@ -1,21 +1,29 @@
 const express = require("express");
 const borrowController = require("../controllers/borrowController");
+const borrowDetailController = require("../controllers/borrowDetailController");
 
 const router = express.Router();
 
-// GET /api/borrows → lấy tất cả phiếu mượn
+// GET /api/borrows
 router.get("/", borrowController.findAll);
 
-// GET /api/borrows/:id → lấy một phiếu mượn
-router.get("/:id", borrowController.findOne);
+// GET /api/borrows/:maPhieu/borrow-details
+// Xem tất cả sách trong phiếu mượn
+router.get(
+    "/:maPhieu/borrow-details",
+    borrowDetailController.findByMaPhieu
+);
 
-// POST /api/borrows → tạo phiếu mượn
+// GET /api/borrows/:maPhieu
+router.get("/:maPhieu", borrowController.findOne);
+
+// POST /api/borrows
 router.post("/", borrowController.create);
 
-// PUT /api/borrows/:id → cập nhật phiếu mượn
-router.put("/:id", borrowController.update);
+// PUT /api/borrows/:maPhieu
+router.put("/:maPhieu", borrowController.update);
 
-// DELETE /api/borrows/:id → xóa phiếu mượn
-router.delete("/:id", borrowController.remove);
+// DELETE /api/borrows/:maPhieu
+router.delete("/:maPhieu", borrowController.remove);
 
 module.exports = router;

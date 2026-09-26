@@ -7,15 +7,15 @@ const router = express.Router();
 router.get("/", userController.findAll);
 
 // GET /api/users/:id → lấy một người dùng
-router.get("/:id", userController.findOne);
+router.get("/:maDocGia", userController.findOne);
 
 // POST /api/users → thêm người dùng
 router.post("/", userController.create);
 
 // PUT /api/users/:id → cập nhật người dùng
-router.put("/:id", userController.update);
+router.put("/:maDocGia", userController.update);
 
 // DELETE /api/users/:id → xóa người dùng
-router.delete("/:id", userController.remove);
+router.delete("/:maDocGia", userController.remove);
 
 module.exports = router;

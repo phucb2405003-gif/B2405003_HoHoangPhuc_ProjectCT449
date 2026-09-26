@@ -16,11 +16,11 @@ async function findAll() {
 }
 
 // Lấy một nhà xuất bản theo ID
-async function findOne(id) {
+async function findOne(maNXB) {
     const collection = await getCollection();
 
     return await collection.findOne({
-        _id: new ObjectId(id),
+        maNXB: maNXB,
     });
 }
 
@@ -36,23 +36,23 @@ async function create(publisher) {
 }
 
 // Cập nhật nhà xuất bản
-async function update(id, publisher) {
+async function update(maNXB, publisher) {
     const collection = await getCollection();
 
     await collection.updateOne(
-        { _id: new ObjectId(id) },
+        { maNXB: maNXB },
         { $set: publisher }
     );
 
-    return await findOne(id);
+    return await findOne(maNXB);
 }
 
 // Xóa nhà xuất bản
-async function remove(id) {
+async function remove(maNXB) {
     const collection = await getCollection();
 
     return await collection.deleteOne({
-        _id: new ObjectId(id),
+        maNXB: maNXB,
     });
 }
 
