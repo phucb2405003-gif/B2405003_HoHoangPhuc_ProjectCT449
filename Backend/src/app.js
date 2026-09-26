@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const publisherRoutes = require("./routes/publisherRoutes"); // Route nhà xuất bản
 const borrowRoutes = require("./routes/borrowRoutes"); // Route mượn sách
 const borrowDetailRoutes = require("./routes/borrowDetailRoutes"); // Route chi tiết mượn
+const employeeRoutes = require("./routes/employeeRoutes");
 
 const app = express();
 
@@ -27,5 +28,7 @@ app.use("/api/publishers", publisherRoutes); // API nhà xuất bản
 app.use("/api/borrows", borrowRoutes); // API mượn sách
 
 app.use("/api/borrow-details", borrowDetailRoutes); // API chi tiết mượn
+
+app.use("/api/employees", employeeRoutes);
 
 module.exports = app;
