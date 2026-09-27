@@ -7,6 +7,7 @@ const publisherRoutes = require("./routes/publisherRoutes"); // Route nhà xuấ
 const borrowRoutes = require("./routes/borrowRoutes"); // Route mượn sách
 const borrowDetailRoutes = require("./routes/borrowDetailRoutes"); // Route chi tiết mượn
 const employeeRoutes = require("./routes/employeeRoutes");
+const accountRoutes = require("./routes/accountRoutes");
 
 const app = express();
 
@@ -30,5 +31,7 @@ app.use("/api/borrows", borrowRoutes); // API mượn sách
 app.use("/api/borrow-details", borrowDetailRoutes); // API chi tiết mượn
 
 app.use("/api/employees", employeeRoutes);
+
+app.use("/api/accounts", accountRoutes);
 
 module.exports = app;
