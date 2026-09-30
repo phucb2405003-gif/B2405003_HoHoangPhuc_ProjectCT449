@@ -15,12 +15,11 @@ router.get(
     borrowController.findAll
 );
 
-// QL + Thủ thư xem chi tiết sách trong phiếu
+// Xem chi tiết sách trong phiếu
 router.get(
     "/:maPhieu/borrow-details",
     authenticateToken,
     (req, res, next) => {
-        // QL và Thủ thư được xem
         if (
             req.user.chucVu === "Quản lý" ||
             req.user.chucVu === "Thủ thư"
@@ -28,13 +27,12 @@ router.get(
             return next();
         }
 
-        // Độc giả chỉ được xem phiếu của mình
         return allowOwnBorrow(req, res, next);
     },
     borrowDetailController.findByMaPhieu
 );
 
-// QL + Thủ thư xem phiếu, Độc giả chỉ xem phiếu của mình
+// Xem một phiếu
 router.get(
     "/:maPhieu",
     authenticateToken,
@@ -51,15 +49,38 @@ router.get(
     borrowController.findOne
 );
 
-// Chỉ QL + Thủ thư được tạo
+// Độc giả tạo yêu cầu mượn
 router.post(
     "/",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
     borrowController.create
 );
 
-// Chỉ QL + Thủ thư được cập nhật
+// Duyệt yêu cầu
+router.put(
+    "/:maPhieu/approve",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.approve
+);
+
+// Từ chối yêu cầu
+router.put(
+    "/:maPhieu/reject",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.reject
+);
+
+// Xác nhận trả sách
+router.put(
+    "/:maPhieu/return",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.returnBook
+);
+
+// Cập nhật phiếu - QL + Thủ thư
 router.put(
     "/:maPhieu",
     authenticateToken,
@@ -67,7 +88,7 @@ router.put(
     borrowController.update
 );
 
-// Chỉ QL + Thủ thư được xóa
+// Xóa phiếu - QL + Thủ thư
 router.delete(
     "/:maPhieu",
     authenticateToken,

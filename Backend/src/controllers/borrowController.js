@@ -116,10 +116,124 @@ async function remove(req, res) {
     }
 }
 
+async function approve(req, res) {
+    try {
+        const { maPhieu } = req.params;
+
+        const borrow = await borrowService.findOne(maPhieu);
+
+        if (!borrow) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
+
+        if (borrow.trangThai !== "Chờ duyệt") {
+            return res.status(400).json({
+                message: "Phieu muon khong o trang thai cho duyet"
+            });
+        }
+
+        const updatedBorrow = await borrowService.updateStatus(
+            maPhieu,
+            "Đang mượn",
+            req.user.maTaiKhoan
+        );
+
+        res.json({
+            message: "Duyet phieu muon thanh cong",
+            borrow: updatedBorrow
+        });
+    } catch (error) {
+        console.error("Loi duyet phieu muon:", error);
+
+        res.status(500).json({
+            message: "Loi server"
+        });
+    }
+}
+
+async function reject(req, res) {
+    try {
+        const { maPhieu } = req.params;
+
+        const borrow = await borrowService.findOne(maPhieu);
+
+        if (!borrow) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
+
+        if (borrow.trangThai !== "Chờ duyệt") {
+            return res.status(400).json({
+                message: "Phieu muon khong o trang thai cho duyet"
+            });
+        }
+
+        const updatedBorrow = await borrowService.updateStatus(
+            maPhieu,
+            "Từ chối",
+            req.user.maTaiKhoan
+        );
+
+        res.json({
+            message: "Tu choi phieu muon thanh cong",
+            borrow: updatedBorrow
+        });
+    } catch (error) {
+        console.error("Loi tu choi phieu muon:", error);
+
+        res.status(500).json({
+            message: "Loi server"
+        });
+    }
+}
+
+async function returnBook(req, res) {
+    try {
+        const { maPhieu } = req.params;
+
+        const borrow = await borrowService.findOne(maPhieu);
+
+        if (!borrow) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
+
+        if (borrow.trangThai !== "Đang mượn") {
+            return res.status(400).json({
+                message: "Phieu muon khong o trang thai dang muon"
+            });
+        }
+
+        const updatedBorrow = await borrowService.updateStatus(
+            maPhieu,
+            "Đã trả",
+            req.user.maTaiKhoan
+        );
+
+        res.json({
+            message: "Tra sach thanh cong",
+            borrow: updatedBorrow
+        });
+    } catch (error) {
+        console.error("Loi tra sach:", error);
+
+        res.status(500).json({
+            message: "Loi server"
+        });
+    }
+}
+
 module.exports = {
     findAll,
     findOne,
     create,
     update,
-    remove
+    remove,
+    approve,
+    reject,
+    returnBook
 };
