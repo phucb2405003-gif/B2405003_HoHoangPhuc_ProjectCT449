@@ -1,21 +1,41 @@
 const express = require("express");
 const bookController = require("../controllers/bookController");
 
+const { authenticateToken } = require("../middlewares/authMiddleware");
+const { allowRoles } = require("../middlewares/roleMiddleware");
+
 const router = express.Router();
 
-// GET /api/books
-router.get("/", bookController.findAll);
+router.get(
+    "/",
+    authenticateToken,
+    bookController.findAll
+);
 
-// GET /api/books/:maSach
-router.get("/:maSach", bookController.findOne);
+router.get(
+    "/:maSach",
+    authenticateToken,
+    bookController.findOne
+);
 
-// POST /api/books
-router.post("/", bookController.create);
+router.post(
+    "/",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    bookController.create
+);
 
-// PUT /api/books/:maSach
-router.put("/:maSach", bookController.update);
+router.put(
+    "/:maSach",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    bookController.update
+);
 
-// DELETE /api/books/:maSach
-router.delete("/:maSach", bookController.remove);
-
+router.delete(
+    "/:maSach",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    bookController.remove
+);
 module.exports = router;

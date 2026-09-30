@@ -1,29 +1,57 @@
 const express = require("express");
 const borrowController = require("../controllers/borrowController");
 const borrowDetailController = require("../controllers/borrowDetailController");
+const { authenticateToken } = require("../middlewares/authMiddleware");
+const { allowRoles } = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
-// GET /api/borrows
-router.get("/", borrowController.findAll);
+// Xem tất cả phiếu mượn
+router.get(
+    "/",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.findAll
+);
 
-// GET /api/borrows/:maPhieu/borrow-details
-// Xem tất cả sách trong phiếu mượn
+// Xem chi tiết các sách trong một phiếu
 router.get(
     "/:maPhieu/borrow-details",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
     borrowDetailController.findByMaPhieu
 );
 
-// GET /api/borrows/:maPhieu
-router.get("/:maPhieu", borrowController.findOne);
+// Xem một phiếu
+router.get(
+    "/:maPhieu",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.findOne
+);
 
-// POST /api/borrows
-router.post("/", borrowController.create);
+// Tạo phiếu mượn
+router.post(
+    "/",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.create
+);
 
-// PUT /api/borrows/:maPhieu
-router.put("/:maPhieu", borrowController.update);
+// Cập nhật phiếu mượn
+router.put(
+    "/:maPhieu",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.update
+);
 
-// DELETE /api/borrows/:maPhieu
-router.delete("/:maPhieu", borrowController.remove);
+// Xóa phiếu - chỉ Quản lý
+router.delete(
+    "/:maPhieu",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    borrowController.remove
+);
 
 module.exports = router;

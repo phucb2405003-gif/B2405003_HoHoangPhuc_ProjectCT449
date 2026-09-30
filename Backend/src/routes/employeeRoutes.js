@@ -1,21 +1,43 @@
 const express = require("express");
 const employeeController = require("../controllers/employeeController");
+const { authenticateToken } = require("../middlewares/authMiddleware");
+const { allowRoles } = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
-// Lấy tất cả nhân viên
-router.get("/", employeeController.findAll);
+router.get(
+    "/",
+    authenticateToken,
+    allowRoles("Quản trị viên", "Quản lý"),
+    employeeController.findAll
+);
 
-// Lấy nhân viên theo mã
-router.get("/:maNhanVien", employeeController.findOne);
+router.get(
+    "/:maNhanVien",
+    authenticateToken,
+    allowRoles("Quản trị viên", "Quản lý"),
+    employeeController.findOne
+);
 
-// Thêm nhân viên
-router.post("/", employeeController.create);
+router.post(
+    "/",
+    authenticateToken,
+    allowRoles("Quản trị viên"),
+    employeeController.create
+);
 
-// Cập nhật nhân viên
-router.put("/:maNhanVien", employeeController.update);
+router.put(
+    "/:maNhanVien",
+    authenticateToken,
+    allowRoles("Quản trị viên"),
+    employeeController.update
+);
 
-// Xóa nhân viên
-router.delete("/:maNhanVien", employeeController.remove);
+router.delete(
+    "/:maNhanVien",
+    authenticateToken,
+    allowRoles("Quản trị viên"),
+    employeeController.remove
+);
 
 module.exports = router;
