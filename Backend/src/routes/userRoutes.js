@@ -2,10 +2,11 @@ const express = require("express");
 const userController = require("../controllers/userController");
 const { authenticateToken } = require("../middlewares/authMiddleware");
 const { allowRoles } = require("../middlewares/roleMiddleware");
+const { allowOwnReader } = require("../middlewares/readerMiddleware");
 
 const router = express.Router();
 
-// Xem danh sách độc giả
+// Quản lý xem tất cả độc giả
 router.get(
     "/",
     authenticateToken,
@@ -13,15 +14,26 @@ router.get(
     userController.findAll
 );
 
-// Xem một độc giả
+// Quản lý + Thủ thư xem chi tiết độc giả
 router.get(
     "/:maDocGia",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
+    (req, res, next) => {
+        // Quản lý và Thủ thư được xem
+        if (
+            req.user.chucVu === "Quản lý" ||
+            req.user.chucVu === "Thủ thư"
+        ) {
+            return next();
+        }
+
+        // Độc giả chỉ được xem chính mình
+        return allowOwnReader(req, res, next);
+    },
     userController.findOne
 );
 
-// Thêm độc giả
+// Chỉ Quản lý được thêm
 router.post(
     "/",
     authenticateToken,
@@ -29,7 +41,7 @@ router.post(
     userController.create
 );
 
-// Sửa độc giả
+// Chỉ Quản lý được sửa
 router.put(
     "/:maDocGia",
     authenticateToken,
@@ -37,7 +49,7 @@ router.put(
     userController.update
 );
 
-// Xóa độc giả
+// Chỉ Quản lý được xóa
 router.delete(
     "/:maDocGia",
     authenticateToken,
