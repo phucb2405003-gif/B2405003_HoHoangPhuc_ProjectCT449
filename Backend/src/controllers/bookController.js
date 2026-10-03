@@ -107,6 +107,41 @@ async function addStock(req, res) {
     }
 }
 
+// Tiêu hủy sách
+async function destroyStock(req, res) {
+    try {
+        const soLuong = req.body?.soLuong;
+        const book = await bookService.destroyStock(
+            req.params.maSach,
+            soLuong
+        );
+
+        res.status(200).json(book);
+    } catch (error) {
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({
+                message: "Không tìm thấy sách",
+            });
+        }
+
+        if (
+            error.code === "INVALID_QUANTITY" ||
+            error.code === "INSUFFICIENT_STOCK"
+        ) {
+            return res.status(400).json({
+                message:
+                    error.code === "INVALID_QUANTITY"
+                        ? "Số lượng tiêu hủy phải là số nguyên dương"
+                        : "Số lượng tiêu hủy vượt quá số sách hiện có",
+            });
+        }
+
+        res.status(500).json({
+            message: "Lỗi server",
+        });
+    }
+}
+
 // Xóa sách
 async function remove(req, res) {
     try {
@@ -135,5 +170,6 @@ module.exports = {
     create,
     update,
     addStock,
+    destroyStock,
     remove,
 };

@@ -163,6 +163,60 @@ async function addStock(maSach, soLuong) {
     return await findOne(maSach);
 }
 
+// Tiêu hủy sách
+async function destroyStock(maSach, soLuong) {
+    const collection = await getCollection();
+    const book = await collection.findOne({ maSach });
+
+    if (!book) {
+        const error = new Error("Khong tim thay sach");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    if (!Number.isInteger(soLuong) || soLuong <= 0) {
+        const error = new Error("So luong tieu huy phai la so nguyen duong");
+        error.code = "INVALID_QUANTITY";
+        throw error;
+    }
+
+    if (soLuong > book.soQuyenConLai || soLuong > book.soQuyen) {
+        const error = new Error("So luong tieu huy vuot qua so sach hien co");
+        error.code = "INSUFFICIENT_STOCK";
+        throw error;
+    }
+
+    const result = await collection.updateOne(
+        {
+            maSach,
+            soQuyenConLai: { $gte: soLuong },
+            soQuyen: { $gte: soLuong },
+        },
+        {
+            $inc: {
+                soQuyen: -soLuong,
+                soQuyenConLai: -soLuong,
+            },
+        }
+    );
+
+    if (result.modifiedCount === 0) {
+        const currentBook = await collection.findOne({ maSach });
+
+        if (!currentBook) {
+            const error = new Error("Khong tim thay sach");
+            error.code = "NOT_FOUND";
+            throw error;
+        }
+
+        const error = new Error("So luong tieu huy vuot qua so sach hien co");
+        error.code = "INSUFFICIENT_STOCK";
+        throw error;
+    }
+
+    return await findOne(maSach);
+}
+
 // Xóa theo mã sách
 async function remove(maSach) {
     const collection = await getCollection();
@@ -177,6 +231,7 @@ module.exports = {
     create,
     update,
     addStock,
+    destroyStock,
     remove,
 
 };

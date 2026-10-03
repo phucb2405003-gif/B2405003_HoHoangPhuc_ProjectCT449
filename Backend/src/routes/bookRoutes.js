@@ -34,6 +34,13 @@ router.put(
 
 router.put("/:maSach/add-stock", authenticateToken, allowRoles("Quản lý", "Thủ thư"), bookController.addStock);
 
+router.put(
+    "/:maSach/destroy-stock",
+    authenticateToken,
+    allowRoles("Quản lý", "Thủ thư"),
+    bookController.destroyStock
+);
+
 router.delete(
     "/:maSach",
     authenticateToken,
