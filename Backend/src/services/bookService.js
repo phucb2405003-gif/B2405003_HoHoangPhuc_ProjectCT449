@@ -77,13 +77,56 @@ async function create(book) {
 // Cập nhật theo mã sách
 async function update(maSach, book) {
     const collection = await getCollection();
+    const bookToUpdate = { ...book };
 
     // Tồn kho chỉ thay đổi qua nghiệp vụ mượn và trả.
-    delete book.soQuyenConLai;
+    delete bookToUpdate.soQuyen;
+    delete bookToUpdate.soQuyenConLai;
+
+    if (bookToUpdate.tenSach !== undefined) {
+        bookToUpdate.tenSach = normalizeWhitespace(bookToUpdate.tenSach);
+    }
+    if (bookToUpdate.tacGia !== undefined) {
+        bookToUpdate.tacGia = normalizeWhitespace(bookToUpdate.tacGia);
+    }
+
+    const hasDuplicateKeyChange =
+        bookToUpdate.tenSach !== undefined ||
+        bookToUpdate.tacGia !== undefined ||
+        bookToUpdate.maNXB !== undefined;
+
+    if (hasDuplicateKeyChange) {
+        const currentBook = await collection.findOne({ maSach });
+
+        if (currentBook) {
+            const candidateBook = { ...currentBook, ...bookToUpdate };
+            const toWhitespaceFlexiblePattern = (value) =>
+                value
+                    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+                    .replace(/ /g, "\\s+");
+
+            const existingBook = await collection.findOne({
+                maSach: { $ne: maSach },
+                tenSach: {
+                    $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tenSach)}\\s*$`,
+                    $options: "i",
+                },
+                tacGia: {
+                    $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tacGia)}\\s*$`,
+                    $options: "i",
+                },
+                maNXB: candidateBook.maNXB,
+            });
+
+            if (existingBook) {
+                throw duplicateNameError();
+            }
+        }
+    }
 
     await collection.updateOne(
         { maSach: maSach }, // Không dùng _id
-        { $set: book }
+        { $set: bookToUpdate }
     );
 
     return await findOne(maSach);

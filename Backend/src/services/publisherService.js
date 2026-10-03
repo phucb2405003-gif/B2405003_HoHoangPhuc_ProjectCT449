@@ -68,10 +68,34 @@ async function create(publisher) {
 // Cập nhật nhà xuất bản
 async function update(maNXB, publisher) {
     const collection = await getCollection();
+    const publisherToUpdate = { ...publisher };
+
+    if (publisherToUpdate.tenNXB !== undefined) {
+        publisherToUpdate.tenNXB = normalizeWhitespace(
+            publisherToUpdate.tenNXB
+        );
+
+        const escapedName = publisherToUpdate.tenNXB.replace(
+            /[.*+?^${}()|[\]\\]/g,
+            "\\$&"
+        );
+        const whitespaceFlexibleName = escapedName.replace(/ /g, "\\s+");
+        const existingPublisher = await collection.findOne({
+            maNXB: { $ne: maNXB },
+            tenNXB: {
+                $regex: `^\\s*${whitespaceFlexibleName}\\s*$`,
+                $options: "i",
+            },
+        });
+
+        if (existingPublisher) {
+            throw duplicateNameError();
+        }
+    }
 
     await collection.updateOne(
         { maNXB: maNXB },
-        { $set: publisher }
+        { $set: publisherToUpdate }
     );
 
     return await findOne(maNXB);

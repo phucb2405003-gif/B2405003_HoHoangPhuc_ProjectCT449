@@ -64,6 +64,12 @@ async function update(req, res) {
 
         res.json(book); // Trả sách sau khi cập nhật
     } catch (error) {
+        if (error.code === "DUPLICATE_NAME") {
+            return res.status(409).json({
+                message: "Tên sách đã tồn tại",
+            });
+        }
+
         res.status(500).json({
             message: "Lỗi khi cập nhật sách",
             error: error.message,
