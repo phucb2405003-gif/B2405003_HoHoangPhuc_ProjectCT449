@@ -1,71 +1,116 @@
 const connectDB = require("../config/database");
-const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
+
+const {
+    BORROW_DETAIL_COLLECTION
+} = require("../models/BorrowDetail");
+
+const {
+    BORROW_COLLECTION
+} = require("../models/Borrow");
+
+const {
+    BOOK_COLLECTION
+} = require("../models/Book");
+
+const PENDING = "Chờ duyệt";
 
 async function getCollection() {
     const db = await connectDB();
-    return db.collection(BORROW_DETAIL_COLLECTION);
+
+    return db.collection(
+        BORROW_DETAIL_COLLECTION
+    );
 }
 
-// Lấy tất cả chi tiết phiếu mượn
+// Lấy tất cả chi tiết
 async function findAll() {
-    const collection = await getCollection();
-    return await collection.find({}).toArray();
+    return (await getCollection())
+        .find({})
+        .toArray();
 }
 
-// Lấy các sách trong một phiếu mượn
+// Lấy các sách trong một phiếu
 async function findByMaPhieu(maPhieu) {
-    const collection = await getCollection();
-
-    return await collection.find({
-        maPhieu: maPhieu
-    }).toArray();
+    return (await getCollection())
+        .find({ maPhieu })
+        .toArray();
 }
 
-// Thêm chi tiết phiếu mượn
-async function create(borrowDetail) {
-    const collection = await getCollection();
+// =====================================================
+// XÓA SÁCH KHỎI PHIẾU - CHỈ DÙNG TRONG TRƯỜNG HỢP ĐẶC BIỆT
+// =====================================================
 
-    const result = await collection.insertOne(borrowDetail);
+async function remove(maPhieu, maSach) {
+    const db = await connectDB();
 
-    return await collection.findOne({
-        _id: result.insertedId
+    const borrowCollection =
+        db.collection(BORROW_COLLECTION);
+
+    const detailCollection =
+        db.collection(BORROW_DETAIL_COLLECTION);
+
+    const bookCollection =
+        db.collection(BOOK_COLLECTION);
+
+    // Kiểm tra phiếu
+    const borrow =
+        await borrowCollection.findOne({
+            maPhieu
+        });
+
+    if (!borrow) {
+        return {
+            notFound: true
+        };
+    }
+
+    // Kiểm tra chi tiết
+    const detail =
+        await detailCollection.findOne({
+            maPhieu,
+            maSach
+        });
+
+    if (!detail) {
+        return {
+            detailNotFound: true
+        };
+    }
+
+    // Chỉ được xóa khi phiếu vẫn đang chờ duyệt
+    if (detail.trangThai !== PENDING) {
+        return {
+            invalidStatus: true
+        };
+    }
+
+    // Xóa detail
+    await detailCollection.deleteOne({
+        maPhieu,
+        maSach
     });
-}
 
-// Cập nhật theo mã phiếu + mã sách
-async function update(maPhieu, maSach, borrowDetail) {
-    const collection = await getCollection();
-
-    await collection.updateOne(
+    // Trả lại 1 quyển vào kho
+    await bookCollection.updateOne(
+        { maSach },
         {
-            maPhieu: maPhieu,
-            maSach: maSach
-        },
-        {
-            $set: borrowDetail
+            $inc: {
+                soQuyenConLai: 1
+            }
         }
     );
 
-    return await collection.findOne({
-        maPhieu: maPhieu,
-        maSach: maSach
-    });
-}
-
-// Xóa theo mã phiếu + mã sách
-async function remove(maPhieu, maSach) {
-    const collection = await getCollection();
-
-    return await collection.deleteOne({
-        maPhieu: maPhieu,
-        maSach: maSach
-    });
+    return {
+        detail: {
+            maPhieu,
+            maSach,
+            trangThai: PENDING
+        }
+    };
 }
 
 module.exports = {
     findAll,
     findByMaPhieu,
-    create,
-    update,
     remove
 };

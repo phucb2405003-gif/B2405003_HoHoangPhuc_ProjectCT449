@@ -27,6 +27,8 @@ async function findOne(maSach) {
 async function create(book) {
     const collection = await getCollection();
 
+    book = { ...book, soQuyenConLai: book.soQuyen };
+
     const result = await collection.insertOne(book);
 
     return await collection.findOne({
@@ -37,6 +39,9 @@ async function create(book) {
 // Cập nhật theo mã sách
 async function update(maSach, book) {
     const collection = await getCollection();
+
+    // Tồn kho chỉ thay đổi qua nghiệp vụ mượn và trả.
+    delete book.soQuyenConLai;
 
     await collection.updateOne(
         { maSach: maSach }, // Không dùng _id

@@ -1,5 +1,7 @@
 const express = require("express");
+
 const borrowDetailController = require("../controllers/borrowDetailController");
+
 const { authenticateToken } = require("../middlewares/authMiddleware");
 const { allowRoles } = require("../middlewares/roleMiddleware");
 
@@ -13,7 +15,7 @@ router.get(
     borrowDetailController.findAll
 );
 
-// Xem chi tiết sách trong một phiếu
+// Xem các sách trong một phiếu
 router.get(
     "/:maPhieu",
     authenticateToken,
@@ -21,27 +23,11 @@ router.get(
     borrowDetailController.findByMaPhieu
 );
 
-// Thêm sách vào phiếu
-router.post(
-    "/",
-    authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowDetailController.create
-);
-
-// Cập nhật chi tiết phiếu
-router.put(
-    "/:maPhieu/:maSach",
-    authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowDetailController.update
-);
-
-// Xóa sách khỏi phiếu
+// Xóa sách khỏi phiếu - chỉ dùng trường hợp đặc biệt khi đang Chờ duyệt
 router.delete(
     "/:maPhieu/:maSach",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
+    allowRoles("Quản lý"),
     borrowDetailController.remove
 );
 

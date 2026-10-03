@@ -1,99 +1,155 @@
 const express = require("express");
+
 const borrowController = require("../controllers/borrowController");
 const borrowDetailController = require("../controllers/borrowDetailController");
+
 const { authenticateToken } = require("../middlewares/authMiddleware");
 const { allowRoles } = require("../middlewares/roleMiddleware");
 const { allowOwnBorrow } = require("../middlewares/borrowReaderMiddleware");
 
 const router = express.Router();
 
-// QL + Thủ thư xem tất cả phiếu
-router.get(
-    "/",
-    authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowController.findAll
-);
+const staffRoles = ["Quản lý", "Thủ thư"];
 
-// Xem chi tiết sách trong phiếu
+// =====================================================
+// LẤY DANH SÁCH PHIẾU MƯỢN
+// =====================================================
+
+router.get("/", authenticateToken, (req, res, next) => {
+    // Nhan vien duoc xem tat ca phieu
+    if (staffRoles.includes(req.user.chucVu)) {
+        return borrowController.findAll(req, res, next);
+    }
+
+    // Doc gia chi xem phieu cua minh
+    if (req.user.loaiTaiKhoan === "DOCGIA") {
+        return borrowController.findMine(req, res, next);
+    }
+
+    return res.status(403).json({
+        message: "Khong co quyen xem phieu muon"
+    });
+});
+
+// =====================================================
+// XEM CHI TIET SACH TRONG MOT PHIEU
+// =====================================================
+
 router.get(
     "/:maPhieu/borrow-details",
     authenticateToken,
     (req, res, next) => {
-        if (
-            req.user.chucVu === "Quản lý" ||
-            req.user.chucVu === "Thủ thư"
-        ) {
+        // Nhan vien duoc xem
+        if (staffRoles.includes(req.user.chucVu)) {
             return next();
         }
 
-        return allowOwnBorrow(req, res, next);
+        // Doc gia chi xem phieu cua minh
+        if (req.user.loaiTaiKhoan === "DOCGIA") {
+            return allowOwnBorrow(req, res, next);
+        }
+
+        return res.status(403).json({
+            message: "Khong co quyen xem phieu muon"
+        });
     },
     borrowDetailController.findByMaPhieu
 );
 
-// Xem một phiếu
+// =====================================================
+// XEM PHIEU CUA BAN THAN
+// =====================================================
+router.get(
+    "/mine",
+    authenticateToken,
+    (req, res, next) => {
+        if (req.user.loaiTaiKhoan !== "DOCGIA") {
+            return res.status(403).json({
+                message: "Chi doc gia moi duoc xem phieu cua minh"
+            });
+        }
+
+        return borrowController.findMine(req, res, next);
+    }
+);
+
+// =====================================================
+// XEM MOT PHIEU
+// =====================================================
+
 router.get(
     "/:maPhieu",
     authenticateToken,
     (req, res, next) => {
-        if (
-            req.user.chucVu === "Quản lý" ||
-            req.user.chucVu === "Thủ thư"
-        ) {
+        if (staffRoles.includes(req.user.chucVu)) {
             return next();
         }
 
-        return allowOwnBorrow(req, res, next);
+        if (req.user.loaiTaiKhoan === "DOCGIA") {
+            return allowOwnBorrow(req, res, next);
+        }
+
+        return res.status(403).json({
+            message: "Khong co quyen xem phieu muon"
+        });
     },
     borrowController.findOne
 );
 
-// Độc giả tạo yêu cầu mượn
+// =====================================================
+// TAO PHIEU MUON
+// =====================================================
+
 router.post(
     "/",
     authenticateToken,
     borrowController.create
 );
 
-// Duyệt yêu cầu
+// =====================================================
+// DUYET PHIEU
+// =====================================================
+
 router.put(
     "/:maPhieu/approve",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
+    allowRoles(...staffRoles),
     borrowController.approve
 );
 
-// Từ chối yêu cầu
+// =====================================================
+// TU CHOI PHIEU
+// =====================================================
+
 router.put(
     "/:maPhieu/reject",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
+    allowRoles(...staffRoles),
     borrowController.reject
 );
 
-// Xác nhận trả sách
+// =====================================================
+// TRA MOT QUYEN SACH
+// =====================================================
+
 router.put(
-    "/:maPhieu/return",
+    "/:maPhieu/return/:maSach",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
+    allowRoles(...staffRoles),
     borrowController.returnBook
 );
 
-// Cập nhật phiếu - QL + Thủ thư
-router.put(
-    "/:maPhieu",
-    authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowController.update
-);
+// =====================================================
+// TRUONG HOP DAC BIET:
+// XOA MOT SACH KHOI CHI TIET KHI PHIEU CHUA DUYET
+// =====================================================
 
-// Xóa phiếu - QL + Thủ thư
+// Chi Quan ly duoc thuc hien nghiep vu dac biet nay
 router.delete(
-    "/:maPhieu",
+    "/:maPhieu/borrow-details/:maSach",
     authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowController.remove
+    allowRoles("Quản lý"),
+    borrowDetailController.remove
 );
 
 module.exports = router;
