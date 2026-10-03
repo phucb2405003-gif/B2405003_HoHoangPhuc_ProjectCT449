@@ -41,6 +41,12 @@ async function create(req, res) {
 
         res.status(201).json(publisher); // 201 = tạo thành công
     } catch (error) {
+        if (error.code === "DUPLICATE_NAME") {
+            return res.status(409).json({
+                message: "Tên nhà xuất bản đã tồn tại",
+            });
+        }
+
         res.status(500).json({
             message: "Lỗi khi thêm nhà xuất bản",
             error: error.message,

@@ -24,11 +24,41 @@ async function findOne(maNXB) {
     });
 }
 
+function normalizeWhitespace(value) {
+    return value.trim().replace(/\s+/g, " ");
+}
+
+function duplicateNameError() {
+    const error = new Error("Ten nha xuat ban da ton tai");
+    error.code = "DUPLICATE_NAME";
+    return error;
+}
+
 // Thêm nhà xuất bản
 async function create(publisher) {
     const collection = await getCollection();
+    const normalizedPublisher = {
+        ...publisher,
+        tenNXB: normalizeWhitespace(publisher.tenNXB),
+    };
+    const escapedName = normalizedPublisher.tenNXB.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+    );
+    const whitespaceFlexibleName = escapedName.replace(/ /g, "\\s+");
 
-    const result = await collection.insertOne(publisher);
+    const existingPublisher = await collection.findOne({
+        tenNXB: {
+            $regex: `^\\s*${whitespaceFlexibleName}\\s*$`,
+            $options: "i",
+        },
+    });
+
+    if (existingPublisher) {
+        throw duplicateNameError();
+    }
+
+    const result = await collection.insertOne(normalizedPublisher);
 
     return await collection.findOne({
         _id: result.insertedId,
