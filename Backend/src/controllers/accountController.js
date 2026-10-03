@@ -57,6 +57,12 @@ async function create(req, res) {
 
         res.status(201).json(newAccount);
     } catch (error) {
+        if (error.code === "DUPLICATE_USERNAME") {
+            return res.status(409).json({
+                message: "Ten dang nhap da ton tai"
+            });
+        }
+
         console.error("Loi tao tai khoan:", error);
 
         res.status(500).json({
@@ -88,6 +94,12 @@ async function update(req, res) {
 
         res.json(updatedAccount);
     } catch (error) {
+        if (error.code === "DUPLICATE_USERNAME") {
+            return res.status(409).json({
+                message: "Ten dang nhap da ton tai"
+            });
+        }
+
         console.error("Loi cap nhat tai khoan:", error);
 
         res.status(500).json({

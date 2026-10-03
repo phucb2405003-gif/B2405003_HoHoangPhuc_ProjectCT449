@@ -21,9 +21,23 @@ async function findOne(maTaiKhoan) {
     });
 }
 
+function duplicateUsernameError() {
+    const error = new Error("Ten dang nhap da ton tai");
+    error.code = "DUPLICATE_USERNAME";
+    return error;
+}
+
 // Tạo tài khoản
 async function create(account) {
     const collection = await getCollection();
+
+    const existingAccount = await collection.findOne({
+        tenDangNhap: account.tenDangNhap
+    });
+
+    if (existingAccount) {
+        throw duplicateUsernameError();
+    }
 
     const result = await collection.insertOne(account);
 
@@ -35,6 +49,17 @@ async function create(account) {
 // Cập nhật tài khoản
 async function update(maTaiKhoan, account) {
     const collection = await getCollection();
+
+    if (account.tenDangNhap !== undefined) {
+        const existingAccount = await collection.findOne({
+            tenDangNhap: account.tenDangNhap,
+            maTaiKhoan: { $ne: maTaiKhoan }
+        });
+
+        if (existingAccount) {
+            throw duplicateUsernameError();
+        }
+    }
 
     await collection.updateOne(
         {

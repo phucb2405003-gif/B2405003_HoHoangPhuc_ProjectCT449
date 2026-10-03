@@ -8,35 +8,35 @@ const router = express.Router();
 router.get(
     "/",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     accountController.findAll
 );
 
 router.get(
     "/:maTaiKhoan",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     accountController.findOne
 );
 
 router.post(
     "/",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     accountController.create
 );
 
 router.put(
     "/:maTaiKhoan",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     accountController.update
 );
 
 router.delete(
     "/:maTaiKhoan",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     accountController.remove
 );
 

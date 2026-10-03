@@ -48,12 +48,12 @@ app.get("/api/auth/me", authenticateToken, (req, res) => {
 });
 
 app.get(
-    "/api/auth/test-admin",
+    "/api/auth/test-manager",
     authenticateToken,
-    allowRoles("Quản trị viên"),
+    allowRoles("Quản lý"),
     (req, res) => {
         res.json({
-            message: "Ban co quyen QTV",
+            message: "Ban co quyen Quan ly",
             user: req.user
         });
     }
