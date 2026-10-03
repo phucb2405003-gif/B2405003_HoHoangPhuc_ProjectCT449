@@ -132,6 +132,37 @@ async function update(maSach, book) {
     return await findOne(maSach);
 }
 
+// Bổ sung số lượng sách
+async function addStock(maSach, soLuong) {
+    const collection = await getCollection();
+
+    const book = await collection.findOne({ maSach });
+
+    if (!book) {
+        const error = new Error("Khong tim thay sach");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    if (!Number.isInteger(soLuong) || soLuong <= 0) {
+        const error = new Error("So luong bo sung phai la so nguyen duong");
+        error.code = "INVALID_QUANTITY";
+        throw error;
+    }
+
+    await collection.updateOne(
+        { maSach },
+        {
+            $inc: {
+                soQuyen: soLuong,
+                soQuyenConLai: soLuong,
+            },
+        }
+    );
+
+    return await findOne(maSach);
+}
+
 // Xóa theo mã sách
 async function remove(maSach) {
     const collection = await getCollection();
@@ -140,11 +171,12 @@ async function remove(maSach) {
         maSach: maSach, // Xóa bằng mã sách
     });
 }
-
 module.exports = {
     findAll,
     findOne,
     create,
     update,
+    addStock,
     remove,
+
 };

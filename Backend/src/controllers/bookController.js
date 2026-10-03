@@ -77,6 +77,36 @@ async function update(req, res) {
     }
 }
 
+// Bổ sung số lượng sách
+async function addStock(req, res) {
+    try {
+        const { soLuong } = req.body;
+
+        const book = await bookService.addStock(
+            req.params.maSach,
+            soLuong
+        );
+
+        res.status(200).json(book);
+    } catch (error) {
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({
+                message: "Không tìm thấy sách",
+            });
+        }
+
+        if (error.code === "INVALID_QUANTITY") {
+            return res.status(400).json({
+                message: "Số lượng bổ sung phải là số nguyên dương",
+            });
+        }
+
+        res.status(500).json({
+            message: "Lỗi server",
+        });
+    }
+}
+
 // Xóa sách
 async function remove(req, res) {
     try {
@@ -104,5 +134,6 @@ module.exports = {
     findOne,
     create,
     update,
+    addStock,
     remove,
 };
