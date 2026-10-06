@@ -1,5 +1,6 @@
 const connectDB = require("../config/database");
 const { USER_COLLECTION } = require("../models/User");
+const { generateCode } = require("./codeGeneratorService");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -26,8 +27,13 @@ async function findOne(maDocGia) {
 // Thêm độc giả
 async function create(user) {
     const collection = await getCollection();
+    const userToInsert = {
+        ...user,
+    };
+    const maDocGia = await generateCode("DG");
+    userToInsert.maDocGia = maDocGia;
 
-    const result = await collection.insertOne(user);
+    const result = await collection.insertOne(userToInsert);
 
     return await collection.findOne({
         _id: result.insertedId,

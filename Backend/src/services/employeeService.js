@@ -1,5 +1,6 @@
 const connectDB = require("../config/database");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
+const { generateCode } = require("./codeGeneratorService");
 
 async function getCollection() {
     const db = await connectDB();
@@ -25,8 +26,13 @@ async function findOne(maNhanVien) {
 // Thêm nhân viên
 async function create(employee) {
     const collection = await getCollection();
+    const employeeToInsert = {
+        ...employee,
+    };
+    const maNhanVien = await generateCode("NV");
+    employeeToInsert.maNhanVien = maNhanVien;
 
-    const result = await collection.insertOne(employee);
+    const result = await collection.insertOne(employeeToInsert);
 
     return await collection.findOne({
         _id: result.insertedId

@@ -11,6 +11,7 @@ const {
 const {
     BOOK_COLLECTION
 } = require("../models/Book");
+const { generateCode } = require("./codeGeneratorService");
 
 const STATUSES = {
     PENDING: "Chờ duyệt",
@@ -108,24 +109,11 @@ async function create(borrow) {
 
     // Kiem tra thong tin bat buoc
     if (
-        !borrow.maPhieu ||
         !borrow.maDocGia ||
         (direct && !borrow.maNhanVien)
     ) {
         throw new Error(
-            "Thiếu maPhieu hoặc thông tin người mượn"
-        );
-    }
-
-    // Khong cho trung ma phieu
-    const existed =
-        await borrowCollection.findOne({
-            maPhieu: borrow.maPhieu
-        });
-
-    if (existed) {
-        throw new Error(
-            "maPhieu đã tồn tại"
+            "Thiếu thông tin người mượn"
         );
     }
 
@@ -198,6 +186,7 @@ async function create(borrow) {
     const reserved = [];
 
     let borrowInserted = false;
+    let maPhieu;
 
     try {
         // =============================================
@@ -249,8 +238,10 @@ async function create(borrow) {
         // TAO PHIEU
         // =============================================
 
+        maPhieu = await generateCode("PM");
+
         const record = {
-            maPhieu: borrow.maPhieu,
+            maPhieu,
             maDocGia: borrow.maDocGia,
 
             maNhanVien: direct
@@ -306,13 +297,15 @@ async function create(borrow) {
         // ROLLBACK NEU TAO PHIEU THAT BAI
         // =============================================
 
-        await detailCollection.deleteMany({
-            maPhieu: borrow.maPhieu
-        });
+        if (maPhieu) {
+            await detailCollection.deleteMany({
+                maPhieu
+            });
+        }
 
         if (borrowInserted) {
             await borrowCollection.deleteOne({
-                maPhieu: borrow.maPhieu
+                maPhieu
             });
         }
 

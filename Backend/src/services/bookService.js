@@ -1,5 +1,6 @@
 const connectDB = require("../config/database");
 const { BOOK_COLLECTION } = require("../models/Book");
+const { generateCode } = require("./codeGeneratorService");
 
 // Lấy collection sách
 async function getCollection() {
@@ -62,8 +63,10 @@ async function create(book) {
         throw duplicateNameError();
     }
 
+    const maSach = await generateCode("S");
     const bookToInsert = {
         ...normalizedBook,
+        maSach,
         soQuyenConLai: normalizedBook.soQuyen,
     };
 
