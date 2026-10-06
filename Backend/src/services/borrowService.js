@@ -11,6 +11,9 @@ const {
 const {
     BOOK_COLLECTION
 } = require("../models/Book");
+const {
+    USER_COLLECTION
+} = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
 
 const STATUSES = {
@@ -115,6 +118,16 @@ async function create(borrow) {
         throw new Error(
             "Thiếu thông tin người mượn"
         );
+    }
+
+    if (direct) {
+        const reader = await db.collection(USER_COLLECTION).findOne({
+            maDocGia: borrow.maDocGia
+        });
+
+        if (!reader) {
+            throw new Error("Khong tim thay doc gia");
+        }
     }
 
     // =================================================

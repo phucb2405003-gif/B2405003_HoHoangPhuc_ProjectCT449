@@ -42,13 +42,15 @@ async function create(employee) {
 // Cập nhật nhân viên
 async function update(maNhanVien, employee) {
     const collection = await getCollection();
+    const employeeToUpdate = { ...employee };
+    delete employeeToUpdate.maNhanVien;
 
     await collection.updateOne(
         {
             maNhanVien: maNhanVien
         },
         {
-            $set: employee
+            $set: employeeToUpdate
         }
     );
 

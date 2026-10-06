@@ -85,10 +85,47 @@ async function remove(maPhieu, maSach) {
     }
 
     // Xóa detail
-    await detailCollection.deleteOne({
+    const deleteResult = await detailCollection.deleteOne({
         maPhieu,
         maSach
     });
+
+    if (deleteResult.deletedCount === 0) {
+        return {
+            detailNotFound: true
+        };
+    }
+
+    try {
+        const borrowUpdate = await borrowCollection.updateOne(
+            {
+                maPhieu,
+                soLuong: { $gt: 0 }
+            },
+            {
+                $inc: {
+                    soLuong: -1
+                }
+            }
+        );
+
+        if (borrowUpdate.modifiedCount === 0) {
+            throw new Error("So luong sach tren phieu khong hop le");
+        }
+    } catch (error) {
+        try {
+            await detailCollection.insertOne(detail);
+        } catch (restoreError) {
+            const rollbackError = new Error(
+                "Khong the cap nhat soLuong hoac khoi phuc borrow detail",
+            );
+            rollbackError.cause = error;
+            rollbackError.restoreError = restoreError;
+            throw rollbackError;
+        }
+
+        throw error;
+    }
 
     // Trả lại 1 quyển vào kho
     await bookCollection.updateOne(

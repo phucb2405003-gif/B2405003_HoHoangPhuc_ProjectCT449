@@ -43,10 +43,12 @@ async function create(user) {
 // Cập nhật theo mã độc giả
 async function update(maDocGia, user) {
     const collection = await getCollection();
+    const userToUpdate = { ...user };
+    delete userToUpdate.maDocGia;
 
     await collection.updateOne(
         { maDocGia: maDocGia },
-        { $set: user }
+        { $set: userToUpdate }
     );
 
     return await findOne(maDocGia);

@@ -81,6 +81,7 @@ async function create(book) {
 async function update(maSach, book) {
     const collection = await getCollection();
     const bookToUpdate = { ...book };
+    delete bookToUpdate.maSach;
 
     // Tồn kho chỉ thay đổi qua nghiệp vụ mượn và trả.
     delete bookToUpdate.soQuyen;

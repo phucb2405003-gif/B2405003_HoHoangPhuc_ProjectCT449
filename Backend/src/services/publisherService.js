@@ -75,6 +75,7 @@ async function create(publisher) {
 async function update(maNXB, publisher) {
     const collection = await getCollection();
     const publisherToUpdate = { ...publisher };
+    delete publisherToUpdate.maNXB;
 
     if (publisherToUpdate.tenNXB !== undefined) {
         publisherToUpdate.tenNXB = normalizeWhitespace(

@@ -57,6 +57,18 @@ async function create(req, res) {
 
         res.status(201).json(newAccount);
     } catch (error) {
+        if (error.code === "INVALID_PASSWORD") {
+            return res.status(400).json({
+                message: error.message
+            });
+        }
+
+        if (error.code === "LINKED_ENTITY_NOT_FOUND") {
+            return res.status(400).json({
+                message: error.message
+            });
+        }
+
         if (error.code === "DUPLICATE_USERNAME") {
             return res.status(409).json({
                 message: "Ten dang nhap da ton tai"
@@ -94,6 +106,12 @@ async function update(req, res) {
 
         res.json(updatedAccount);
     } catch (error) {
+        if (error.code === "INVALID_PASSWORD") {
+            return res.status(400).json({
+                message: error.message
+            });
+        }
+
         if (error.code === "DUPLICATE_USERNAME") {
             return res.status(409).json({
                 message: "Ten dang nhap da ton tai"
