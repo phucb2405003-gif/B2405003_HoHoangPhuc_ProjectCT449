@@ -40,7 +40,7 @@ async function findByMaPhieu(maPhieu) {
 // XÓA SÁCH KHỎI PHIẾU - CHỈ DÙNG TRONG TRƯỜNG HỢP ĐẶC BIỆT
 // =====================================================
 
-async function remove(maPhieu, maSach) {
+async function remove(maPhieu, maSach, requester) {
     const db = await connectDB();
 
     const borrowCollection =
@@ -62,6 +62,34 @@ async function remove(maPhieu, maSach) {
         return {
             notFound: true
         };
+    }
+
+    if (requester?.loaiTaiKhoan === "DOCGIA") {
+        const readerId = requester.maDocGia || requester.maTaiKhoan;
+
+        if (!readerId || borrow.maDocGia !== readerId) {
+            return {
+                forbidden: true
+            };
+        }
+
+        const borrowDetails = await detailCollection
+            .find({ maPhieu })
+            .project({ trangThai: 1 })
+            .toArray();
+        const borrowIsPending =
+            (borrow.trangThai === undefined ||
+                borrow.trangThai === PENDING) &&
+            borrowDetails.length > 0 &&
+            borrowDetails.every(
+                (borrowDetail) => borrowDetail.trangThai === PENDING
+            );
+
+        if (!borrowIsPending) {
+            return {
+                invalidStatus: true
+            };
+        }
     }
 
     // Kiểm tra chi tiết
@@ -87,7 +115,8 @@ async function remove(maPhieu, maSach) {
     // Xóa detail
     const deleteResult = await detailCollection.deleteOne({
         maPhieu,
-        maSach
+        maSach,
+        trangThai: PENDING
     });
 
     if (deleteResult.deletedCount === 0) {

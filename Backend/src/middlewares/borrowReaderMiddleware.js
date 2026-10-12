@@ -1,6 +1,25 @@
 const connectDB = require("../config/database");
 const { BORROW_COLLECTION } = require("../models/Borrow");
 
+function allowReaderOrManager(req, res, next) {
+    if (!req.user) {
+        return res.status(401).json({
+            message: "Chua dang nhap"
+        });
+    }
+
+    if (
+        req.user.loaiTaiKhoan === "DOCGIA" ||
+        req.user.chucVu === "Quản lý"
+    ) {
+        return next();
+    }
+
+    return res.status(403).json({
+        message: "Ban khong co quyen xoa sach khoi phieu muon"
+    });
+}
+
 async function allowOwnBorrow(req, res, next) {
     try {
         if (!req.user) {
@@ -48,5 +67,6 @@ async function allowOwnBorrow(req, res, next) {
 }
 
 module.exports = {
-    allowOwnBorrow
+    allowOwnBorrow,
+    allowReaderOrManager
 };

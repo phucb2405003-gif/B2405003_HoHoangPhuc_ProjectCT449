@@ -5,7 +5,10 @@ const borrowDetailController = require("../controllers/borrowDetailController");
 
 const { authenticateToken } = require("../middlewares/authMiddleware");
 const { allowRoles } = require("../middlewares/roleMiddleware");
-const { allowOwnBorrow } = require("../middlewares/borrowReaderMiddleware");
+const {
+    allowOwnBorrow,
+    allowReaderOrManager
+} = require("../middlewares/borrowReaderMiddleware");
 
 const router = express.Router();
 
@@ -148,7 +151,7 @@ router.put(
 router.delete(
     "/:maPhieu/borrow-details/:maSach",
     authenticateToken,
-    allowRoles("Quản lý"),
+    allowReaderOrManager,
     borrowDetailController.remove
 );
 

@@ -52,8 +52,16 @@ async function remove(req, res) {
         const result =
             await borrowDetailService.remove(
                 maPhieu,
-                maSach
+                maSach,
+                req.user
             );
+
+        if (result.forbidden) {
+            return res.status(403).json({
+                message:
+                    "Ban khong co quyen xoa sach khoi phieu muon nay"
+            });
+        }
 
         if (result.notFound) {
             return res.status(404).json({
@@ -70,7 +78,7 @@ async function remove(req, res) {
         }
 
         if (result.invalidStatus) {
-            return res.status(400).json({
+            return res.status(403).json({
                 message:
                     "Chi duoc xoa sach khi phieu dang cho duyet"
             });
