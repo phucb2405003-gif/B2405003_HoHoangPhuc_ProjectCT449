@@ -142,6 +142,21 @@ router.put(
     borrowController.returnBook
 );
 
+// Xoa toan bo phieu truc tuyen dang cho duyet
+router.delete(
+    "/:maPhieu",
+    authenticateToken,
+    (req, res, next) => {
+        if (req.user.loaiTaiKhoan !== "DOCGIA") {
+            return res.status(403).json({
+                message: "Chi doc gia moi duoc xoa phieu muon cua minh"
+            });
+        }
+        return next();
+    },
+    borrowController.remove
+);
+
 // =====================================================
 // TRUONG HOP DAC BIET:
 // XOA MOT SACH KHOI CHI TIET KHI PHIEU CHUA DUYET

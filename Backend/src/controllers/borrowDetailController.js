@@ -95,10 +95,15 @@ async function remove(req, res) {
             error
         );
 
-        res.status(400).json({
-            message:
-                error.message ||
-                "Khong the xoa sach khoi phieu muon"
+        const statusCode = Number.isInteger(error.statusCode) &&
+            error.statusCode >= 400 &&
+            error.statusCode <= 599
+            ? error.statusCode
+            : 500;
+        res.status(statusCode).json({
+            message: statusCode < 500
+                ? (error.publicMessage || error.message || "Khong the xoa sach khoi phieu muon")
+                : (error.publicMessage || "Khong the xoa sach khoi phieu muon")
         });
     }
 }

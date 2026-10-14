@@ -1,5 +1,19 @@
 const borrowService = require("../services/borrowService");
 
+function serviceErrorResponse(res, error, operation, fallbackMessage) {
+    console.error(`Loi ${operation}:`, error);
+    const statusCode = Number.isInteger(error.statusCode) &&
+        error.statusCode >= 400 &&
+        error.statusCode <= 599
+        ? error.statusCode
+        : 500;
+    const message = statusCode < 500
+        ? (error.publicMessage || error.message || fallbackMessage)
+        : (error.publicMessage || fallbackMessage);
+
+    return res.status(statusCode).json({ message });
+}
+
 async function findAll(req, res) {
     try {
         res.json(await borrowService.findAll());
@@ -75,17 +89,48 @@ async function create(req, res) {
 
         res.status(201).json(borrow);
     } catch (error) {
-        console.error("Loi tao phieu muon:", error);
+        return serviceErrorResponse(
+            res,
+            error,
+            `tao phieu muon ${req.user?.maTaiKhoan || "unknown"}`,
+            "Khong the tao phieu muon"
+        );
+    }
+}
 
-        const badRequest =
-            /phải|trùng|Thiếu|Không tìm thấy|không đủ|đã hết|khong|Khong/i.test(
-                error.message
-            );
+async function remove(req, res) {
+    try {
+        const result = await borrowService.deletePendingBorrow(
+            req.params.maPhieu,
+            req.user
+        );
 
-        res.status(badRequest ? 400 : 500).json({
-            message:
-                error.message || "Khong the tao phieu muon"
-        });
+        if (result.notFound) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
+
+        if (result.forbidden) {
+            return res.status(403).json({
+                message: "Ban khong co quyen xoa phieu muon nay"
+            });
+        }
+
+        if (result.invalidStatus) {
+            return res.status(400).json({
+                message: "Chi duoc xoa phieu truc tuyen khi tat ca sach dang cho duyet"
+            });
+        }
+
+        return res.json({ message: "Xoa phieu muon thanh cong" });
+    } catch (error) {
+        return serviceErrorResponse(
+            res,
+            error,
+            `xoa phieu muon ${req.params.maPhieu}`,
+            "Khong the xoa phieu muon"
+        );
     }
 }
 
@@ -116,11 +161,12 @@ async function approve(req, res) {
             borrow: result.borrow
         });
     } catch (error) {
-        console.error("Loi duyet phieu muon:", error);
-
-        res.status(500).json({
-            message: "Khong the duyet phieu muon"
-        });
+        return serviceErrorResponse(
+            res,
+            error,
+            `duyet phieu muon ${req.params.maPhieu}`,
+            "Khong the duyet phieu muon"
+        );
     }
 }
 
@@ -131,7 +177,7 @@ async function reject(req, res) {
             req.params.maPhieu,
             borrowService.STATUSES.REJECTED,
             req.user.maTaiKhoan,
-            req.body.lyDoTuChoi
+            req.body?.lyDoTuChoi
         );
 
         if (result.notFound) {
@@ -152,11 +198,12 @@ async function reject(req, res) {
             borrow: result.borrow
         });
     } catch (error) {
-        console.error("Loi tu choi phieu muon:", error);
-
-        res.status(500).json({
-            message: "Khong the tu choi phieu muon"
-        });
+        return serviceErrorResponse(
+            res,
+            error,
+            `tu choi phieu muon ${req.params.maPhieu}`,
+            "Khong the tu choi phieu muon"
+        );
     }
 }
 
@@ -193,11 +240,12 @@ async function returnBook(req, res) {
             detail: result.detail
         });
     } catch (error) {
-        console.error("Loi tra sach:", error);
-
-        res.status(500).json({
-            message: "Khong the tra sach"
-        });
+        return serviceErrorResponse(
+            res,
+            error,
+            `tra sach ${req.params.maSach} trong phieu ${req.params.maPhieu}`,
+            "Khong the tra sach"
+        );
     }
 }
 
@@ -208,5 +256,6 @@ module.exports = {
     create,
     approve,
     reject,
-    returnBook
+    returnBook,
+    remove
 };
