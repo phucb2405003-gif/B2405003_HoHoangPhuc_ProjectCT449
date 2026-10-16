@@ -331,7 +331,11 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
         const dueAt = addOneCalendarMonth(approvedAt);
         const parentFields = nextStatus === STATUSES.BORROWED
             ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt }
-            : { trangThai: BORROW_STATUSES.REJECTED, ...(lyDoTuChoi ? { lyDoTuChoi } : {}) };
+            : {
+                trangThai: BORROW_STATUSES.REJECTED,
+                maNhanVien,
+                ...(lyDoTuChoi ? { lyDoTuChoi } : {})
+            };
         let stateUpdateAttempted = false;
         let parentUpdateAttempted = false;
         try {
