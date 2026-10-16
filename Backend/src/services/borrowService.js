@@ -51,6 +51,27 @@ function normalizeDetails(details) {
     });
 }
 
+function addOneCalendarMonth(date) {
+    const source = new Date(date);
+    const year = source.getUTCFullYear();
+    const month = source.getUTCMonth();
+    const day = source.getUTCDate();
+    const targetMonthStart = new Date(Date.UTC(year, month + 1, 1));
+    const lastDay = new Date(Date.UTC(
+        targetMonthStart.getUTCFullYear(),
+        targetMonthStart.getUTCMonth() + 1,
+        0
+    )).getUTCDate();
+    targetMonthStart.setUTCDate(Math.min(day, lastDay));
+    targetMonthStart.setUTCHours(
+        source.getUTCHours(),
+        source.getUTCMinutes(),
+        source.getUTCSeconds(),
+        source.getUTCMilliseconds()
+    );
+    return targetMonthStart;
+}
+
 async function getCollection() {
     const db = await connectDB();
     return db.collection(BORROW_COLLECTION);
@@ -202,6 +223,7 @@ async function create(borrow) {
                 reserved.push(receipt);
             }
 
+            const ngayMuon = direct ? new Date() : null;
             const record = {
                 _id: borrowId,
                 maPhieu,
@@ -210,7 +232,7 @@ async function create(borrow) {
                 soLuong: details.length,
                 trangThai: direct ? BORROW_STATUSES.APPROVED : BORROW_STATUSES.PENDING,
                 ngayYeuCau: direct ? null : new Date(),
-                ngayMuon: direct ? new Date() : null
+                ngayMuon
             };
             await assertOwned();
             borrowInsertAttempted = true;
@@ -223,7 +245,7 @@ async function create(borrow) {
                 _id: detailIds[index],
                 maPhieu,
                 maSach: detail.maSach,
-                hanTra: detail.hanTra,
+                hanTra: direct ? addOneCalendarMonth(ngayMuon) : null,
                 ngayTra: null,
                 trangThai: direct ? STATUSES.BORROWED : STATUSES.PENDING
             }));
@@ -306,6 +328,7 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
         const detailIds = pendingDetails.map((detail) => detail._id);
         const stockReceipts = [];
         const approvedAt = new Date();
+        const dueAt = addOneCalendarMonth(approvedAt);
         const parentFields = nextStatus === STATUSES.BORROWED
             ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt }
             : { trangThai: BORROW_STATUSES.REJECTED, ...(lyDoTuChoi ? { lyDoTuChoi } : {}) };
@@ -328,7 +351,10 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
                     maPhieu,
                     trangThai: STATUSES.PENDING
                 },
-                { $set: { trangThai: nextStatus } }
+                { $set: {
+                    trangThai: nextStatus,
+                    ...(nextStatus === STATUSES.BORROWED ? { hanTra: dueAt } : {})
+                } }
             );
             if (changed.modifiedCount !== pendingDetails.length) {
                 throw new Error("So chi tiet duoc cap nhat khong khop du lieu da doc");
@@ -353,14 +379,42 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
             if (stateUpdateAttempted) {
                 try {
                     await assertOwned();
-                    await detailCollection.updateMany(
-                        {
-                            _id: { $in: detailIds },
+                    for (const detail of pendingDetails) {
+                        const currentDetail = await detailCollection.findOne({ _id: detail._id, maPhieu });
+                        const originalHanTraMatches =
+                            Object.prototype.hasOwnProperty.call(currentDetail || {}, "hanTra") ===
+                                Object.prototype.hasOwnProperty.call(detail, "hanTra") &&
+                            (!Object.prototype.hasOwnProperty.call(detail, "hanTra") ||
+                                (currentDetail.hanTra instanceof Date && detail.hanTra instanceof Date
+                                    ? currentDetail.hanTra.getTime() === detail.hanTra.getTime()
+                                    : currentDetail.hanTra === detail.hanTra));
+                        if (currentDetail?.trangThai === STATUSES.PENDING && originalHanTraMatches) {
+                            continue;
+                        }
+                        const restore = { $set: { trangThai: STATUSES.PENDING } };
+                        if (Object.prototype.hasOwnProperty.call(detail, "hanTra")) {
+                            restore.$set.hanTra = detail.hanTra;
+                        } else {
+                            restore.$unset = { hanTra: "" };
+                        }
+                        const detailRollbackFilter = {
+                            _id: detail._id,
                             maPhieu,
-                            trangThai: nextStatus
-                        },
-                        { $set: { trangThai: STATUSES.PENDING } }
-                    );
+                            trangThai: nextStatus,
+                            ...(nextStatus === STATUSES.BORROWED
+                                ? { hanTra: dueAt }
+                                : Object.prototype.hasOwnProperty.call(detail, "hanTra")
+                                    ? { hanTra: detail.hanTra }
+                                    : { hanTra: { $exists: false } })
+                        };
+                        const restoredDetail = await detailCollection.updateOne(
+                            detailRollbackFilter,
+                            restore
+                        );
+                        if (restoredDetail.matchedCount !== 1) {
+                            throw new Error("Khong the khoi phuc ngay han va trang thai chi tiet");
+                        }
+                    }
                     const changedRemain = await detailCollection.countDocuments({
                         _id: { $in: detailIds },
                         maPhieu,
@@ -672,5 +726,6 @@ module.exports = {
     returnBook,
     deletePendingBorrow,
     STATUSES,
-    BORROW_STATUSES
+    BORROW_STATUSES,
+    addOneCalendarMonth
 };
