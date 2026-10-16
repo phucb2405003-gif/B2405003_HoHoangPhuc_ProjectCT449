@@ -15,6 +15,12 @@ const STATUSES = {
     REJECTED: "Từ chối",
     CANCELLED: "Hủy"
 };
+const BORROW_STATUSES = {
+    PENDING: "Chờ duyệt",
+    APPROVED: "Đã duyệt",
+    REJECTED: "Từ chối",
+    CANCELLED: "Hủy"
+};
 const MAX_BOOKS_PER_BORROW = 5;
 const MAX_ACTIVE_BOOKS = 5;
 const MAX_PENDING_BORROWS = 3;
@@ -60,6 +66,23 @@ async function findOne(maPhieu) {
 
 async function findByMaDocGia(maDocGia) {
     return (await getCollection()).find({ maDocGia }).toArray();
+}
+
+async function getBorrowStatus(borrow, detailCollection) {
+    if (Object.prototype.hasOwnProperty.call(borrow, "trangThai")) return borrow.trangThai;
+
+    // Legacy parent records have no status. Infer only unambiguous states from
+    // their detail rows; leave mixed or empty histories non-actionable.
+    const details = await detailCollection.find({ maPhieu: borrow.maPhieu }).toArray();
+    if (!details.length) return null;
+    const statuses = new Set(details.map((detail) => detail.trangThai));
+    if (statuses.size === 1 && statuses.has(STATUSES.PENDING)) return BORROW_STATUSES.PENDING;
+    if (statuses.size === 1 && statuses.has(STATUSES.REJECTED)) return BORROW_STATUSES.REJECTED;
+    if (statuses.size === 1 && statuses.has(STATUSES.CANCELLED)) return BORROW_STATUSES.CANCELLED;
+    if (details.every((detail) => [STATUSES.BORROWED, STATUSES.RETURNED].includes(detail.trangThai))) {
+        return BORROW_STATUSES.APPROVED;
+    }
+    return null;
 }
 
 function makeRollbackError(message, originalError, rollbackErrors) {
@@ -185,6 +208,7 @@ async function create(borrow) {
                 maDocGia: borrow.maDocGia,
                 maNhanVien: direct ? borrow.maNhanVien : null,
                 soLuong: details.length,
+                trangThai: direct ? BORROW_STATUSES.APPROVED : BORROW_STATUSES.PENDING,
                 ngayYeuCau: direct ? null : new Date(),
                 ngayMuon: direct ? new Date() : null
             };
@@ -267,18 +291,24 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
         const borrow = await borrowCollection.findOne({ maPhieu });
         if (!borrow) return { notFound: true };
 
-        const pendingDetails = await detailCollection.find({
-            maPhieu,
-            trangThai: STATUSES.PENDING
-        }).toArray();
-        if (!pendingDetails.length) return { invalidStatus: true };
-        if (![STATUSES.BORROWED, STATUSES.REJECTED, STATUSES.CANCELLED].includes(nextStatus)) {
+        if (await getBorrowStatus(borrow, detailCollection) !== BORROW_STATUSES.PENDING) {
+            return { invalidStatus: true };
+        }
+        const allDetails = await detailCollection.find({ maPhieu }).toArray();
+        if (!allDetails.length || allDetails.some((detail) => detail.trangThai !== STATUSES.PENDING)) {
+            return { invalidStatus: true };
+        }
+        const pendingDetails = allDetails;
+        if (![STATUSES.BORROWED, STATUSES.REJECTED].includes(nextStatus)) {
             return { invalidStatus: true };
         }
 
         const detailIds = pendingDetails.map((detail) => detail._id);
         const stockReceipts = [];
         const approvedAt = new Date();
+        const parentFields = nextStatus === STATUSES.BORROWED
+            ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt }
+            : { trangThai: BORROW_STATUSES.REJECTED, ...(lyDoTuChoi ? { lyDoTuChoi } : {}) };
         let stateUpdateAttempted = false;
         let parentUpdateAttempted = false;
         try {
@@ -304,26 +334,17 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
                 throw new Error("So chi tiet duoc cap nhat khong khop du lieu da doc");
             }
 
-            if (nextStatus === STATUSES.BORROWED) {
-                await assertOwned();
-                parentUpdateAttempted = true;
-                const parentUpdate = await borrowCollection.updateOne(
-                    { _id: borrow._id, maPhieu },
-                    { $set: { maNhanVien, ngayMuon: approvedAt } }
-                );
-                if (parentUpdate.matchedCount !== 1) {
-                    throw new Error("Khong the cap nhat thong tin phieu muon");
-                }
-            } else if (lyDoTuChoi) {
-                await assertOwned();
-                parentUpdateAttempted = true;
-                const parentUpdate = await borrowCollection.updateOne(
-                    { _id: borrow._id, maPhieu },
-                    { $set: { lyDoTuChoi } }
-                );
-                if (parentUpdate.matchedCount !== 1) {
-                    throw new Error("Khong the luu ly do tu choi");
-                }
+            await assertOwned();
+            parentUpdateAttempted = true;
+            const parentStatusFilter = Object.prototype.hasOwnProperty.call(borrow, "trangThai")
+                ? { trangThai: borrow.trangThai }
+                : { trangThai: { $exists: false } };
+            const parentUpdate = await borrowCollection.updateOne(
+                { _id: borrow._id, maPhieu, ...parentStatusFilter },
+                { $set: parentFields }
+            );
+            if (parentUpdate.matchedCount !== 1) {
+                throw new Error("Khong the cap nhat trang thai phieu muon");
             }
         } catch (error) {
             stopOnUncertainStockChange(error);
@@ -356,47 +377,44 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
             if (parentUpdateAttempted && rollbackErrors.length === 0) {
                 try {
                     await assertOwned();
-                    if (nextStatus === STATUSES.BORROWED) {
+                    const currentBorrow = await borrowCollection.findOne({ _id: borrow._id, maPhieu });
+                    if (!currentBorrow) {
+                        throw new Error("Khong tim thay phieu de rollback trang thai");
+                    }
+                    const sameValue = (left, right) =>
+                        left instanceof Date && right instanceof Date
+                            ? left.getTime() === right.getTime()
+                            : left === right;
+                    const fields = Object.keys(parentFields);
+                    const alreadyOriginal = fields.every((field) =>
+                        Object.prototype.hasOwnProperty.call(currentBorrow, field) ===
+                            Object.prototype.hasOwnProperty.call(borrow, field) &&
+                        (!Object.prototype.hasOwnProperty.call(borrow, field) ||
+                            sameValue(currentBorrow[field], borrow[field]))
+                    );
+                    if (alreadyOriginal) {
+                        // The parent update failed before applying; nothing to restore.
+                    } else if (currentBorrow.trangThai !== parentFields.trangThai) {
+                        throw new Error("Trang thai phieu khong khop khi rollback");
+                    } else {
                         const set = {};
                         const unset = {};
-                        for (const field of ["maNhanVien", "ngayMuon"]) {
+                        for (const field of fields) {
                             if (Object.prototype.hasOwnProperty.call(borrow, field)) {
                                 set[field] = borrow[field];
                             } else {
                                 unset[field] = "";
                             }
                         }
-                        const filter = {
-                            _id: borrow._id,
-                            maPhieu,
-                            maNhanVien,
-                            ngayMuon: approvedAt
-                        };
                         const update = {};
                         if (Object.keys(set).length) update.$set = set;
                         if (Object.keys(unset).length) update.$unset = unset;
-                        const result = await borrowCollection.updateOne(filter, update);
-                        if (result.matchedCount !== 1) {
-                            throw new Error("Thong tin phieu da thay doi, khong the rollback an toan");
-                        }
-                    } else if (lyDoTuChoi) {
-                        const set = {};
-                        const unset = {};
-                        if (Object.prototype.hasOwnProperty.call(borrow, "lyDoTuChoi")) {
-                            set.lyDoTuChoi = borrow.lyDoTuChoi;
-                        } else {
-                            unset.lyDoTuChoi = "";
-                        }
-                        const restoredReason = await borrowCollection.updateOne(
-                            { _id: borrow._id, maPhieu, lyDoTuChoi },
-                            { ...(Object.keys(set).length ? { $set: set } : {}),
-                                ...(Object.keys(unset).length ? { $unset: unset } : {}) }
+                        const restoredParent = await borrowCollection.updateOne(
+                            { _id: borrow._id, maPhieu, trangThai: parentFields.trangThai },
+                            update
                         );
-                        if (restoredReason.matchedCount !== 1) {
-                            const currentBorrow = await borrowCollection.findOne({ _id: borrow._id });
-                            if (currentBorrow?.lyDoTuChoi !== borrow.lyDoTuChoi) {
-                                throw new Error("Khong the khoi phuc ly do tu choi");
-                            }
+                        if (restoredParent.matchedCount !== 1) {
+                            throw new Error("Khong the rollback trang thai phieu muon");
                         }
                     }
                 } catch (rollbackError) {
@@ -437,6 +455,9 @@ async function returnBook(maPhieu, maSach) {
         if (!borrow) return { notFound: true };
         const detail = await detailCollection.findOne({ maPhieu, maSach });
         if (!detail) return { detailNotFound: true };
+        if (await getBorrowStatus(borrow, detailCollection) !== BORROW_STATUSES.APPROVED) {
+            return { invalidStatus: true };
+        }
         if (detail.trangThai !== STATUSES.BORROWED) return { invalidStatus: true };
 
         const ngayTra = new Date();
@@ -517,6 +538,9 @@ async function deletePendingBorrow(maPhieu, requester) {
         if (requester?.loaiTaiKhoan !== "DOCGIA") return { forbidden: true };
         const readerId = requester.maDocGia || requester.maTaiKhoan;
         if (!readerId || borrow.maDocGia !== readerId) return { forbidden: true };
+        if (await getBorrowStatus(borrow, detailCollection) !== BORROW_STATUSES.PENDING) {
+            return { invalidStatus: true };
+        }
         if (borrow.maNhanVien || !borrow.ngayYeuCau) return { invalidStatus: true };
 
         const details = await detailCollection.find({ maPhieu }).toArray();
@@ -525,72 +549,103 @@ async function deletePendingBorrow(maPhieu, requester) {
         }
 
         const restored = [];
-        let parentDeleteAttempted = false;
+        let detailUpdateAttempted = false;
+        let parentUpdateAttempted = false;
+        const cancelledAt = new Date();
         try {
             for (const detail of details) {
                 const receipt = await restoreStock(bookCollection, detail.maSach, 1, assertOwned);
                 restored.push(receipt);
             }
             await assertOwned();
-            const deleteDetails = await detailCollection.deleteMany({
+            detailUpdateAttempted = true;
+            const changedDetails = await detailCollection.updateMany({
                 maPhieu,
                 trangThai: STATUSES.PENDING
-            });
-            if (deleteDetails.deletedCount !== details.length) {
-                throw new Error("Khong the xoa day du chi tiet phieu muon");
+            }, { $set: { trangThai: STATUSES.CANCELLED } });
+            if (changedDetails.modifiedCount !== details.length) {
+                throw new Error("Khong the huy day du chi tiet phieu muon");
             }
             await assertOwned();
-            parentDeleteAttempted = true;
-            const deleteBorrow = await borrowCollection.deleteOne({
+            parentUpdateAttempted = true;
+            const parentStatusFilter = Object.prototype.hasOwnProperty.call(borrow, "trangThai")
+                ? { trangThai: borrow.trangThai }
+                : { trangThai: { $exists: false } };
+            const updateBorrow = await borrowCollection.updateOne({
                 _id: borrow._id,
-                maPhieu
-            });
-            if (deleteBorrow.deletedCount !== 1) {
-                throw new Error("Khong the xoa phieu muon");
+                maPhieu,
+                ...parentStatusFilter
+            }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: cancelledAt } });
+            if (updateBorrow.matchedCount !== 1) {
+                throw new Error("Khong the cap nhat trang thai phieu muon");
             }
-            if (await borrowCollection.findOne({ _id: borrow._id })) {
-                throw new Error("Phieu muon van con sau thao tac xoa");
-            }
-            return { deleted: true };
+            return { cancelled: true, borrow: await findOne(maPhieu) };
         } catch (error) {
             stopOnUncertainStockChange(error);
-            let currentBorrow;
-            try {
-                currentBorrow = await borrowCollection.findOne({ _id: borrow._id, maPhieu });
-            } catch (readError) {
-                throw makeRollbackError(
-                    "Khong xac dinh duoc ket qua xoa phieu; can doi soat du lieu",
-                    error,
-                    [readError]
-                );
-            }
-            if (!currentBorrow && parentDeleteAttempted) {
-                // Parent deletion is the final write. Its absence confirms the whole
-                // standalone sequence reached its successful end despite an error reply.
-                return { deleted: true };
-            }
-
             const rollbackErrors = [];
-            try {
-                await assertOwned();
-                const present = await detailCollection.find(
-                    { maPhieu },
-                    { projection: { _id: 1 } }
-                ).toArray();
-                const presentIds = new Set(present.map((item) => String(item._id)));
-                const missing = details.filter((item) => !presentIds.has(String(item._id)));
-                if (missing.length) {
-                    const restoredDetails = await detailCollection.insertMany(missing);
-                    if (restoredDetails.insertedCount !== missing.length) {
-                        throw new Error("Khong the khoi phuc day du chi tiet phieu");
+            if (parentUpdateAttempted) {
+                try {
+                    await assertOwned();
+                    const currentBorrow = await borrowCollection.findOne({ _id: borrow._id, maPhieu });
+                    if (!currentBorrow) {
+                        throw new Error("Khong tim thay phieu de rollback trang thai");
                     }
-                }
-                const remainingDetails = await detailCollection.countDocuments({ maPhieu });
-                if (remainingDetails !== details.length) {
-                    throw new Error("Khong the khoi phuc day du chi tiet phieu");
-                }
-            } catch (rollbackError) {
-                rollbackErrors.push(rollbackError);
+                    const sameValue = (left, right) =>
+                        left instanceof Date && right instanceof Date
+                            ? left.getTime() === right.getTime()
+                            : left === right;
+                    const fields = ["trangThai", "ngayHuy"];
+                    const alreadyOriginal = fields.every((field) =>
+                        Object.prototype.hasOwnProperty.call(currentBorrow, field) ===
+                            Object.prototype.hasOwnProperty.call(borrow, field) &&
+                        (!Object.prototype.hasOwnProperty.call(borrow, field) ||
+                            sameValue(currentBorrow[field], borrow[field]))
+                    );
+                    if (alreadyOriginal) {
+                        // The parent update failed before applying; nothing to restore.
+                    } else if (currentBorrow.trangThai !== BORROW_STATUSES.CANCELLED ||
+                        !sameValue(currentBorrow.ngayHuy, cancelledAt)) {
+                        throw new Error("Trang thai phieu khong khop khi rollback");
+                    } else {
+                        const set = {};
+                        const unset = {};
+                        for (const field of fields) {
+                            if (Object.prototype.hasOwnProperty.call(borrow, field)) {
+                                set[field] = borrow[field];
+                            } else {
+                                unset[field] = "";
+                            }
+                        }
+                        const update = {};
+                        if (Object.keys(set).length) update.$set = set;
+                        if (Object.keys(unset).length) update.$unset = unset;
+                        const restoredBorrow = await borrowCollection.updateOne(
+                            {
+                                _id: borrow._id,
+                                maPhieu,
+                                trangThai: BORROW_STATUSES.CANCELLED,
+                                ngayHuy: cancelledAt
+                            },
+                            update
+                        );
+                        if (restoredBorrow.matchedCount !== 1) {
+                            throw new Error("Khong the rollback trang thai phieu");
+                        }
+                    }
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+            }
+            if (detailUpdateAttempted && rollbackErrors.length === 0) {
+                try {
+                    await assertOwned();
+                    await detailCollection.updateMany(
+                        { maPhieu, trangThai: STATUSES.CANCELLED },
+                        { $set: { trangThai: STATUSES.PENDING } }
+                    );
+                    const remaining = await detailCollection.countDocuments({ maPhieu, trangThai: STATUSES.CANCELLED });
+                    if (remaining !== 0) {
+                        throw new Error("Khong the rollback chi tiet ve cho duyet");
+                    }
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
             }
             for (const receipt of rollbackErrors.length ? [] : restored.reverse()) {
                 try {
@@ -601,7 +656,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                 }
             }
             if (rollbackErrors.length) {
-                throw makeRollbackError("Xoa phieu that bai va rollback khong hoan tat", error, rollbackErrors);
+                throw makeRollbackError("Huy phieu that bai va rollback khong hoan tat", error, rollbackErrors);
             }
             throw error;
         }
@@ -616,5 +671,6 @@ module.exports = {
     changeStatus,
     returnBook,
     deletePendingBorrow,
-    STATUSES
+    STATUSES,
+    BORROW_STATUSES
 };

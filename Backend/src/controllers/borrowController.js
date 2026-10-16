@@ -123,13 +123,13 @@ async function remove(req, res) {
             });
         }
 
-        return res.json({ message: "Xoa phieu muon thanh cong" });
+        return res.json({ message: "Huy phieu muon thanh cong" });
     } catch (error) {
         return serviceErrorResponse(
             res,
             error,
-            `xoa phieu muon ${req.params.maPhieu}`,
-            "Khong the xoa phieu muon"
+            `huy phieu muon ${req.params.maPhieu}`,
+            "Khong the huy phieu muon"
         );
     }
 }
