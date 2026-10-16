@@ -1,4 +1,5 @@
 const borrowDetailService = require("../services/borrowDetailService");
+const borrowService = require("../services/borrowService");
 
 // Lấy tất cả chi tiết phiếu mượn
 async function findAll(req, res) {
@@ -24,6 +25,15 @@ async function findAll(req, res) {
 async function findByMaPhieu(req, res) {
     try {
         const { maPhieu } = req.params;
+
+        // Chi tiet co the khong co dong nao; kiem tra phieu cha truoc de
+        // phan biet truong hop do voi ma phieu khong ton tai.
+        const borrow = await borrowService.findOne(maPhieu);
+        if (!borrow) {
+            return res.status(404).json({
+                message: "Khong tim thay phieu muon"
+            });
+        }
 
         const borrowDetails =
             await borrowDetailService.findByMaPhieu(
