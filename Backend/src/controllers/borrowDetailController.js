@@ -95,8 +95,9 @@ async function remove(req, res) {
         }
 
         res.json({
-            message:
-                "Xoa sach khoi phieu muon thanh cong",
+            message: `Đã xóa sách "${result.tenSach}" khỏi phiếu mượn ${maPhieu}.`,
+            maPhieu,
+            tenSach: result.tenSach,
             detail: result.detail
         });
     } catch (error) {

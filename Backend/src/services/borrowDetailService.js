@@ -127,6 +127,12 @@ async function remove(maPhieu, maSach, requester) {
         if (detail.trangThai !== PENDING) return { invalidStatus: true };
 
         const totalDetails = await detailCollection.countDocuments({ maPhieu });
+        const book = await bookCollection.findOne({ maSach });
+        if (!book) {
+            const error = new Error(`Khong tim thay sach ${maSach}`);
+            error.statusCode = 404;
+            throw error;
+        }
         const receipt = await changeAvailable(bookCollection, maSach, 1, assertOwned);
         let detailDeleteAttempted = false;
         let quantityUpdateAttempted = false;
@@ -166,7 +172,11 @@ async function remove(maPhieu, maSach, requester) {
                 }
             }
 
-            return { detail: { maPhieu, maSach, trangThai: PENDING }, borrowDeleted: totalDetails === 1 };
+            return {
+                detail: { maPhieu, maSach, trangThai: PENDING },
+                tenSach: book.tenSach || maSach,
+                borrowDeleted: totalDetails === 1
+            };
         } catch (error) {
             const rollbackErrors = [];
             let parentExists = true;
