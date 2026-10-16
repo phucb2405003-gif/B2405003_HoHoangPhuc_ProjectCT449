@@ -6,10 +6,12 @@ const { withBorrowOperationLock } = require("./borrowOperationLock");
 const { changeAvailable, undoAvailableChange } = require("./bookStockService");
 const { isDeepStrictEqual } = require("node:util");
 
+const CANCELLED = "Hủy";
+
 const PENDING = "Chờ duyệt";
 const DETAIL_ROLLBACK_FIELDS = ["_id", "maPhieu", "maSach", "trangThai", "hanTra", "ngayTra"];
 const BORROW_ROLLBACK_FIELDS = [
-    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayMuon"
+    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayMuon", "trangThai"
 ];
 
 function matchesFields(actual, expected, fields) {
@@ -111,6 +113,9 @@ async function remove(maPhieu, maSach, requester) {
     return withBorrowOperationLock(db, async (assertOwned) => {
         const borrow = await borrowCollection.findOne({ maPhieu });
         if (!borrow) return { notFound: true };
+        if (Object.prototype.hasOwnProperty.call(borrow, "trangThai") && borrow.trangThai !== PENDING) {
+            return { invalidStatus: true };
+        }
 
         if (requester?.loaiTaiKhoan === "DOCGIA") {
             const readerId = requester.maDocGia || requester.maTaiKhoan;
@@ -135,9 +140,13 @@ async function remove(maPhieu, maSach, requester) {
         }
         const receipt = await changeAvailable(bookCollection, maSach, 1, assertOwned);
         let detailDeleteAttempted = false;
-        let quantityUpdateAttempted = false;
-        let quantityChanged = false;
-        let borrowDeleteAttempted = false;
+        let parentUpdateAttempted = false;
+        const parentFields = totalDetails === 1
+            ? { soLuong: 0, trangThai: CANCELLED }
+            : { soLuong: borrow.soLuong - 1 };
+        const originalStatusFilter = Object.prototype.hasOwnProperty.call(borrow, "trangThai")
+            ? { trangThai: borrow.trangThai }
+            : { trangThai: { $exists: false } };
 
         try {
             await assertOwned();
@@ -153,81 +162,68 @@ async function remove(maPhieu, maSach, requester) {
             }
 
             await assertOwned();
-            quantityUpdateAttempted = true;
+            parentUpdateAttempted = true;
             const borrowUpdate = await borrowCollection.updateOne(
-                { _id: borrow._id, maPhieu, soLuong: { $gt: 0 } },
-                { $inc: { soLuong: -1 } }
+                { _id: borrow._id, maPhieu, soLuong: borrow.soLuong, ...originalStatusFilter },
+                { $set: parentFields }
             );
             if (borrowUpdate.modifiedCount !== 1) {
-                throw new Error("So luong sach tren phieu khong hop le");
-            }
-            quantityChanged = true;
-
-            if (totalDetails === 1) {
-                await assertOwned();
-                borrowDeleteAttempted = true;
-                const deleteResult = await borrowCollection.deleteOne({ _id: borrow._id, maPhieu });
-                if (deleteResult.deletedCount !== 1) {
-                    throw new Error("Khong the xoa phieu rong");
-                }
+                throw new Error("Phieu muon da thay doi; khong the cap nhat so luong sach");
             }
 
             return {
                 detail: { maPhieu, maSach, trangThai: PENDING },
                 tenSach: book.tenSach || maSach,
-                borrowDeleted: totalDetails === 1
+                borrowCancelled: totalDetails === 1
             };
         } catch (error) {
             const rollbackErrors = [];
-            let parentExists = true;
-
-            if (borrowDeleteAttempted) {
+            if (parentUpdateAttempted) {
                 try {
-                    parentExists = Boolean(await borrowCollection.findOne({ _id: borrow._id }));
-                    if (!parentExists) {
-                        await assertOwned();
-                        const restoredBorrow = await borrowCollection.insertOne(borrow);
-                        if (!restoredBorrow.acknowledged) throw new Error("Khong the khoi phuc phieu muon");
-                        parentExists = true;
+                    const currentBorrow = await borrowCollection.findOne({ _id: borrow._id, maPhieu });
+                    if (!currentBorrow) {
+                        throw new Error("Khong tim thay phieu de rollback so luong va trang thai");
                     }
-                } catch (rollbackError) {
-                    rollbackErrors.push(rollbackError);
-                }
-            }
-
-            if (rollbackErrors.length === 0 && quantityChanged && parentExists) {
-                try {
-                    await assertOwned();
-                    const currentBorrow = await borrowCollection.findOne({ _id: borrow._id });
-                    if (currentBorrow?.soLuong === borrow.soLuong - 1) {
-                        const restoreQuantity = await borrowCollection.updateOne(
-                            { _id: borrow._id, maPhieu, soLuong: borrow.soLuong - 1 },
-                            { $set: { soLuong: borrow.soLuong } }
-                        );
-                        if (restoreQuantity.matchedCount !== 1) {
-                            throw new Error("So luong phieu da thay doi, khong the rollback an toan");
+                    const isOriginal = matchesFields(currentBorrow, borrow, ["soLuong", "trangThai"]);
+                    if (!isOriginal) {
+                        const expectedBorrow = { ...borrow, ...parentFields };
+                        if (!matchesFields(currentBorrow, expectedBorrow, ["soLuong", "trangThai"])) {
+                            throw new Error("Du lieu phieu da thay doi ngoai thao tac; khong the rollback an toan");
                         }
-                    } else if (currentBorrow?.soLuong !== borrow.soLuong) {
-                        throw new Error("Khong xac dinh duoc soLuong de rollback an toan");
-                    }
-                } catch (rollbackError) {
-                    rollbackErrors.push(rollbackError);
-                }
-            } else if (rollbackErrors.length === 0 && quantityUpdateAttempted && parentExists) {
-                try {
-                    const currentBorrow = await borrowCollection.findOne({ _id: borrow._id });
-                    if (currentBorrow?.soLuong === borrow.soLuong - 1) {
-                        await assertOwned();
-                        const restoreQuantity = await borrowCollection.updateOne(
-                            { _id: borrow._id, maPhieu, soLuong: borrow.soLuong - 1 },
-                            { $set: { soLuong: borrow.soLuong } }
-                        );
-                        if (restoreQuantity.matchedCount !== 1) {
-                            throw new Error("Khong the khoi phuc soLuong cua phieu");
+
+                        const restore = { $set: { soLuong: borrow.soLuong } };
+                        const expectedStatusFilter = {};
+                        if (Object.prototype.hasOwnProperty.call(borrow, "trangThai")) {
+                            restore.$set.trangThai = borrow.trangThai;
+                            expectedStatusFilter.trangThai = parentFields.trangThai ?? borrow.trangThai;
+                        } else {
+                            restore.$unset = { trangThai: "" };
+                            expectedStatusFilter.trangThai = parentFields.trangThai
+                                ? parentFields.trangThai
+                                : { $exists: false };
                         }
-                    } else if (currentBorrow?.soLuong !== borrow.soLuong) {
-                        throw new Error("Khong xac dinh duoc soLuong de rollback an toan");
+
+                        await assertOwned();
+                        const restoredBorrow = await borrowCollection.updateOne(
+                            {
+                                _id: borrow._id,
+                                maPhieu,
+                                soLuong: parentFields.soLuong,
+                                ...expectedStatusFilter
+                            },
+                            restore
+                        );
+                        if (restoredBorrow.matchedCount !== 1) {
+                            throw new Error("Khong the khoi phuc soLuong va trang thai phieu");
+                        }
                     }
+                    const verifiedBorrow = await findVerifiedRecord(
+                        borrowCollection,
+                        borrow,
+                        BORROW_ROLLBACK_FIELDS,
+                        assertOwned
+                    );
+                    if (!verifiedBorrow) throw new Error("Khong xac minh duoc phieu sau rollback");
                 } catch (rollbackError) {
                     rollbackErrors.push(rollbackError);
                 }
