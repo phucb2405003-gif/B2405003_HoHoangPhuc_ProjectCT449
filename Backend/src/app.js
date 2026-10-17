@@ -15,7 +15,21 @@ const { allowRoles } = require("./middlewares/roleMiddleware");
 
 const app = express();
 
-app.use(cors());
+const defaultCorsOrigins = [
+    "http://localhost:3001",
+    "http://localhost:3002"
+];
+const corsOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins.join(","))
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin(origin, callback) {
+        // Requests without Origin are typically non-browser clients; CORS does not apply.
+        callback(null, !origin || corsOrigins.includes(origin));
+    }
+}));
 app.use(express.json());
 
 // Route chính
