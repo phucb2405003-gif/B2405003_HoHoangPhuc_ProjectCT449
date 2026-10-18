@@ -64,6 +64,18 @@ async function update(req, res) {
 
         res.json(book); // Trả sách sau khi cập nhật
     } catch (error) {
+        if (error.code === "PUBLISHER_NOT_FOUND") {
+            return res.status(400).json({
+                message: "Mã nhà xuất bản không tồn tại",
+            });
+        }
+
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({
+                message: "Không tìm thấy sách",
+            });
+        }
+
         if (error.code === "DUPLICATE_NAME") {
             return res.status(409).json({
                 message: "Tên sách đã tồn tại",

@@ -1,6 +1,7 @@
 const connectDB = require("../config/database");
 const { BOOK_COLLECTION } = require("../models/Book");
 const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
+const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
 
@@ -81,7 +82,8 @@ async function create(book) {
 
 // Cập nhật theo mã sách
 async function update(maSach, book) {
-    const collection = await getCollection();
+    const db = await connectDB();
+    const collection = db.collection(BOOK_COLLECTION);
     const bookToUpdate = { ...book };
     delete bookToUpdate.maSach;
 
@@ -96,44 +98,65 @@ async function update(maSach, book) {
         bookToUpdate.tacGia = normalizeWhitespace(bookToUpdate.tacGia);
     }
 
+    const currentBook = await collection.findOne({ maSach });
+    if (!currentBook) {
+        const error = new Error("Khong tim thay sach");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    if (bookToUpdate.maNXB !== undefined) {
+        const publisher = await db.collection(PUBLISHER_COLLECTION).findOne({
+            maNXB: bookToUpdate.maNXB,
+        });
+
+        if (!publisher) {
+            const error = new Error("Khong tim thay nha xuat ban");
+            error.code = "PUBLISHER_NOT_FOUND";
+            throw error;
+        }
+    }
+
     const hasDuplicateKeyChange =
         bookToUpdate.tenSach !== undefined ||
         bookToUpdate.tacGia !== undefined ||
         bookToUpdate.maNXB !== undefined;
 
     if (hasDuplicateKeyChange) {
-        const currentBook = await collection.findOne({ maSach });
+        const candidateBook = { ...currentBook, ...bookToUpdate };
+        const toWhitespaceFlexiblePattern = (value) =>
+            value
+                .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+                .replace(/ /g, "\\s+");
 
-        if (currentBook) {
-            const candidateBook = { ...currentBook, ...bookToUpdate };
-            const toWhitespaceFlexiblePattern = (value) =>
-                value
-                    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-                    .replace(/ /g, "\\s+");
+        const existingBook = await collection.findOne({
+            maSach: { $ne: maSach },
+            tenSach: {
+                $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tenSach)}\\s*$`,
+                $options: "i",
+            },
+            tacGia: {
+                $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tacGia)}\\s*$`,
+                $options: "i",
+            },
+            maNXB: candidateBook.maNXB,
+        });
 
-            const existingBook = await collection.findOne({
-                maSach: { $ne: maSach },
-                tenSach: {
-                    $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tenSach)}\\s*$`,
-                    $options: "i",
-                },
-                tacGia: {
-                    $regex: `^\\s*${toWhitespaceFlexiblePattern(candidateBook.tacGia)}\\s*$`,
-                    $options: "i",
-                },
-                maNXB: candidateBook.maNXB,
-            });
-
-            if (existingBook) {
-                throw duplicateNameError();
-            }
+        if (existingBook) {
+            throw duplicateNameError();
         }
     }
 
-    await collection.updateOne(
+    const result = await collection.updateOne(
         { maSach: maSach }, // Không dùng _id
         { $set: bookToUpdate }
     );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay sach");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     return await findOne(maSach);
 }
