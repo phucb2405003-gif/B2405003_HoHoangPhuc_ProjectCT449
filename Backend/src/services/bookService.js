@@ -39,7 +39,13 @@ function duplicateNameError() {
 
 // Thêm sách
 async function create(book) {
-    const collection = await getCollection();
+    const db = await connectDB();
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        return createWithinLock(db.collection(BOOK_COLLECTION), book, assertOwned);
+    });
+}
+
+async function createWithinLock(collection, book, assertOwned) {
     const normalizedBook = {
         ...book,
         tenSach: normalizeWhitespace(book.tenSach),
@@ -73,6 +79,7 @@ async function create(book) {
         soQuyenConLai: normalizedBook.soQuyen,
     };
 
+    await assertOwned();
     const result = await collection.insertOne(bookToInsert);
 
     return await collection.findOne({
