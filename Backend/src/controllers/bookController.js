@@ -157,6 +157,12 @@ async function remove(req, res) {
             message: "Xóa sách thành công",
         });
     } catch (error) {
+        if (error.code === "BOOK_REFERENCED") {
+            return res.status(409).json({
+                message: "Không thể xóa sách đã được ghi nhận trong lịch sử mượn trả",
+            });
+        }
+
         res.status(500).json({
             message: "Lỗi khi xóa sách",
             error: error.message,

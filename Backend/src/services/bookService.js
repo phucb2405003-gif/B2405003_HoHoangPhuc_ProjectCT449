@@ -1,6 +1,8 @@
 const connectDB = require("../config/database");
 const { BOOK_COLLECTION } = require("../models/Book");
+const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 const { generateCode } = require("./codeGeneratorService");
+const { withBorrowOperationLock } = require("./borrowOperationLock");
 
 // Lấy collection sách
 async function getCollection() {
@@ -223,10 +225,29 @@ async function destroyStock(maSach, soLuong) {
 
 // Xóa theo mã sách
 async function remove(maSach) {
-    const collection = await getCollection();
+    const db = await connectDB();
+    const collection = db.collection(BOOK_COLLECTION);
 
-    return await collection.deleteOne({
-        maSach: maSach, // Xóa bằng mã sách
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        const book = await collection.findOne({ maSach });
+
+        if (!book) {
+            return { acknowledged: true, deletedCount: 0 };
+        }
+
+        const borrowDetails = db.collection(BORROW_DETAIL_COLLECTION);
+        const referencedDetail = await borrowDetails.findOne({ maSach });
+
+        if (referencedDetail) {
+            const error = new Error("Khong the xoa sach da duoc ghi nhan trong lich su muon tra");
+            error.code = "BOOK_REFERENCED";
+            throw error;
+        }
+
+        await assertOwned();
+        return await collection.deleteOne({
+            maSach: maSach, // Xóa bằng mã sách
+        });
     });
 }
 module.exports = {
