@@ -1,6 +1,7 @@
 const connectDB = require("../config/database");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const { generateCode } = require("./codeGeneratorService");
+const { getUpdateFields } = require("./updatePayload");
 
 async function getCollection() {
     const db = await connectDB();
@@ -41,11 +42,20 @@ async function create(employee) {
 
 // Cập nhật nhân viên
 async function update(maNhanVien, employee) {
+    const employeeToUpdate = getUpdateFields(employee, {
+        hoTenNV: "string",
+        diaChi: "string",
+        soDienThoai: "string",
+    });
     const collection = await getCollection();
-    const employeeToUpdate = { ...employee };
-    delete employeeToUpdate.maNhanVien;
 
-    await collection.updateOne(
+    if (!(await collection.findOne({ maNhanVien }))) {
+        const error = new Error("Khong tim thay nhan vien");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    const result = await collection.updateOne(
         {
             maNhanVien: maNhanVien
         },
@@ -53,6 +63,12 @@ async function update(maNhanVien, employee) {
             $set: employeeToUpdate
         }
     );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay nhan vien");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     return await findOne(maNhanVien);
 }

@@ -58,6 +58,13 @@ async function update(req, res) {
 
         res.json(user); // Trả dữ liệu sau khi cập nhật
     } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+        }
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay doc gia" });
+        }
+
         res.status(500).json({
             message: "Lỗi khi cập nhật người dùng",
             error: error.message,

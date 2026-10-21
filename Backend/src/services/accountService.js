@@ -3,6 +3,7 @@ const { ACCOUNT_COLLECTION } = require("../models/Account");
 const { USER_COLLECTION } = require("../models/User");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const bcrypt = require("bcryptjs");
+const { getUpdateFields } = require("./updatePayload");
 
 function withoutPassword(account) {
     if (!account) {
@@ -124,9 +125,19 @@ async function create(account) {
 
 // Cập nhật tài khoản
 async function update(maTaiKhoan, account) {
+    const accountToUpdate = getUpdateFields(account, {
+        tenDangNhap: "string",
+        password: "string",
+        email: "email",
+        trangThai: "boolean",
+    });
     const collection = await getCollection();
-    const accountToUpdate = { ...account };
-    delete accountToUpdate.maTaiKhoan;
+
+    if (!(await collection.findOne({ maTaiKhoan }))) {
+        const error = new Error("Khong tim thay tai khoan");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     if (accountToUpdate.tenDangNhap !== undefined) {
         const existingAccount = await collection.findOne({
@@ -155,7 +166,7 @@ async function update(maTaiKhoan, account) {
         }
     }
 
-    await collection.updateOne(
+    const result = await collection.updateOne(
         {
             maTaiKhoan: maTaiKhoan
         },
@@ -163,6 +174,12 @@ async function update(maTaiKhoan, account) {
             $set: accountToUpdate
         }
     );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay tai khoan");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     return await findOne(maTaiKhoan);
 }

@@ -64,6 +64,12 @@ async function update(req, res) {
 
         res.json(book); // Trả sách sau khi cập nhật
     } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({
+                message: "Du lieu cap nhat khong hop le",
+            });
+        }
+
         if (error.code === "PUBLISHER_NOT_FOUND") {
             return res.status(400).json({
                 message: "Mã nhà xuất bản không tồn tại",

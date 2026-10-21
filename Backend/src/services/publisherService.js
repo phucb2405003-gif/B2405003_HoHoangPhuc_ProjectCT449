@@ -2,6 +2,7 @@ const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
 const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { generateCode } = require("./codeGeneratorService");
+const { getUpdateFields } = require("./updatePayload");
 
 // Lấy collection nhà xuất bản
 async function getCollection() {
@@ -73,9 +74,14 @@ async function create(publisher) {
 
 // Cập nhật nhà xuất bản
 async function update(maNXB, publisher) {
+    const publisherToUpdate = getUpdateFields(publisher, { tenNXB: "string" });
     const collection = await getCollection();
-    const publisherToUpdate = { ...publisher };
-    delete publisherToUpdate.maNXB;
+
+    if (!(await collection.findOne({ maNXB }))) {
+        const error = new Error("Khong tim thay nha xuat ban");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     if (publisherToUpdate.tenNXB !== undefined) {
         publisherToUpdate.tenNXB = normalizeWhitespace(
@@ -100,10 +106,16 @@ async function update(maNXB, publisher) {
         }
     }
 
-    await collection.updateOne(
+    const result = await collection.updateOne(
         { maNXB: maNXB },
         { $set: publisherToUpdate }
     );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay nha xuat ban");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     return await findOne(maNXB);
 }

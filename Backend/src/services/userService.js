@@ -1,6 +1,7 @@
 const connectDB = require("../config/database");
 const { USER_COLLECTION } = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
+const { getUpdateFields } = require("./updatePayload");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -42,14 +43,32 @@ async function create(user) {
 
 // Cập nhật theo mã độc giả
 async function update(maDocGia, user) {
+    const userToUpdate = getUpdateFields(user, {
+        hoLot: "string",
+        ten: "string",
+        ngaySinh: "date",
+        phai: "gender",
+        diaChi: "string",
+        dienThoai: "string",
+    });
     const collection = await getCollection();
-    const userToUpdate = { ...user };
-    delete userToUpdate.maDocGia;
 
-    await collection.updateOne(
+    if (!(await collection.findOne({ maDocGia }))) {
+        const error = new Error("Khong tim thay doc gia");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    const result = await collection.updateOne(
         { maDocGia: maDocGia },
         { $set: userToUpdate }
     );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay doc gia");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
 
     return await findOne(maDocGia);
 }

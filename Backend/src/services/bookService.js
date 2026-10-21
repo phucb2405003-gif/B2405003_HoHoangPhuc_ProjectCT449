@@ -4,6 +4,7 @@ const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
+const { getUpdateFields } = require("./updatePayload");
 
 // Lấy collection sách
 async function getCollection() {
@@ -89,14 +90,13 @@ async function createWithinLock(collection, book, assertOwned) {
 
 // Cập nhật theo mã sách
 async function update(maSach, book) {
+    const bookToUpdate = getUpdateFields(book, {
+        tenSach: "string",
+        tacGia: "string",
+        maNXB: "string",
+    });
     const db = await connectDB();
     const collection = db.collection(BOOK_COLLECTION);
-    const bookToUpdate = { ...book };
-    delete bookToUpdate.maSach;
-
-    // Tồn kho chỉ thay đổi qua nghiệp vụ mượn và trả.
-    delete bookToUpdate.soQuyen;
-    delete bookToUpdate.soQuyenConLai;
 
     if (bookToUpdate.tenSach !== undefined) {
         bookToUpdate.tenSach = normalizeWhitespace(bookToUpdate.tenSach);
