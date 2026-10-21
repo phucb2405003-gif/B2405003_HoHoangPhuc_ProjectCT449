@@ -27,6 +27,7 @@ async function findOne(maDocGia) {
 
 // Thêm độc giả
 async function create(user) {
+    getUpdateFields({ phai: user?.phai }, { phai: "gender" });
     const collection = await getCollection();
     const userToInsert = {
         ...user,

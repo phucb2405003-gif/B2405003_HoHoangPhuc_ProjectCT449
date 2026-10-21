@@ -22,7 +22,7 @@ const publisherController = require("../src/controllers/publisherController");
 const accountController = require("../src/controllers/accountController");
 
 class Collection {
-    constructor(rows = []) { this.rows = rows; this.updateCalls = 0; this.sets = []; }
+    constructor(rows = []) { this.rows = rows; this.updateCalls = 0; this.insertCalls = 0; this.sets = []; this.inserts = []; }
     async findOne(query) {
         if (Object.values(query).some((value) => value && typeof value === "object")) return null;
         const entries = Object.entries(query).filter(([, value]) => value === null || ["string", "number", "boolean"].includes(typeof value));
@@ -37,15 +37,23 @@ class Collection {
         Object.assign(row, update.$set);
         return { matchedCount: 1 };
     }
+    async insertOne(document) {
+        this.insertCalls++;
+        this.inserts.push(structuredClone(document));
+        const insertedId = `inserted-${this.insertCalls}`;
+        this.rows.push({ _id: insertedId, ...document });
+        return { insertedId };
+    }
+    async findOneAndUpdate() { return { sequence: 1 }; }
 }
 
 function setup() {
     const books = new Collection([{ maSach: "S1", tenSach: "Old", tacGia: "Author", maNXB: "NXB1", soQuyen: 8, soQuyenConLai: 6 }]);
     const publishers = new Collection([{ maNXB: "NXB1", tenNXB: "Old Publisher" }]);
-    const readers = new Collection([{ maDocGia: "DG1", hoLot: "Nguyen Van", ten: "An", ngaySinh: new Date("2000-01-01T00:00:00.000Z"), phai: 0, diaChi: "Old address", dienThoai: "0900000000", trangThai: "active", lyDoHanChe: null }]);
+    const readers = new Collection([{ maDocGia: "DG1", hoLot: "Nguyen Van", ten: "An", ngaySinh: new Date("2000-01-01T00:00:00.000Z"), phai: false, diaChi: "Old address", dienThoai: "0900000000", trangThai: "active", lyDoHanChe: null }]);
     const employees = new Collection([{ maNhanVien: "NV1", hoTenNV: "Tran B", diaChi: "Old address", soDienThoai: "0900000001", chucVu: "Thủ thư" }]);
     const accounts = new Collection([{ maTaiKhoan: "NV1", tenDangNhap: "staff", password: "old-hash", email: "old@example.com", trangThai: true }]);
-    const collections = { books, publishers, readers, employees, accounts };
+    const collections = { books, publishers, readers, employees, accounts, counters: new Collection() };
     activeDb = { collection: (name) => collections[name] };
     return collections;
 }
@@ -56,15 +64,23 @@ test("reader update writes only ERD profile allowlist and converts valid birth d
         hoLot: "Nguyen Van",
         ten: "Binh",
         ngaySinh: "2001-02-03",
-        phai: 1,
+        phai: true,
         diaChi: "New address",
         dienThoai: "0900000002",
     });
     assert.deepEqual(Object.keys(readers.sets[0]).sort(), ["diaChi", "dienThoai", "hoLot", "ngaySinh", "phai", "ten"]);
     assert.ok(result.ngaySinh instanceof Date);
     assert.equal(result.ngaySinh.toISOString(), "2001-02-03T00:00:00.000Z");
-    assert.equal(result.phai, 1);
+    assert.equal(result.phai, true);
     assert.equal(result.trangThai, "active");
+});
+
+test("reader update accepts false as Boolean and writes it unchanged", async () => {
+    const { readers } = setup();
+    const result = await userService.update("DG1", { phai: false });
+    assert.equal(readers.sets[0].phai, false);
+    assert.equal(typeof readers.sets[0].phai, "boolean");
+    assert.equal(result.phai, false);
 });
 
 test("reader update rejects protected, unknown, and mixed allowed/protected fields without partial writes", async () => {
@@ -76,8 +92,14 @@ test("reader update rejects protected, unknown, and mixed allowed/protected fiel
         { hoLot: "Valid", email: "new@example.com" },
         { hoLot: "Valid", role: "admin" },
         { hoLot: 12 },
+        { phai: 0 },
+        { phai: 1 },
+        { phai: "true" },
+        { phai: "false" },
+        { phai: "0" },
         { phai: "1" },
-        { phai: 2 },
+        { phai: null },
+        { phai: undefined },
         { ngaySinh: "2023-02-29" },
         { ngaySinh: "03/04/2000" },
         {}, null, [], "text", 12
@@ -87,6 +109,29 @@ test("reader update rejects protected, unknown, and mixed allowed/protected fiel
         await assert.rejects(userService.update("DG1", payload), { code: "INVALID_UPDATE" });
         assert.equal(readers.updateCalls, 0);
         assert.deepEqual(readers.rows[0], before);
+    }
+});
+
+test("reader create accepts Boolean gender and stores it unchanged", async () => {
+    for (const phai of [true, false]) {
+        const { readers } = setup();
+        const result = await userService.create({ hoLot: "Nguyen Van", phai });
+        assert.equal(typeof readers.inserts[0].phai, "boolean");
+        assert.equal(readers.inserts[0].phai, phai);
+        assert.equal(result.phai, phai);
+        assert.equal(readers.insertCalls, 1);
+    }
+});
+
+test("reader create rejects non-Boolean or missing gender before inserting", async () => {
+    for (const payload of [
+        { phai: 0 }, { phai: 1 }, { phai: "true" }, { phai: "false" },
+        { phai: "0" }, { phai: "1" }, { phai: null }, {},
+    ]) {
+        const { readers } = setup();
+        await assert.rejects(userService.create(payload), { code: "INVALID_UPDATE" });
+        assert.equal(readers.insertCalls, 0);
+        assert.deepEqual(readers.inserts, []);
     }
 });
 
@@ -276,5 +321,15 @@ test("all update controllers map invalid payloads to safe HTTP 400 responses", a
         await controller.update(req, res);
         assert.equal(res.statusCode, 400);
         assert.deepEqual(Object.keys(res.body), ["message"]);
+    }
+});
+
+test("reader create controller rejects missing or invalid gender with HTTP 400", async () => {
+    for (const body of [{}, { phai: 0 }, { phai: "true" }]) {
+        const { readers } = setup();
+        const res = mockResponse();
+        await userController.create({ body }, res);
+        assert.equal(res.statusCode, 400);
+        assert.equal(readers.insertCalls, 0);
     }
 });

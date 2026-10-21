@@ -37,7 +37,7 @@ function getUpdateFields(payload, allowedFields) {
         )) {
             throw invalidUpdateError();
         }
-        if (type === "gender" && value !== 0 && value !== 1) throw invalidUpdateError();
+        if (type === "gender" && typeof value !== "boolean") throw invalidUpdateError();
         if (type === "boolean" && typeof value !== "boolean") throw invalidUpdateError();
         if (type === "date" && !isIsoDate(value)) throw invalidUpdateError();
     }

@@ -41,6 +41,9 @@ async function create(req, res) {
 
         res.status(201).json(user); // 201 = tạo thành công
     } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu khong hop le" });
+        }
         res.status(500).json({
             message: "Lỗi khi thêm người dùng",
             error: error.message,
