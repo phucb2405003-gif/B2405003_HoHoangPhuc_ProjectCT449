@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon src/server.js"
+    "start": "nodemon --exitcrash src/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

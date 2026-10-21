@@ -15,14 +15,7 @@ const { allowRoles } = require("./middlewares/roleMiddleware");
 
 const app = express();
 
-const defaultCorsOrigins = [
-    "http://localhost:3001",
-    "http://localhost:3002"
-];
-const corsOrigins = (process.env.CORS_ORIGINS || defaultCorsOrigins.join(","))
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+const corsOrigins = require("./config/corsOrigins")();
 
 app.use(cors({
     origin(origin, callback) {
