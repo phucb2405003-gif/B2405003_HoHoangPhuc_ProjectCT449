@@ -42,16 +42,26 @@ function duplicateNameError() {
 async function create(book) {
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
-        return createWithinLock(db.collection(BOOK_COLLECTION), book, assertOwned);
+        return createWithinLock(db, book, assertOwned);
     });
 }
 
-async function createWithinLock(collection, book, assertOwned) {
+async function createWithinLock(db, book, assertOwned) {
     const normalizedBook = {
         ...book,
         tenSach: normalizeWhitespace(book.tenSach),
         tacGia: normalizeWhitespace(book.tacGia),
     };
+    const publisher = await db.collection(PUBLISHER_COLLECTION).findOne({
+        maNXB: normalizedBook.maNXB,
+    });
+    if (!publisher) {
+        const error = new Error("Khong tim thay nha xuat ban");
+        error.code = "PUBLISHER_NOT_FOUND";
+        throw error;
+    }
+
+    const collection = db.collection(BOOK_COLLECTION);
     const toWhitespaceFlexiblePattern = (value) =>
         value
             .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
@@ -105,6 +115,16 @@ async function update(maSach, book) {
         bookToUpdate.tacGia = normalizeWhitespace(bookToUpdate.tacGia);
     }
 
+    if (bookToUpdate.maNXB !== undefined) {
+        return withBorrowOperationLock(db, async (assertOwned) =>
+            updateWithinDb(db, collection, maSach, bookToUpdate, assertOwned)
+        );
+    }
+
+    return updateWithinDb(db, collection, maSach, bookToUpdate);
+}
+
+async function updateWithinDb(db, collection, maSach, bookToUpdate, assertOwned) {
     const currentBook = await collection.findOne({ maSach });
     if (!currentBook) {
         const error = new Error("Khong tim thay sach");
@@ -153,6 +173,8 @@ async function update(maSach, book) {
             throw duplicateNameError();
         }
     }
+
+    if (assertOwned) await assertOwned();
 
     const result = await collection.updateOne(
         { maSach: maSach }, // Không dùng _id

@@ -22,7 +22,7 @@ const publisherController = require("../src/controllers/publisherController");
 const accountController = require("../src/controllers/accountController");
 
 class Collection {
-    constructor(rows = []) { this.rows = rows; this.updateCalls = 0; this.insertCalls = 0; this.sets = []; this.inserts = []; }
+    constructor(rows = []) { this.rows = rows; this.updateCalls = 0; this.insertCalls = 0; this.deleteCalls = 0; this.sets = []; this.inserts = []; }
     async findOne(query) {
         if (Object.values(query).some((value) => value && typeof value === "object")) return null;
         const entries = Object.entries(query).filter(([, value]) => value === null || ["string", "number", "boolean"].includes(typeof value));
@@ -44,7 +44,34 @@ class Collection {
         this.rows.push({ _id: insertedId, ...document });
         return { insertedId };
     }
+    async deleteOne(query) {
+        this.deleteCalls++;
+        const index = this.rows.findIndex((row) => Object.entries(query).every(([key, value]) => row[key] === value));
+        if (index < 0) return { deletedCount: 0 };
+        this.rows.splice(index, 1);
+        return { deletedCount: 1 };
+    }
     async findOneAndUpdate() { return { sequence: 1 }; }
+}
+
+class LockCollection extends Collection {
+    constructor(rows = []) { super(rows); this.onContended = null; this.acquisitionIds = []; }
+    async findOneAndUpdate(query, update) {
+        this.acquisitionIds.push(query._id);
+        let lock = this.rows.find((row) => row._id === query._id);
+        if (lock?.owner !== undefined) {
+            this.onContended?.();
+            const error = new Error("duplicate lock key");
+            error.code = 11000;
+            throw error;
+        }
+        if (!lock) {
+            lock = { _id: query._id };
+            this.rows.push(lock);
+        }
+        Object.assign(lock, update.$set);
+        return structuredClone(lock);
+    }
 }
 
 function setup() {
@@ -53,7 +80,7 @@ function setup() {
     const readers = new Collection([{ maDocGia: "DG1", hoLot: "Nguyen Van", ten: "An", ngaySinh: new Date("2000-01-01T00:00:00.000Z"), phai: false, diaChi: "Old address", dienThoai: "0900000000", trangThai: "active", lyDoHanChe: null }]);
     const employees = new Collection([{ maNhanVien: "NV1", hoTenNV: "Tran B", diaChi: "Old address", soDienThoai: "0900000001", chucVu: "Thủ thư" }]);
     const accounts = new Collection([{ maTaiKhoan: "NV1", tenDangNhap: "staff", password: "old-hash", email: "old@example.com", trangThai: true }]);
-    const collections = { books, publishers, readers, employees, accounts, counters: new Collection() };
+    const collections = { books, publishers, readers, employees, accounts, counters: new Collection(), borrow_operation_locks: new LockCollection() };
     activeDb = { collection: (name) => collections[name] };
     return collections;
 }
@@ -178,12 +205,81 @@ test("book update rejects a missing book and does not write", async () => {
     assert.equal(books.updateCalls, 0);
 });
 
-test("book update accepts business fields and preserves inventory", async () => {
+test("book create with an existing publisher succeeds while holding shared write lock", async () => {
+    const { books, borrow_operation_locks: locks } = setup();
+    const result = await bookService.create({
+        tenSach: "New Title",
+        tacGia: "New Author",
+        maNXB: "NXB1",
+        soQuyen: 4,
+    });
+    assert.equal(result.maNXB, "NXB1");
+    assert.equal(books.insertCalls, 1);
+    assert.equal(locks.deleteCalls, 1);
+});
+
+test("book create rejects a missing publisher without inserting", async () => {
     const { books } = setup();
+    await assert.rejects(bookService.create({
+        tenSach: "New Title",
+        tacGia: "New Author",
+        maNXB: "NXB404",
+        soQuyen: 4,
+    }), { code: "PUBLISHER_NOT_FOUND" });
+    assert.equal(books.insertCalls, 0);
+});
+
+test("book create controller maps a missing publisher to HTTP 400", async () => {
+    const { books } = setup();
+    const res = mockResponse();
+    await bookController.create({ body: {
+        tenSach: "New Title",
+        tacGia: "New Author",
+        maNXB: "NXB404",
+        soQuyen: 4,
+    } }, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(books.insertCalls, 0);
+});
+
+test("book update accepts business fields and preserves inventory", async () => {
+    const { books, borrow_operation_locks: locks } = setup();
     const result = await bookService.update("S1", { tenSach: "  New   Title ", tacGia: "New Author" });
     assert.equal(result.tenSach, "New Title");
     assert.equal(result.tacGia, "New Author");
     assert.deepEqual([result.soQuyen, result.soQuyenConLai], [8, 6]);
+    assert.equal(locks.acquisitionIds.length, 0);
+});
+
+test("book update changes to an existing publisher inside the shared lock", async () => {
+    const { books, publishers, borrow_operation_locks: locks } = setup();
+    publishers.rows.push({ maNXB: "NXB2", tenNXB: "New Publisher" });
+    const result = await bookService.update("S1", { maNXB: "NXB2" });
+    assert.equal(result.maNXB, "NXB2");
+    assert.equal(books.rows[0].maNXB, "NXB2");
+    assert.ok(locks.acquisitionIds.length > 0);
+    assert.ok(locks.acquisitionIds.every((id) => id === "all-borrow-writes"));
+});
+
+test("book update rejects a missing publisher without changing the book", async () => {
+    const { books } = setup();
+    const before = structuredClone(books.rows[0]);
+    await assert.rejects(bookService.update("S1", { maNXB: "NXB404" }), { code: "PUBLISHER_NOT_FOUND" });
+    assert.equal(books.updateCalls, 0);
+    assert.deepEqual(books.rows[0], before);
+});
+
+test("book update propagates publisher lookup and write failures", async () => {
+    const publisherState = setup();
+    publisherState.publishers.findOne = async () => { throw new Error("publisher query failed"); };
+    await assert.rejects(bookService.update("S1", { maNXB: "NXB1" }), /publisher query failed/);
+    assert.equal(publisherState.books.updateCalls, 0);
+
+    const writeState = setup();
+    writeState.publishers.rows.push({ maNXB: "NXB2", tenNXB: "New Publisher" });
+    writeState.books.updateOne = async () => { throw new Error("book write failed"); };
+    await assert.rejects(bookService.update("S1", { maNXB: "NXB2" }), /book write failed/);
+    assert.equal(writeState.books.rows[0].maNXB, "NXB1");
 });
 
 test("book update rejects identifiers, inventory, and unknown fields without writing", async () => {
@@ -243,6 +339,119 @@ test("publisher update rejects identifier, unknown fields, malformed values, and
 test("publisher update returns not found for a missing identifier", async () => {
     setup();
     await assert.rejects(publisherService.update("NXB404", { tenNXB: "New" }), { code: "NOT_FOUND" });
+});
+
+test("publisher delete returns not found for a missing publisher", async () => {
+    setup();
+    const res = mockResponse();
+    await publisherController.remove({ params: { maNXB: "NXB404" } }, res);
+    assert.equal(res.statusCode, 404);
+});
+
+test("publisher delete rejects a publisher referenced by a book with HTTP 409", async () => {
+    const { publishers } = setup();
+    const res = mockResponse();
+    await publisherController.remove({ params: { maNXB: "NXB1" } }, res);
+    assert.equal(res.statusCode, 409);
+    assert.match(res.body.message, /nha xuat ban dang duoc sach su dung/i);
+    assert.equal(publishers.deleteCalls, 0);
+    assert.ok(publishers.rows.some((publisher) => publisher.maNXB === "NXB1"));
+});
+
+test("publisher delete succeeds when no book references it", async () => {
+    const { publishers, books } = setup();
+    books.rows = [];
+    const res = mockResponse();
+    await publisherController.remove({ params: { maNXB: "NXB1" } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(publishers.deleteCalls, 1);
+    assert.equal(publishers.rows.some((publisher) => publisher.maNXB === "NXB1"), false);
+});
+
+test("publisher delete reports book lookup failures as HTTP 500 without deleting", async () => {
+    const { publishers, books } = setup();
+    books.findOne = async () => { throw new Error("database query failed"); };
+    const res = mockResponse();
+    await publisherController.remove({ params: { maNXB: "NXB1" } }, res);
+    assert.equal(res.statusCode, 500);
+    assert.equal(publishers.deleteCalls, 0);
+    assert.ok(publishers.rows.some((publisher) => publisher.maNXB === "NXB1"));
+});
+
+test("book create and publisher delete serialize on the shared lock", async () => {
+    const { books, publishers, borrow_operation_locks: locks } = setup();
+    books.rows = [];
+
+    let signalBookCheck;
+    const bookCheckReached = new Promise((resolve) => { signalBookCheck = resolve; });
+    let continueBookCheck;
+    const waitForContinue = new Promise((resolve) => { continueBookCheck = resolve; });
+    const originalFindOne = books.findOne.bind(books);
+    books.findOne = async (query) => {
+        if (query.maNXB === "NXB1" && Object.keys(query).length === 1) {
+            signalBookCheck();
+            await waitForContinue;
+        }
+        return originalFindOne(query);
+    };
+
+    let signalContended;
+    const lockContended = new Promise((resolve) => { signalContended = resolve; });
+    locks.onContended = signalContended;
+
+    const removePromise = publisherService.remove("NXB1");
+    await bookCheckReached;
+    const createPromise = bookService.create({
+        tenSach: "Concurrent Title",
+        tacGia: "Concurrent Author",
+        maNXB: "NXB1",
+        soQuyen: 2,
+    });
+    await lockContended;
+    continueBookCheck();
+
+    await removePromise;
+    await assert.rejects(createPromise, { code: "PUBLISHER_NOT_FOUND" });
+    assert.equal(publishers.rows.some((publisher) => publisher.maNXB === "NXB1"), false);
+    assert.equal(books.insertCalls, 0);
+    assert.ok(locks.acquisitionIds.length >= 3);
+    assert.ok(locks.acquisitionIds.every((id) => id === "all-borrow-writes"));
+});
+
+test("book publisher update and publisher delete serialize without leaving a dangling reference", async () => {
+    const { books, publishers, borrow_operation_locks: locks } = setup();
+    books.rows[0].maNXB = "NXB2";
+    publishers.rows.push({ maNXB: "NXB2", tenNXB: "Existing Publisher" });
+
+    let signalBookCheck;
+    const bookCheckReached = new Promise((resolve) => { signalBookCheck = resolve; });
+    let continueBookCheck;
+    const waitForContinue = new Promise((resolve) => { continueBookCheck = resolve; });
+    const originalFindOne = books.findOne.bind(books);
+    books.findOne = async (query) => {
+        if (query.maNXB === "NXB1" && Object.keys(query).length === 1) {
+            signalBookCheck();
+            await waitForContinue;
+        }
+        return originalFindOne(query);
+    };
+
+    let signalContended;
+    const lockContended = new Promise((resolve) => { signalContended = resolve; });
+    locks.onContended = signalContended;
+
+    const removePromise = publisherService.remove("NXB1");
+    await bookCheckReached;
+    const updatePromise = bookService.update("S1", { maNXB: "NXB1" });
+    await lockContended;
+    continueBookCheck();
+
+    await removePromise;
+    await assert.rejects(updatePromise, { code: "PUBLISHER_NOT_FOUND" });
+    assert.equal(publishers.rows.some((publisher) => publisher.maNXB === "NXB1"), false);
+    assert.equal(books.rows[0].maNXB, "NXB2");
+    assert.ok(locks.acquisitionIds.length >= 3);
+    assert.ok(locks.acquisitionIds.every((id) => id === "all-borrow-writes"));
 });
 
 test("publisher update keeps duplicate-name validation", async () => {

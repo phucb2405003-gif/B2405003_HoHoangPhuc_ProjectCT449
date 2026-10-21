@@ -47,6 +47,12 @@ async function create(req, res) {
             });
         }
 
+        if (error.code === "PUBLISHER_NOT_FOUND") {
+            return res.status(400).json({
+                message: "Mã nhà xuất bản không tồn tại",
+            });
+        }
+
         res.status(500).json({
             message: "Lỗi khi thêm sách",
             error: error.message,

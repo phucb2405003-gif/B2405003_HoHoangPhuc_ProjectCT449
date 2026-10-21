@@ -104,6 +104,18 @@ async function remove(req, res) {
             message: "Xóa nhà xuất bản thành công",
         });
     } catch (error) {
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({
+                message: "Khong tim thay nha xuat ban",
+            });
+        }
+
+        if (error.code === "PUBLISHER_REFERENCED") {
+            return res.status(409).json({
+                message: "Khong the xoa nha xuat ban dang duoc sach su dung",
+            });
+        }
+
         res.status(500).json({
             message: "Lỗi khi xóa nhà xuất bản",
             error: error.message,

@@ -1,7 +1,9 @@
 const { ObjectId } = require("mongodb");
 const connectDB = require("../config/database");
 const { PUBLISHER_COLLECTION } = require("../models/Publisher");
+const { BOOK_COLLECTION } = require("../models/Book");
 const { generateCode } = require("./codeGeneratorService");
+const { withBorrowOperationLock } = require("./borrowOperationLock");
 const { getUpdateFields } = require("./updatePayload");
 
 // Lấy collection nhà xuất bản
@@ -122,10 +124,27 @@ async function update(maNXB, publisher) {
 
 // Xóa nhà xuất bản
 async function remove(maNXB) {
-    const collection = await getCollection();
+    const db = await connectDB();
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        const publisherCollection = db.collection(PUBLISHER_COLLECTION);
+        const bookCollection = db.collection(BOOK_COLLECTION);
 
-    return await collection.deleteOne({
-        maNXB: maNXB,
+        if (!(await publisherCollection.findOne({ maNXB }))) {
+            const error = new Error("Khong tim thay nha xuat ban");
+            error.code = "NOT_FOUND";
+            throw error;
+        }
+
+        if (await bookCollection.findOne({ maNXB })) {
+            const error = new Error("Nha xuat ban dang duoc sach su dung");
+            error.code = "PUBLISHER_REFERENCED";
+            throw error;
+        }
+
+        await assertOwned();
+        return await publisherCollection.deleteOne({
+            maNXB: maNXB,
+        });
     });
 }
 
