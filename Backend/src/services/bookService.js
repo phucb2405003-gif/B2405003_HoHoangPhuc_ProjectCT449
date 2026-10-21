@@ -180,14 +180,28 @@ async function addStock(maSach, soLuong) {
         throw error;
     }
 
-    if (!Number.isInteger(soLuong) || soLuong <= 0) {
+    if (!Number.isSafeInteger(soLuong) || soLuong <= 0) {
         const error = new Error("So luong bo sung phai la so nguyen duong");
         error.code = "INVALID_QUANTITY";
         throw error;
     }
 
-    await collection.updateOne(
-        { maSach },
+    if (
+        !Number.isSafeInteger(book.soQuyen) ||
+        book.soQuyen < 0 ||
+        !Number.isSafeInteger(book.soQuyenConLai) ||
+        book.soQuyenConLai < 0 ||
+        book.soQuyenConLai > book.soQuyen ||
+        !Number.isSafeInteger(book.soQuyen + soLuong) ||
+        !Number.isSafeInteger(book.soQuyenConLai + soLuong)
+    ) {
+        const error = new Error("Du lieu ton kho sach khong hop le");
+        error.code = "INVALID_STOCK_DATA";
+        throw error;
+    }
+
+    const updateResult = await collection.updateOne(
+        { maSach, soQuyen: book.soQuyen, soQuyenConLai: book.soQuyenConLai },
         {
             $inc: {
                 soQuyen: soLuong,
@@ -195,6 +209,12 @@ async function addStock(maSach, soLuong) {
             },
         }
     );
+
+    if (updateResult.matchedCount !== 1) {
+        const error = new Error("Du lieu ton kho sach da thay doi; vui long thu lai");
+        error.code = "INVALID_STOCK_DATA";
+        throw error;
+    }
 
     return await findOne(maSach);
 }
