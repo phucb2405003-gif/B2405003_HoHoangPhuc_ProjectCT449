@@ -49,6 +49,9 @@ async function create(req, res) {
 
         res.status(201).json(newEmployee);
     } catch (error) {
+        if (error.code === "INVALID_CREATE") {
+            return res.status(400).json({ message: "Du lieu tao nhan vien khong hop le" });
+        }
         console.error("Loi tao nhan vien:", error);
 
         res.status(500).json({

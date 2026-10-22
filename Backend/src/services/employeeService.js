@@ -26,10 +26,23 @@ async function findOne(maNhanVien) {
 
 // Thêm nhân viên
 async function create(employee) {
+    let employeeToInsert;
+    try {
+        employeeToInsert = getUpdateFields(employee, {
+            hoTenNV: "string",
+            diaChi: "string",
+            soDienThoai: "string",
+            chucVu: "string",
+        });
+    } catch (validationError) {
+        if (validationError.code !== "INVALID_UPDATE") throw validationError;
+
+        const error = new Error("Du lieu tao nhan vien khong hop le");
+        error.code = "INVALID_CREATE";
+        throw error;
+    }
+
     const collection = await getCollection();
-    const employeeToInsert = {
-        ...employee,
-    };
     const maNhanVien = await generateCode("NV");
     employeeToInsert.maNhanVien = maNhanVien;
 
