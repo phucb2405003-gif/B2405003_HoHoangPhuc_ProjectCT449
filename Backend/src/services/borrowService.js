@@ -1,4 +1,4 @@
-﻿const connectDB = require("../config/database");
+const connectDB = require("../config/database");
 const { BORROW_COLLECTION } = require("../models/Borrow");
 const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 const { BOOK_COLLECTION } = require("../models/Book");
@@ -41,7 +41,11 @@ function normalizeDetails(details) {
 
     const seen = new Set();
     return details.map((detail) => {
-        if (!detail?.maSach || seen.has(detail.maSach)) {
+        if (
+            typeof detail?.maSach !== "string" ||
+            detail.maSach.trim().length === 0 ||
+            seen.has(detail.maSach)
+        ) {
             const error = new Error("maSach bi thieu hoac trung trong phieu");
             error.statusCode = 400;
             throw error;
@@ -131,18 +135,23 @@ async function restoreStock(bookCollection, maSach, amount = 1, assertOwned) {
 }
 
 async function create(borrow) {
-    const db = await connectDB();
-    const borrowCollection = db.collection(BORROW_COLLECTION);
-    const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
-    const bookCollection = db.collection(BOOK_COLLECTION);
     const details = normalizeDetails(borrow.borrowDetails || borrow.detaiMuon);
     const direct = borrow.mode === "direct";
 
-    if (!borrow.maDocGia || (direct && !borrow.maNhanVien)) {
+    if (
+        typeof borrow.maDocGia !== "string" ||
+        borrow.maDocGia.trim().length === 0 ||
+        (direct && (typeof borrow.maNhanVien !== "string" || borrow.maNhanVien.trim().length === 0))
+    ) {
         const error = new Error("Thieu thong tin nguoi muon");
         error.statusCode = 400;
         throw error;
     }
+
+    const db = await connectDB();
+    const borrowCollection = db.collection(BORROW_COLLECTION);
+    const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
+    const bookCollection = db.collection(BOOK_COLLECTION);
 
     return withBorrowOperationLock(db, async (assertOwned) => {
         if (direct) {
@@ -304,6 +313,17 @@ async function create(borrow) {
 }
 
 async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
+    if (
+        lyDoTuChoi !== undefined &&
+        lyDoTuChoi !== null &&
+        lyDoTuChoi !== "" &&
+        (typeof lyDoTuChoi !== "string" || lyDoTuChoi.trim().length === 0)
+    ) {
+        const error = new Error("Ly do tu choi khong hop le");
+        error.statusCode = 400;
+        throw error;
+    }
+
     const db = await connectDB();
     const borrowCollection = db.collection(BORROW_COLLECTION);
     const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
