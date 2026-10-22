@@ -168,6 +168,43 @@ async function update(req, res) {
     }
 }
 
+async function changeOwnPassword(req, res) {
+    try {
+        const body = req.body;
+        if (
+            body === null ||
+            typeof body !== "object" ||
+            Array.isArray(body) ||
+            typeof body.currentPassword !== "string" ||
+            body.currentPassword.length === 0 ||
+            typeof body.newPassword !== "string"
+        ) {
+            return res.status(400).json({ message: "Du lieu doi mat khau khong hop le" });
+        }
+
+        await accountService.changeOwnPassword(
+            req.user.maTaiKhoan,
+            body.currentPassword,
+            body.newPassword
+        );
+
+        return res.json({ message: "Doi mat khau thanh cong" });
+    } catch (error) {
+        if (error.code === "INVALID_PASSWORD") {
+            return res.status(400).json({ message: error.message });
+        }
+        if (error.code === "INVALID_CURRENT_PASSWORD") {
+            return res.status(400).json({ message: "Mat khau hien tai khong dung" });
+        }
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay tai khoan" });
+        }
+
+        console.error("Loi doi mat khau tai khoan:", error);
+        return res.status(500).json({ message: "Loi server" });
+    }
+}
+
 // Xóa tài khoản
 async function remove(req, res) {
     try {
@@ -202,5 +239,6 @@ module.exports = {
     findOne,
     create,
     update,
+    changeOwnPassword,
     remove
 };

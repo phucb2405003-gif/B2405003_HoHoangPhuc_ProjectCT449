@@ -27,6 +27,12 @@ router.post(
 );
 
 router.put(
+    "/me/password",
+    authenticateToken,
+    accountController.changeOwnPassword
+);
+
+router.put(
     "/:maTaiKhoan",
     authenticateToken,
     allowRoles("Quản lý"),

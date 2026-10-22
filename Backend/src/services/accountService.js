@@ -371,6 +371,43 @@ async function update(maTaiKhoan, account) {
     return await findOne(maTaiKhoan);
 }
 
+async function changeOwnPassword(maTaiKhoan, currentPassword, newPassword) {
+    validateNewPassword(newPassword);
+
+    const collection = await getCollection();
+    const account = await collection.findOne({ maTaiKhoan });
+    if (!account) {
+        const error = new Error("Khong tim thay tai khoan");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+
+    if (
+        typeof currentPassword !== "string" ||
+        currentPassword.length === 0 ||
+        typeof account.password !== "string" ||
+        !(await bcrypt.compare(currentPassword, account.password))
+    ) {
+        const error = new Error("Mat khau hien tai khong dung");
+        error.code = "INVALID_CURRENT_PASSWORD";
+        throw error;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const result = await collection.updateOne(
+        { maTaiKhoan, password: account.password },
+        { $set: { password: hashedPassword } }
+    );
+
+    if (result.matchedCount === 0) {
+        const error = new Error("Mat khau hien tai khong dung");
+        error.code = "INVALID_CURRENT_PASSWORD";
+        throw error;
+    }
+
+    return true;
+}
+
 // Xóa tài khoản
 async function remove(maTaiKhoan) {
     const collection = await getCollection();
@@ -390,5 +427,6 @@ module.exports = {
     findOne,
     create,
     update,
+    changeOwnPassword,
     remove
 };
