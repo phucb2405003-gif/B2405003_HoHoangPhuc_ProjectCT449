@@ -9,7 +9,6 @@ async function findAll(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy danh sách nhà xuất bản",
-            error: error.message,
         });
     }
 }
@@ -29,7 +28,6 @@ async function findOne(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy thông tin nhà xuất bản",
-            error: error.message,
         });
     }
 }
@@ -49,7 +47,6 @@ async function create(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi thêm nhà xuất bản",
-            error: error.message,
         });
     }
 }
@@ -84,7 +81,6 @@ async function update(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi cập nhật nhà xuất bản",
-            error: error.message,
         });
     }
 }
@@ -118,7 +114,6 @@ async function remove(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi xóa nhà xuất bản",
-            error: error.message,
         });
     }
 }

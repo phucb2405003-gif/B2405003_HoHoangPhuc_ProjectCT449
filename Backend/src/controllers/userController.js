@@ -9,7 +9,6 @@ async function findAll(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy danh sách người dùng",
-            error: error.message,
         });
     }
 }
@@ -29,7 +28,6 @@ async function findOne(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy thông tin người dùng",
-            error: error.message,
         });
     }
 }
@@ -46,7 +44,6 @@ async function create(req, res) {
         }
         res.status(500).json({
             message: "Lỗi khi thêm người dùng",
-            error: error.message,
         });
     }
 }
@@ -70,7 +67,6 @@ async function update(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi cập nhật người dùng",
-            error: error.message,
         });
     }
 }
@@ -92,7 +88,6 @@ async function remove(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi xóa người dùng",
-            error: error.message,
         });
     }
 }

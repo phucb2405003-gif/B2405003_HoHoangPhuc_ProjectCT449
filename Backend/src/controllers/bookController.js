@@ -9,7 +9,6 @@ async function findAll(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy danh sách sách",
-            error: error.message,
         });
     }
 }
@@ -29,7 +28,6 @@ async function findOne(req, res) {
     } catch (error) {
         res.status(500).json({
             message: "Lỗi khi lấy thông tin sách",
-            error: error.message,
         });
     }
 }
@@ -55,7 +53,6 @@ async function create(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi thêm sách",
-            error: error.message,
         });
     }
 }
@@ -96,7 +93,6 @@ async function update(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi cập nhật sách",
-            error: error.message,
         });
     }
 }
@@ -189,7 +185,6 @@ async function remove(req, res) {
 
         res.status(500).json({
             message: "Lỗi khi xóa sách",
-            error: error.message,
         });
     }
 }
