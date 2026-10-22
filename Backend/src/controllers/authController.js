@@ -2,10 +2,16 @@ const authService = require("../services/authService");
 
 async function login(req, res) {
     try {
-        const { tenDangNhap, password } = req.body;
+        const tenDangNhap = req.body?.tenDangNhap;
+        const password = req.body?.password;
 
         // Kiểm tra dữ liệu đầu vào
-        if (!tenDangNhap || !password) {
+        if (
+            typeof tenDangNhap !== "string" ||
+            tenDangNhap.trim().length === 0 ||
+            typeof password !== "string" ||
+            password.length === 0
+        ) {
             return res.status(400).json({
                 message: "Vui long nhap ten dang nhap va mat khau"
             });

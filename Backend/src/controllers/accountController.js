@@ -41,7 +41,7 @@ async function findOne(req, res) {
 // Tạo tài khoản
 async function create(req, res) {
     try {
-        const account = req.body;
+        const account = accountService.validateCreatePayload(req.body);
 
         const existingAccount = await accountService.findOne(
             account.maTaiKhoan
@@ -57,6 +57,9 @@ async function create(req, res) {
 
         res.status(201).json(newAccount);
     } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu tao tai khoan khong hop le" });
+        }
         if (error.code === "INVALID_PASSWORD") {
             return res.status(400).json({
                 message: error.message
@@ -88,6 +91,10 @@ async function update(req, res) {
     try {
         const { maTaiKhoan } = req.params;
         const account = req.body;
+
+        if (account && typeof account === "object" && Object.hasOwn(account, "password")) {
+            accountService.validateNewPassword(account.password);
+        }
 
         const existingAccount = await accountService.findOne(
             maTaiKhoan
