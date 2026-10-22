@@ -1,7 +1,7 @@
 const connectDB = require("../config/database");
 const { USER_COLLECTION } = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
-const { getUpdateFields } = require("./updatePayload");
+const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -27,15 +27,19 @@ async function findOne(maDocGia) {
 
 // Thêm độc giả
 async function create(user) {
-    getUpdateFields({ phai: user?.phai }, { phai: "gender" });
+    const userToCreate = validateCreateFields(user, {
+        hoLot: "string",
+        ten: "string",
+        ngaySinh: "date",
+        phai: "gender",
+        diaChi: "string",
+        dienThoai: "string",
+    }, ["phai"]);
     const collection = await getCollection();
-    const userToInsert = {
-        ...user,
-    };
     const maDocGia = await generateCode("DG");
-    userToInsert.maDocGia = maDocGia;
+    userToCreate.maDocGia = maDocGia;
 
-    const result = await collection.insertOne(userToInsert);
+    const result = await collection.insertOne(userToCreate);
 
     return await collection.findOne({
         _id: result.insertedId,

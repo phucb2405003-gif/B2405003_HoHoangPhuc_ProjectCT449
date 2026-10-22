@@ -10,6 +10,27 @@ function isIsoDate(value) {
     return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
+function validateCreateFields(payload, fieldTypes, requiredFields) {
+    if (
+        payload === null ||
+        typeof payload !== "object" ||
+        Array.isArray(payload) ||
+        Object.getPrototypeOf(payload) !== Object.prototype ||
+        Object.hasOwn(payload, "_id") ||
+        requiredFields.some((field) => !Object.hasOwn(payload, field))
+    ) {
+        throw invalidUpdateError();
+    }
+
+    const knownFields = Object.fromEntries(
+        Object.entries(payload).filter(([field]) => Object.hasOwn(fieldTypes, field))
+    );
+    return {
+        ...payload,
+        ...getUpdateFields(knownFields, fieldTypes),
+    };
+}
+
 function getUpdateFields(payload, allowedFields) {
     if (
         payload === null ||
@@ -39,6 +60,9 @@ function getUpdateFields(payload, allowedFields) {
         }
         if (type === "gender" && typeof value !== "boolean") throw invalidUpdateError();
         if (type === "boolean" && typeof value !== "boolean") throw invalidUpdateError();
+        if (type === "nonNegativeInteger" && (!Number.isSafeInteger(value) || value < 0)) {
+            throw invalidUpdateError();
+        }
         if (type === "date" && !isIsoDate(value)) throw invalidUpdateError();
     }
 
@@ -50,4 +74,4 @@ function getUpdateFields(payload, allowedFields) {
     ]));
 }
 
-module.exports = { getUpdateFields };
+module.exports = { getUpdateFields, validateCreateFields };
