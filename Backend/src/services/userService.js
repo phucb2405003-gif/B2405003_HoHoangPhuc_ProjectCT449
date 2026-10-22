@@ -2,6 +2,7 @@ const connectDB = require("../config/database");
 const { USER_COLLECTION } = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
+const accountService = require("./accountService");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -41,9 +42,29 @@ async function create(user) {
 
     const result = await collection.insertOne(userToCreate);
 
-    return await collection.findOne({
+    const createdUser = await collection.findOne({
         _id: result.insertedId,
     });
+
+    try {
+        const account = await accountService.createGeneratedForProfile(maDocGia);
+        return {
+            ...createdUser,
+            accountCreation: {
+                created: true,
+                tenDangNhap: account.tenDangNhap,
+                credentialsDelivered: false,
+            },
+        };
+    } catch (cause) {
+        const error = new Error("Da tao ho so doc gia nhung chua tao duoc tai khoan");
+        error.code = "PROFILE_ACCOUNT_PARTIAL";
+        error.profileCode = maDocGia;
+        error.profileType = "reader";
+        error.profile = createdUser;
+        error.cause = cause;
+        throw error;
+    }
 }
 
 // Cập nhật theo mã độc giả

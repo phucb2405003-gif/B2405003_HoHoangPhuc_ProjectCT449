@@ -41,6 +41,21 @@ async function findOne(req, res) {
 // Tạo tài khoản
 async function create(req, res) {
     try {
+        const body = req.body;
+        if (
+            body !== null &&
+            typeof body === "object" &&
+            !Array.isArray(body) &&
+            Object.keys(body).length === 1 &&
+            Object.hasOwn(body, "maTaiKhoan")
+        ) {
+            const generatedAccount = await accountService.createGeneratedForProfile(body.maTaiKhoan);
+            return res.status(201).json({
+                ...generatedAccount,
+                credentialsDelivered: false,
+            });
+        }
+
         const account = accountService.validateCreatePayload(req.body);
 
         const existingAccount = await accountService.findOne(
@@ -75,6 +90,12 @@ async function create(req, res) {
         if (error.code === "DUPLICATE_USERNAME") {
             return res.status(409).json({
                 message: "Ten dang nhap da ton tai"
+            });
+        }
+
+        if (error.code === "ACCOUNT_ALREADY_EXISTS") {
+            return res.status(409).json({
+                message: "Tai khoan da ton tai cho ho so nay"
             });
         }
 

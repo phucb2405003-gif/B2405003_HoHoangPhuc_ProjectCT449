@@ -3,7 +3,11 @@ const { ACCOUNT_COLLECTION } = require("../models/Account");
 const { USER_COLLECTION } = require("../models/User");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const bcrypt = require("bcryptjs");
+const { randomInt, randomUUID } = require("node:crypto");
 const { getUpdateFields } = require("./updatePayload");
+
+const ACCOUNT_CREATION_LOCK_COLLECTION = "account_creation_locks";
+const ACCOUNT_CREATION_LOCK_WAIT_MS = 15000;
 
 function withoutPassword(account) {
     if (!account) {
@@ -79,6 +83,95 @@ function duplicateUsernameError() {
     return error;
 }
 
+function duplicateAccountError() {
+    const error = new Error("Tai khoan da ton tai cho ho so nay");
+    error.code = "ACCOUNT_ALREADY_EXISTS";
+    return error;
+}
+
+function createAccountCreationBusyError() {
+    const error = new Error("He thong dang tao tai khoan; vui long thu lai sau");
+    error.code = "ACCOUNT_CREATION_BUSY";
+    error.statusCode = 503;
+    return error;
+}
+
+async function withAccountCreationLock(db, maTaiKhoan, operation) {
+    const locks = db.collection(ACCOUNT_CREATION_LOCK_COLLECTION);
+    const lockId = `account:${maTaiKhoan}`;
+    const token = randomUUID();
+    const deadline = Date.now() + ACCOUNT_CREATION_LOCK_WAIT_MS;
+    let acquired = false;
+
+    while (!acquired && Date.now() < deadline) {
+        try {
+            const lock = await locks.findOneAndUpdate(
+                { _id: lockId, owner: { $exists: false } },
+                { $set: { owner: token, ownerPid: process.pid, acquiredAt: new Date() } },
+                { upsert: true, returnDocument: "after" }
+            );
+            acquired = lock?.owner === token;
+        } catch (error) {
+            if (error.code !== 11000) throw error;
+        }
+
+        if (!acquired) await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+
+    if (!acquired) throw createAccountCreationBusyError();
+
+    const assertOwned = async () => {
+        if (!(await locks.findOne({ _id: lockId, owner: token }))) {
+            const error = createAccountCreationBusyError();
+            error.code = "ACCOUNT_CREATION_LOCK_LOST";
+            throw error;
+        }
+    };
+
+    let result;
+    let operationError;
+    try {
+        result = await operation(assertOwned);
+    } catch (error) {
+        operationError = error;
+    }
+
+    try {
+        const release = await locks.deleteOne({ _id: lockId, owner: token });
+        if (release.deletedCount !== 1) throw createAccountCreationBusyError();
+    } catch (releaseError) {
+        if (operationError) {
+            operationError.lockCleanupError = releaseError;
+        } else {
+            throw releaseError;
+        }
+    }
+
+    if (operationError) throw operationError;
+    return result;
+}
+
+function generateCompliantPassword() {
+    const groups = [
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        "abcdefghijklmnopqrstuvwxyz",
+        "0123456789",
+        "!@#$%^&*",
+    ];
+    const characters = groups.map((group) => group[randomInt(group.length)]);
+    const allCharacters = groups.join("");
+    while (characters.length < 16) {
+        characters.push(allCharacters[randomInt(allCharacters.length)]);
+    }
+
+    for (let index = characters.length - 1; index > 0; index--) {
+        const otherIndex = randomInt(index + 1);
+        [characters[index], characters[otherIndex]] = [characters[otherIndex], characters[index]];
+    }
+
+    return characters.join("");
+}
+
 function invalidPasswordError() {
     const error = new Error("Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt");
     error.code = "INVALID_PASSWORD";
@@ -152,29 +245,43 @@ async function create(account) {
     const db = await connectDB();
     const collection = db.collection(ACCOUNT_COLLECTION);
 
-    await ensureLinkedEntityExists(db, account.maTaiKhoan);
+    return withAccountCreationLock(db, account.maTaiKhoan, async (assertOwned) => {
+        await ensureLinkedEntityExists(db, account.maTaiKhoan);
 
-    const existingAccount = await collection.findOne({
-        tenDangNhap: account.tenDangNhap
+        if (await collection.findOne({ maTaiKhoan: account.maTaiKhoan })) {
+            throw duplicateAccountError();
+        }
+
+        if (await collection.findOne({ tenDangNhap: account.tenDangNhap })) {
+            throw duplicateUsernameError();
+        }
+
+        if (!isBcryptHash(accountToInsert.password)) {
+            accountToInsert.password = await bcrypt.hash(accountToInsert.password, 10);
+        }
+
+        await assertOwned();
+        const result = await collection.insertOne(accountToInsert);
+        const createdAccount = await collection.findOne({ _id: result.insertedId });
+        return withoutPassword(createdAccount);
     });
+}
 
-    if (existingAccount) {
-        throw duplicateUsernameError();
+async function createGeneratedForProfile(maTaiKhoan) {
+    if (typeof maTaiKhoan !== "string" || (!maTaiKhoan.startsWith("DG") && !maTaiKhoan.startsWith("NV"))) {
+        const error = new Error("Ma ho so khong hop le");
+        error.code = "INVALID_UPDATE";
+        throw error;
     }
 
-    if (!isBcryptHash(accountToInsert.password)) {
-        accountToInsert.password = await bcrypt.hash(
-            accountToInsert.password,
-            10,
-        );
-    }
-
-    const result = await collection.insertOne(accountToInsert);
-
-    const createdAccount = await collection.findOne({
-        _id: result.insertedId
+    const account = await create({
+        maTaiKhoan,
+        tenDangNhap: maTaiKhoan.replaceAll("-", ""),
+        password: generateCompliantPassword(),
+        trangThai: true,
     });
-    return withoutPassword(createdAccount);
+
+    return account;
 }
 
 // Cập nhật tài khoản
@@ -250,6 +357,8 @@ async function remove(maTaiKhoan) {
 module.exports = {
     validateCreatePayload,
     validateNewPassword,
+    generateCompliantPassword,
+    createGeneratedForProfile,
     findAll,
     findOne,
     create,

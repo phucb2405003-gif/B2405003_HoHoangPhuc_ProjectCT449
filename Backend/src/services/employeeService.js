@@ -2,6 +2,7 @@ const connectDB = require("../config/database");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields } = require("./updatePayload");
+const accountService = require("./accountService");
 
 async function getCollection() {
     const db = await connectDB();
@@ -48,9 +49,29 @@ async function create(employee) {
 
     const result = await collection.insertOne(employeeToInsert);
 
-    return await collection.findOne({
+    const createdEmployee = await collection.findOne({
         _id: result.insertedId
     });
+
+    try {
+        const account = await accountService.createGeneratedForProfile(maNhanVien);
+        return {
+            ...createdEmployee,
+            accountCreation: {
+                created: true,
+                tenDangNhap: account.tenDangNhap,
+                credentialsDelivered: false,
+            },
+        };
+    } catch (cause) {
+        const error = new Error("Da tao ho so nhan vien nhung chua tao duoc tai khoan");
+        error.code = "PROFILE_ACCOUNT_PARTIAL";
+        error.profileCode = maNhanVien;
+        error.profileType = "employee";
+        error.profile = createdEmployee;
+        error.cause = cause;
+        throw error;
+    }
 }
 
 // Cập nhật nhân viên
