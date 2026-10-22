@@ -4,7 +4,7 @@ const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { BOOK_COLLECTION } = require("../models/Book");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
-const { getUpdateFields } = require("./updatePayload");
+const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 
 // Lấy collection nhà xuất bản
 async function getCollection() {
@@ -40,10 +40,15 @@ function duplicateNameError() {
 
 // Thêm nhà xuất bản
 async function create(publisher) {
+    const publisherToCreate = validateCreateFields(
+        publisher,
+        { tenNXB: "string" },
+        ["tenNXB"]
+    );
     const collection = await getCollection();
     const normalizedPublisher = {
-        ...publisher,
-        tenNXB: normalizeWhitespace(publisher.tenNXB),
+        ...publisherToCreate,
+        tenNXB: normalizeWhitespace(publisherToCreate.tenNXB),
     };
     const escapedName = normalizedPublisher.tenNXB.replace(
         /[.*+?^${}()|[\]\\]/g,

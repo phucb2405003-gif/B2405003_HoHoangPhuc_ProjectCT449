@@ -39,6 +39,9 @@ async function create(req, res) {
 
         res.status(201).json(publisher); // 201 = tạo thành công
     } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu khong hop le" });
+        }
         if (error.code === "DUPLICATE_NAME") {
             return res.status(409).json({
                 message: "Tên nhà xuất bản đã tồn tại",

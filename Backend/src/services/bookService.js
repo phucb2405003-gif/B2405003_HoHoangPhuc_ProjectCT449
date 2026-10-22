@@ -4,7 +4,7 @@ const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
-const { getUpdateFields } = require("./updatePayload");
+const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 
 // Lấy collection sách
 async function getCollection() {
@@ -40,9 +40,15 @@ function duplicateNameError() {
 
 // Thêm sách
 async function create(book) {
+    const bookToCreate = validateCreateFields(book, {
+        tenSach: "string",
+        tacGia: "string",
+        maNXB: "string",
+        soQuyen: "nonNegativeInteger",
+    }, ["tenSach", "tacGia", "maNXB", "soQuyen"]);
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
-        return createWithinLock(db, book, assertOwned);
+        return createWithinLock(db, bookToCreate, assertOwned);
     });
 }
 
@@ -252,7 +258,7 @@ async function destroyStock(maSach, soLuong) {
         throw error;
     }
 
-    if (!Number.isInteger(soLuong) || soLuong <= 0) {
+    if (!Number.isSafeInteger(soLuong) || soLuong <= 0) {
         const error = new Error("So luong tieu huy phai la so nguyen duong");
         error.code = "INVALID_QUANTITY";
         throw error;
