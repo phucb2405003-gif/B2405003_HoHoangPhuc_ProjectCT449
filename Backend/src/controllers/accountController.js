@@ -49,11 +49,8 @@ async function create(req, res) {
             Object.keys(body).length === 1 &&
             Object.hasOwn(body, "maTaiKhoan")
         ) {
-            const generatedAccount = await accountService.createGeneratedForProfile(body.maTaiKhoan);
-            return res.status(201).json({
-                ...generatedAccount,
-                credentialsDelivered: false,
-            });
+            const { account, initialPassword } = await accountService.createGeneratedForProfile(body.maTaiKhoan);
+            return res.status(201).json({ ...account, initialPassword });
         }
 
         const account = accountService.validateCreatePayload(req.body);
@@ -72,6 +69,11 @@ async function create(req, res) {
 
         res.status(201).json(newAccount);
     } catch (error) {
+        if (accountService.ACCOUNT_CREATION_LOCK_ERROR_CODES.has(error.code)) {
+            return res.status(503).json({
+                message: "He thong dang xu ly tao tai khoan; vui long thu lai sau",
+            });
+        }
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({ message: "Du lieu tao tai khoan khong hop le" });
         }

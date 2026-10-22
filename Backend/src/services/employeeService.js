@@ -54,13 +54,14 @@ async function create(employee) {
     });
 
     try {
-        const account = await accountService.createGeneratedForProfile(maNhanVien);
+        const { account, initialPassword } = await accountService.createGeneratedForProfile(maNhanVien);
         return {
             ...createdEmployee,
             accountCreation: {
                 created: true,
+                maTaiKhoan: account.maTaiKhoan,
                 tenDangNhap: account.tenDangNhap,
-                credentialsDelivered: false,
+                initialPassword,
             },
         };
     } catch (cause) {

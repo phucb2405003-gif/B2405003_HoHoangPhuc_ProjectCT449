@@ -8,6 +8,12 @@ const { getUpdateFields } = require("./updatePayload");
 
 const ACCOUNT_CREATION_LOCK_COLLECTION = "account_creation_locks";
 const ACCOUNT_CREATION_LOCK_WAIT_MS = 15000;
+const ACCOUNT_CREATION_LOCK_ERROR_CODES = new Set([
+    "ACCOUNT_CREATION_BUSY",
+    "ACCOUNT_CREATION_LOCK_UNCONFIRMED",
+    "ACCOUNT_CREATION_LOCK_LOST",
+    "ACCOUNT_CREATION_LOCK_CLEANUP",
+]);
 
 function withoutPassword(account) {
     if (!account) {
@@ -112,7 +118,12 @@ async function withAccountCreationLock(db, maTaiKhoan, operation) {
             );
             acquired = lock?.owner === token;
         } catch (error) {
-            if (error.code !== 11000) throw error;
+            if (error.code !== 11000) {
+                const lockError = createAccountCreationBusyError();
+                lockError.code = "ACCOUNT_CREATION_LOCK_UNCONFIRMED";
+                lockError.cause = error;
+                throw lockError;
+            }
         }
 
         if (!acquired) await new Promise((resolve) => setTimeout(resolve, 50));
@@ -121,7 +132,16 @@ async function withAccountCreationLock(db, maTaiKhoan, operation) {
     if (!acquired) throw createAccountCreationBusyError();
 
     const assertOwned = async () => {
-        if (!(await locks.findOne({ _id: lockId, owner: token }))) {
+        let ownedLock;
+        try {
+            ownedLock = await locks.findOne({ _id: lockId, owner: token });
+        } catch (cause) {
+            const error = createAccountCreationBusyError();
+            error.code = "ACCOUNT_CREATION_LOCK_LOST";
+            error.cause = cause;
+            throw error;
+        }
+        if (!ownedLock) {
             const error = createAccountCreationBusyError();
             error.code = "ACCOUNT_CREATION_LOCK_LOST";
             throw error;
@@ -140,11 +160,11 @@ async function withAccountCreationLock(db, maTaiKhoan, operation) {
         const release = await locks.deleteOne({ _id: lockId, owner: token });
         if (release.deletedCount !== 1) throw createAccountCreationBusyError();
     } catch (releaseError) {
-        if (operationError) {
-            operationError.lockCleanupError = releaseError;
-        } else {
-            throw releaseError;
-        }
+        const error = createAccountCreationBusyError();
+        error.code = "ACCOUNT_CREATION_LOCK_CLEANUP";
+        error.cause = releaseError;
+        if (operationError) error.operationErrorCode = operationError.code;
+        throw error;
     }
 
     if (operationError) throw operationError;
@@ -263,25 +283,31 @@ async function create(account) {
         await assertOwned();
         const result = await collection.insertOne(accountToInsert);
         const createdAccount = await collection.findOne({ _id: result.insertedId });
+        if (!createdAccount) {
+            const error = new Error("Khong the xac nhan tai khoan vua tao");
+            error.code = "ACCOUNT_CREATE_UNCONFIRMED";
+            throw error;
+        }
         return withoutPassword(createdAccount);
     });
 }
 
 async function createGeneratedForProfile(maTaiKhoan) {
-    if (typeof maTaiKhoan !== "string" || (!maTaiKhoan.startsWith("DG") && !maTaiKhoan.startsWith("NV"))) {
+    if (typeof maTaiKhoan !== "string" || !/^(?:DG|NV)-\d{2}-\d{6}$/.test(maTaiKhoan)) {
         const error = new Error("Ma ho so khong hop le");
         error.code = "INVALID_UPDATE";
         throw error;
     }
 
+    const initialPassword = generateCompliantPassword();
     const account = await create({
         maTaiKhoan,
         tenDangNhap: maTaiKhoan.replaceAll("-", ""),
-        password: generateCompliantPassword(),
+        password: initialPassword,
         trangThai: true,
     });
 
-    return account;
+    return { account, initialPassword };
 }
 
 // Cập nhật tài khoản
@@ -359,6 +385,7 @@ module.exports = {
     validateNewPassword,
     generateCompliantPassword,
     createGeneratedForProfile,
+    ACCOUNT_CREATION_LOCK_ERROR_CODES,
     findAll,
     findOne,
     create,

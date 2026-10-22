@@ -1,4 +1,5 @@
 const employeeService = require("../services/employeeService");
+const accountService = require("../services/accountService");
 
 // Lấy tất cả nhân viên
 async function findAll(req, res) {
@@ -50,12 +51,17 @@ async function create(req, res) {
         res.status(201).json(newEmployee);
     } catch (error) {
         if (error.code === "PROFILE_ACCOUNT_PARTIAL") {
+            const causeCode = error.cause?.code;
+            const lockFailure = accountService.ACCOUNT_CREATION_LOCK_ERROR_CODES.has(causeCode);
+            const duplicateFailure = ["DUPLICATE_USERNAME", "ACCOUNT_ALREADY_EXISTS"].includes(causeCode);
             console.error("Tao tai khoan nhan vien that bai sau khi da tao ho so:", {
-                code: error.cause?.code,
+                code: causeCode,
                 maNhanVien: error.profileCode,
             });
-            return res.status(500).json({
-                message: "Da tao ho so nhan vien nhung chua tao duoc tai khoan; hay tao tai khoan cho ma ho so nay",
+            return res.status(lockFailure ? 503 : duplicateFailure ? 409 : 500).json({
+                message: lockFailure
+                    ? "Da tao ho so nhan vien nhung he thong chua xac nhan duoc viec tao tai khoan; vui long thu lai sau"
+                    : "Da tao ho so nhan vien nhung chua tao duoc tai khoan; hay tao tai khoan cho ma ho so nay",
                 profileCreated: true,
                 accountCreated: false,
                 maNhanVien: error.profileCode,

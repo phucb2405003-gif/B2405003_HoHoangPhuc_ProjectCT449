@@ -47,13 +47,14 @@ async function create(user) {
     });
 
     try {
-        const account = await accountService.createGeneratedForProfile(maDocGia);
+        const { account, initialPassword } = await accountService.createGeneratedForProfile(maDocGia);
         return {
             ...createdUser,
             accountCreation: {
                 created: true,
+                maTaiKhoan: account.maTaiKhoan,
                 tenDangNhap: account.tenDangNhap,
-                credentialsDelivered: false,
+                initialPassword,
             },
         };
     } catch (cause) {
