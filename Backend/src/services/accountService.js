@@ -235,7 +235,8 @@ function validateCreatePayload(account, { allowBcryptPassword = false } = {}) {
         typeof account.maTaiKhoan !== "string" ||
         account.maTaiKhoan.trim().length === 0 ||
         (!account.maTaiKhoan.startsWith("DG") && !account.maTaiKhoan.startsWith("NV")) ||
-        !Object.hasOwn(account, "tenDangNhap")
+        !Object.hasOwn(account, "tenDangNhap") ||
+        !Object.hasOwn(account, "trangThai")
     ) {
         const error = new Error("Du lieu tao tai khoan khong hop le");
         error.code = "INVALID_UPDATE";
