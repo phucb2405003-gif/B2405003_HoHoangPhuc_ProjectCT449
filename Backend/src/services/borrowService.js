@@ -7,6 +7,7 @@ const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
 const { changeAvailable, undoAvailableChange } = require("./bookStockService");
 const { ObjectId } = require("mongodb");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 const STATUSES = {
     PENDING: "Chờ duyệt",
@@ -306,6 +307,13 @@ async function create(borrow) {
                     error,
                     rollbackErrors
                 );
+            }
+            if (isMongoDuplicateKey(error)) {
+                const duplicateError = new Error("Ma phieu muon da ton tai");
+                duplicateError.code = "BORROW_CODE_ALREADY_EXISTS";
+                duplicateError.statusCode = 409;
+                duplicateError.publicMessage = "Ma phieu muon da ton tai; vui long thu lai";
+                throw duplicateError;
             }
             throw error;
         }

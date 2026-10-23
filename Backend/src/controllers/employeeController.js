@@ -70,6 +70,9 @@ async function create(req, res) {
         if (error.code === "INVALID_CREATE") {
             return res.status(400).json({ message: "Du lieu tao nhan vien khong hop le" });
         }
+        if (error.code === "PROFILE_CODE_ALREADY_EXISTS") {
+            return res.status(409).json({ message: "Ma nhan vien da ton tai; vui long thu lai" });
+        }
         console.error("Loi tao nhan vien:", error);
 
         res.status(500).json({

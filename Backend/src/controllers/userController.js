@@ -60,6 +60,9 @@ async function create(req, res) {
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({ message: "Du lieu khong hop le" });
         }
+        if (error.code === "PROFILE_CODE_ALREADY_EXISTS") {
+            return res.status(409).json({ message: "Ma doc gia da ton tai; vui long thu lai" });
+        }
         res.status(500).json({
             message: "Lỗi khi thêm người dùng",
         });

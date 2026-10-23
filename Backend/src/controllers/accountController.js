@@ -60,7 +60,7 @@ async function create(req, res) {
         );
 
         if (existingAccount) {
-            return res.status(400).json({
+            return res.status(409).json({
                 message: "Ma tai khoan da ton tai"
             });
         }

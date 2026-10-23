@@ -3,6 +3,7 @@ const { USER_COLLECTION } = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 const accountService = require("./accountService");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -40,7 +41,15 @@ async function create(user) {
     const maDocGia = await generateCode("DG");
     userToCreate.maDocGia = maDocGia;
 
-    const result = await collection.insertOne(userToCreate);
+    let result;
+    try {
+        result = await collection.insertOne(userToCreate);
+    } catch (error) {
+        if (!isMongoDuplicateKey(error)) throw error;
+        const duplicateError = new Error("Ma doc gia da ton tai");
+        duplicateError.code = "PROFILE_CODE_ALREADY_EXISTS";
+        throw duplicateError;
+    }
 
     const createdUser = await collection.findOne({
         _id: result.insertedId,

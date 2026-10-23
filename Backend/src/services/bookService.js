@@ -5,6 +5,7 @@ const { PUBLISHER_COLLECTION } = require("../models/Publisher");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 // Lấy collection sách
 async function getCollection() {
@@ -97,7 +98,15 @@ async function createWithinLock(db, book, assertOwned) {
     };
 
     await assertOwned();
-    const result = await collection.insertOne(bookToInsert);
+    let result;
+    try {
+        result = await collection.insertOne(bookToInsert);
+    } catch (error) {
+        if (!isMongoDuplicateKey(error)) throw error;
+        const duplicateError = new Error("Ma sach da ton tai");
+        duplicateError.code = "BOOK_CODE_ALREADY_EXISTS";
+        throw duplicateError;
+    }
 
     return await collection.findOne({
         _id: result.insertedId,

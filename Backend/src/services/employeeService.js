@@ -3,6 +3,7 @@ const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 const accountService = require("./accountService");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 async function getCollection() {
     const db = await connectDB();
@@ -47,7 +48,15 @@ async function create(employee) {
     const maNhanVien = await generateCode("NV");
     employeeToInsert.maNhanVien = maNhanVien;
 
-    const result = await collection.insertOne(employeeToInsert);
+    let result;
+    try {
+        result = await collection.insertOne(employeeToInsert);
+    } catch (error) {
+        if (!isMongoDuplicateKey(error)) throw error;
+        const duplicateError = new Error("Ma nhan vien da ton tai");
+        duplicateError.code = "PROFILE_CODE_ALREADY_EXISTS";
+        throw duplicateError;
+    }
 
     const createdEmployee = await collection.findOne({
         _id: result.insertedId

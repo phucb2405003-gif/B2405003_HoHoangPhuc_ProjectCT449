@@ -1,4 +1,5 @@
 const connectDB = require("../config/database");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 const { ACCOUNT_COLLECTION } = require("../models/Account");
 const { USER_COLLECTION } = require("../models/User");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
@@ -282,7 +283,16 @@ async function create(account) {
         }
 
         await assertOwned();
-        const result = await collection.insertOne(accountToInsert);
+        let result;
+        try {
+            result = await collection.insertOne(accountToInsert);
+        } catch (error) {
+            if (!isMongoDuplicateKey(error)) throw error;
+            if (error.keyPattern?.tenDangNhap || error.keyValue?.tenDangNhap !== undefined) {
+                throw duplicateUsernameError();
+            }
+            throw duplicateAccountError();
+        }
         const createdAccount = await collection.findOne({ _id: result.insertedId });
         if (!createdAccount) {
             const error = new Error("Khong the xac nhan tai khoan vua tao");
@@ -354,14 +364,16 @@ async function update(maTaiKhoan, account) {
         }
     }
 
-    const result = await collection.updateOne(
-        {
-            maTaiKhoan: maTaiKhoan
-        },
-        {
-            $set: accountToUpdate
-        }
-    );
+    let result;
+    try {
+        result = await collection.updateOne(
+            { maTaiKhoan: maTaiKhoan },
+            { $set: accountToUpdate }
+        );
+    } catch (error) {
+        if (!isMongoDuplicateKey(error)) throw error;
+        throw duplicateUsernameError();
+    }
 
     if (result.matchedCount === 0) {
         const error = new Error("Khong tim thay tai khoan");

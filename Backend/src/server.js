@@ -33,7 +33,9 @@ async function startServer() {
         getCorsOrigins();
 
         const connectDB = require("./config/database");
-        await connectDB();
+        const db = await connectDB();
+        const { ensureIndexes } = require("./config/databaseIndexes");
+        await ensureIndexes(db);
 
         const app = require("./app");
         const server = app.listen(PORT, () => {
@@ -56,7 +58,10 @@ async function startServer() {
         ) {
             console.error("Khong the khoi dong server:", error.message);
         } else {
-            console.error("Khong the khoi dong server:", error?.name || "Error");
+            console.error("Khong the khoi dong server:", error?.code || error?.name || "Error");
+            if (String(error?.code || "").startsWith("UNIQUE_INDEX_")) {
+                console.error(error.message);
+            }
         }
         process.exitCode = 1;
     }

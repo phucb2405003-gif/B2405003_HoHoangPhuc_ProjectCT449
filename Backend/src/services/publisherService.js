@@ -5,6 +5,7 @@ const { BOOK_COLLECTION } = require("../models/Book");
 const { generateCode } = require("./codeGeneratorService");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
+const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 // Lấy collection nhà xuất bản
 async function getCollection() {
@@ -72,7 +73,15 @@ async function create(publisher) {
         ...normalizedPublisher,
         maNXB,
     };
-    const result = await collection.insertOne(publisherToInsert);
+    let result;
+    try {
+        result = await collection.insertOne(publisherToInsert);
+    } catch (error) {
+        if (!isMongoDuplicateKey(error)) throw error;
+        const duplicateError = new Error("Ma nha xuat ban da ton tai");
+        duplicateError.code = "PUBLISHER_CODE_ALREADY_EXISTS";
+        throw duplicateError;
+    }
 
     return await collection.findOne({
         _id: result.insertedId,
