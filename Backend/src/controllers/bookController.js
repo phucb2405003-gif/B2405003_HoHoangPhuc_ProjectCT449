@@ -39,6 +39,11 @@ async function create(req, res) {
 
         res.status(201).json(book); // 201 = tạo dữ liệu thành công
     } catch (error) {
+        if (error.statusCode === 503) {
+            return res.status(503).json({
+                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+            });
+        }
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({ message: "Du lieu khong hop le" });
         }
@@ -73,6 +78,11 @@ async function update(req, res) {
 
         res.json(book); // Trả sách sau khi cập nhật
     } catch (error) {
+        if (error.statusCode === 503) {
+            return res.status(503).json({
+                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+            });
+        }
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({
                 message: "Du lieu cap nhat khong hop le",
@@ -183,6 +193,11 @@ async function remove(req, res) {
             message: "Xóa sách thành công",
         });
     } catch (error) {
+        if (error.statusCode === 503) {
+            return res.status(503).json({
+                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+            });
+        }
         if (error.code === "BOOK_REFERENCED") {
             return res.status(409).json({
                 message: "Không thể xóa sách đã được ghi nhận trong lịch sử mượn trả",

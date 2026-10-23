@@ -106,6 +106,11 @@ async function remove(req, res) {
             message: "Xóa nhà xuất bản thành công",
         });
     } catch (error) {
+        if (error.statusCode === 503) {
+            return res.status(503).json({
+                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+            });
+        }
         if (error.code === "NOT_FOUND") {
             return res.status(404).json({
                 message: "Khong tim thay nha xuat ban",

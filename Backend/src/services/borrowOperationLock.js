@@ -1,4 +1,4 @@
-﻿const { randomUUID } = require("node:crypto");
+﻿const { randomUUID, createHash, timingSafeEqual } = require("node:crypto");
 
 const LOCK_COLLECTION = "borrow_operation_locks";
 const LOCK_ID = "all-borrow-writes";
@@ -15,6 +15,102 @@ function lockError(message) {
     const error = new Error(message);
     error.statusCode = 503;
     return error;
+}
+
+function fingerprintOwner(owner) {
+    if (typeof owner !== "string" || owner.length === 0) return null;
+    return createHash("sha256").update(owner).digest("hex");
+}
+
+async function inspectBorrowOperationLock(db) {
+    let lock;
+    try {
+        lock = await db.collection(LOCK_COLLECTION).findOne({ _id: LOCK_ID });
+    } catch {
+        throw lockError("Could not inspect borrow lock; no recovery was performed");
+    }
+    if (!lock) {
+        return {
+            lockId: LOCK_ID,
+            exists: false,
+            acquiredAt: null,
+            ownerPid: null,
+            recoveryStatus: "not-needed"
+        };
+    }
+    return {
+        lockId: LOCK_ID,
+        exists: true,
+        acquiredAt: lock.acquiredAt instanceof Date ? lock.acquiredAt.toISOString() : null,
+        ownerPid: Number.isInteger(lock.ownerPid) ? lock.ownerPid : null,
+        ownerFingerprint: fingerprintOwner(lock.owner),
+        recoveryStatus: "requires-operator-review"
+    };
+}
+
+async function recoverBorrowOperationLock(db, options = {}) {
+    const {
+        confirmRecovery,
+        allBackendProcessesStopped,
+        historyReconciled,
+        expectedOwnerFingerprint
+    } = options;
+    if (
+        confirmRecovery !== true ||
+        allBackendProcessesStopped !== true ||
+        historyReconciled !== true
+    ) {
+        throw lockError("Recovery requires explicit confirmation, stopped Backend processes, and reconciled history");
+    }
+    if (
+        typeof expectedOwnerFingerprint !== "string" ||
+        !/^[a-f0-9]{64}$/.test(expectedOwnerFingerprint)
+    ) {
+        throw lockError("A valid owner fingerprint from the status command is required");
+    }
+
+    const locks = db.collection(LOCK_COLLECTION);
+    let current;
+    try {
+        current = await locks.findOne({ _id: LOCK_ID });
+    } catch {
+        throw lockError("Could not inspect borrow lock; no recovery was performed");
+    }
+    if (
+        !current ||
+        typeof current.owner !== "string" ||
+        !current.owner ||
+        !Number.isInteger(current.ownerPid) ||
+        !(current.acquiredAt instanceof Date)
+    ) {
+        throw lockError("Current lock cannot be verified safely; keep it and reconcile manually");
+    }
+    const actual = Buffer.from(fingerprintOwner(current.owner), "hex");
+    const expected = Buffer.from(expectedOwnerFingerprint, "hex");
+    if (!timingSafeEqual(actual, expected)) {
+        throw lockError("Current lock owner differs from the confirmed lock");
+    }
+
+    let result;
+    try {
+        result = await locks.deleteOne({
+            _id: LOCK_ID,
+            owner: current.owner,
+            ownerPid: current.ownerPid,
+            acquiredAt: current.acquiredAt
+        });
+    } catch {
+        throw lockError("MongoDB recovery failed; no success was reported");
+    }
+    if (result.deletedCount !== 1) {
+        throw lockError("Lock changed during recovery; no lock was released");
+    }
+    return {
+        released: true,
+        lockId: LOCK_ID,
+        acquiredAt: current.acquiredAt.toISOString(),
+        ownerPid: current.ownerPid
+    };
 }
 
 async function withBorrowOperationLock(db, operation, waitMs = LOCK_WAIT_MS) {
@@ -101,4 +197,4 @@ async function withBorrowOperationLock(db, operation, waitMs = LOCK_WAIT_MS) {
     return result;
 }
 
-module.exports = { withBorrowOperationLock };
+module.exports = { withBorrowOperationLock, inspectBorrowOperationLock, recoverBorrowOperationLock };
