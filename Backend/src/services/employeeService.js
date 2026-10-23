@@ -1,7 +1,7 @@
 const connectDB = require("../config/database");
 const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const { generateCode } = require("./codeGeneratorService");
-const { getUpdateFields } = require("./updatePayload");
+const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 const accountService = require("./accountService");
 
 async function getCollection() {
@@ -29,12 +29,12 @@ async function findOne(maNhanVien) {
 async function create(employee) {
     let employeeToInsert;
     try {
-        employeeToInsert = getUpdateFields(employee, {
+        employeeToInsert = validateCreateFields(employee, {
             hoTenNV: "string",
             diaChi: "string",
             soDienThoai: "string",
             chucVu: "string",
-        });
+        }, ["hoTenNV", "chucVu"]);
     } catch (validationError) {
         if (validationError.code !== "INVALID_UPDATE") throw validationError;
 

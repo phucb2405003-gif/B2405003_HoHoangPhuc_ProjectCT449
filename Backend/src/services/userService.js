@@ -35,7 +35,7 @@ async function create(user) {
         phai: "gender",
         diaChi: "string",
         dienThoai: "string",
-    }, ["phai"]);
+    }, ["hoLot", "ten", "phai"]);
     const collection = await getCollection();
     const maDocGia = await generateCode("DG");
     userToCreate.maDocGia = maDocGia;

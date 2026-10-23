@@ -16,19 +16,13 @@ function validateCreateFields(payload, fieldTypes, requiredFields) {
         typeof payload !== "object" ||
         Array.isArray(payload) ||
         Object.getPrototypeOf(payload) !== Object.prototype ||
-        Object.hasOwn(payload, "_id") ||
+        Object.keys(payload).some((field) => !Object.hasOwn(fieldTypes, field)) ||
         requiredFields.some((field) => !Object.hasOwn(payload, field))
     ) {
         throw invalidUpdateError();
     }
 
-    const knownFields = Object.fromEntries(
-        Object.entries(payload).filter(([field]) => Object.hasOwn(fieldTypes, field))
-    );
-    return {
-        ...payload,
-        ...getUpdateFields(knownFields, fieldTypes),
-    };
+    return getUpdateFields(payload, fieldTypes);
 }
 
 function getUpdateFields(payload, allowedFields) {
