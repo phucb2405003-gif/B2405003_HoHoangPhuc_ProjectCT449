@@ -47,6 +47,9 @@ async function create(req, res) {
                 message: "Tên nhà xuất bản đã tồn tại",
             });
         }
+        if (error.code === "CODE_SEQUENCE_EXHAUSTED") {
+            return res.status(409).json({ message: error.publicMessage });
+        }
         if (error.code === "PUBLISHER_CODE_ALREADY_EXISTS") {
             return res.status(409).json({ message: "Ma nha xuat ban da ton tai; vui long thu lai" });
         }

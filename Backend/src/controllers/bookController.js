@@ -52,6 +52,9 @@ async function create(req, res) {
                 message: "Tên sách đã tồn tại",
             });
         }
+        if (error.code === "CODE_SEQUENCE_EXHAUSTED") {
+            return res.status(409).json({ message: error.publicMessage });
+        }
         if (error.code === "BOOK_CODE_ALREADY_EXISTS") {
             return res.status(409).json({ message: "Ma sach da ton tai; vui long thu lai" });
         }
