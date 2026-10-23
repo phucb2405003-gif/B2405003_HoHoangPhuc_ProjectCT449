@@ -155,50 +155,50 @@ async function create(borrow) {
     const bookCollection = db.collection(BOOK_COLLECTION);
 
     return withBorrowOperationLock(db, async (assertOwned) => {
-        if (direct) {
-            const reader = await db.collection(USER_COLLECTION).findOne({
-                maDocGia: borrow.maDocGia
-            });
-            if (!reader) {
-                const error = new Error("Khong tim thay doc gia");
-                error.statusCode = 400;
-                throw error;
-            }
-        } else {
-            const readerBorrows = await borrowCollection.find(
-                { maDocGia: borrow.maDocGia },
-                { projection: { maPhieu: 1 } }
-            ).toArray();
-            const borrowIds = readerBorrows.map((item) => item.maPhieu);
-            const activeDetails = borrowIds.length
-                ? await detailCollection.find({
-                    maPhieu: { $in: borrowIds },
-                    trangThai: { $in: ACTIVE_STATUSES }
-                }).toArray()
-                : [];
+        const reader = await db.collection(USER_COLLECTION).findOne({
+            maDocGia: borrow.maDocGia
+        });
+        if (!reader) {
+            const error = new Error("Khong tim thay doc gia");
+            error.statusCode = 400;
+            throw error;
+        }
 
-            const duplicate = activeDetails.find((item) =>
-                details.some((detail) => detail.maSach === item.maSach)
+        const readerBorrows = await borrowCollection.find(
+            { maDocGia: borrow.maDocGia },
+            { projection: { maPhieu: 1 } }
+        ).toArray();
+        const borrowIds = readerBorrows.map((item) => item.maPhieu);
+        const activeDetails = borrowIds.length
+            ? await detailCollection.find({
+                maPhieu: { $in: borrowIds },
+                trangThai: { $in: ACTIVE_STATUSES }
+            }).toArray()
+            : [];
+
+        const duplicate = activeDetails.find((item) =>
+            details.some((detail) => detail.maSach === item.maSach)
+        );
+        if (duplicate) {
+            const error = new Error(
+                duplicate.trangThai === STATUSES.PENDING
+                    ? `Ban da dang ky sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu} va dang cho duyet`
+                    : `Ban dang muon sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu}`
             );
-            if (duplicate) {
-                const error = new Error(
-                    duplicate.trangThai === STATUSES.PENDING
-                        ? `Ban da dang ky sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu} va dang cho duyet`
-                        : `Ban dang muon sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu}`
-                );
-                error.statusCode = 400;
-                throw error;
-            }
+            error.statusCode = 400;
+            throw error;
+        }
 
-            const activeBookCount = activeDetails.length;
-            if (activeBookCount + details.length > MAX_ACTIVE_BOOKS) {
-                const error = new Error(
-                    `Vuot gioi han ${MAX_ACTIVE_BOOKS} sach dang cho duyet hoac dang muon`
-                );
-                error.statusCode = 400;
-                throw error;
-            }
+        const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
+        if (activeBookCount + details.length > MAX_ACTIVE_BOOKS) {
+            const error = new Error(
+                `Vuot gioi han ${MAX_ACTIVE_BOOKS} sach dang cho duyet hoac dang muon`
+            );
+            error.statusCode = 400;
+            throw error;
+        }
 
+        if (!direct) {
             const pendingBorrowIds = new Set(
                 activeDetails
                     .filter((item) => item.trangThai === STATUSES.PENDING)
