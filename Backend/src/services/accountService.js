@@ -408,26 +408,15 @@ async function changeOwnPassword(maTaiKhoan, currentPassword, newPassword) {
     return true;
 }
 
-// Xóa tài khoản
-async function remove(maTaiKhoan) {
-    const collection = await getCollection();
-
-    return await collection.deleteOne({
-        maTaiKhoan: maTaiKhoan
-    });
-}
-
 module.exports = {
     validateCreatePayload,
     validateNewPassword,
     generateCompliantPassword,
     createGeneratedForProfile,
     ACCOUNT_CREATION_LOCK_ERROR_CODES,
-    withAccountCreationLock,
     findAll,
     findOne,
     create,
     update,
-    changeOwnPassword,
-    remove
+    changeOwnPassword
 };

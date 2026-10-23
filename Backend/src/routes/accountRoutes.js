@@ -39,11 +39,4 @@ router.put(
     accountController.update
 );
 
-router.delete(
-    "/:maTaiKhoan",
-    authenticateToken,
-    allowRoles("Quản lý"),
-    accountController.remove
-);
-
 module.exports = router;

@@ -120,44 +120,9 @@ async function update(req, res) {
     }
 }
 
-// Xóa nhân viên
-async function remove(req, res) {
-    try {
-        const { maNhanVien } = req.params;
-
-        const oldEmployee =
-            await employeeService.findOne(maNhanVien);
-
-        if (!oldEmployee) {
-            return res.status(404).json({
-                message: "Khong tim thay nhan vien"
-            });
-        }
-
-        await employeeService.remove(maNhanVien);
-
-        res.json({
-            message: "Xoa nhan vien thanh cong"
-        });
-    } catch (error) {
-        if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay nhan vien" });
-        }
-        if (error.code === "EMPLOYEE_REFERENCED") {
-            return res.status(409).json({ code: error.code, message: "Khong the xoa nhan vien dang duoc tham chieu" });
-        }
-        console.error("Loi xoa nhan vien:", error);
-
-        res.status(500).json({
-            message: "Khong the xoa nhan vien"
-        });
-    }
-}
-
 module.exports = {
     findAll,
     findOne,
     create,
-    update,
-    remove
+    update
 };

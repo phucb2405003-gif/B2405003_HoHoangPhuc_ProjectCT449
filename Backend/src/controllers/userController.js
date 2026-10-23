@@ -89,37 +89,9 @@ async function update(req, res) {
     }
 }
 
-// Xóa người dùng
-async function remove(req, res) {
-    try {
-        const result = await userService.remove(req.params.maDocGia);
-
-        if (result.deletedCount === 0) {
-            return res.status(404).json({
-                message: "Không tìm thấy người dùng",
-            });
-        }
-
-        res.json({
-            message: "Xóa người dùng thành công",
-        });
-    } catch (error) {
-        if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay doc gia" });
-        }
-        if (error.code === "USER_REFERENCED") {
-            return res.status(409).json({ code: error.code, message: "Khong the xoa doc gia dang duoc tham chieu" });
-        }
-        res.status(500).json({
-            message: "Lỗi khi xóa người dùng",
-        });
-    }
-}
-
 module.exports = {
     findAll,
     findOne,
     create,
     update,
-    remove,
 };

@@ -205,40 +205,10 @@ async function changeOwnPassword(req, res) {
     }
 }
 
-// Xóa tài khoản
-async function remove(req, res) {
-    try {
-        const { maTaiKhoan } = req.params;
-
-        const existingAccount = await accountService.findOne(
-            maTaiKhoan
-        );
-
-        if (!existingAccount) {
-            return res.status(404).json({
-                message: "Khong tim thay tai khoan"
-            });
-        }
-
-        await accountService.remove(maTaiKhoan);
-
-        res.json({
-            message: "Xoa tai khoan thanh cong"
-        });
-    } catch (error) {
-        console.error("Loi xoa tai khoan:", error);
-
-        res.status(500).json({
-            message: "Loi server"
-        });
-    }
-}
-
 module.exports = {
     findAll,
     findOne,
     create,
     update,
-    changeOwnPassword,
-    remove
+    changeOwnPassword
 };

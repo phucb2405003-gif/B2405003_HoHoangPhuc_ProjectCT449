@@ -3,9 +3,6 @@ const { EMPLOYEE_COLLECTION } = require("../models/Employee");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields } = require("./updatePayload");
 const accountService = require("./accountService");
-const { ACCOUNT_COLLECTION } = require("../models/Account");
-const { BORROW_COLLECTION } = require("../models/Borrow");
-const { withBorrowOperationLock } = require("./borrowOperationLock");
 
 async function getCollection() {
     const db = await connectDB();
@@ -111,33 +108,9 @@ async function update(maNhanVien, employee) {
     return await findOne(maNhanVien);
 }
 
-// Xóa nhân viên
-async function remove(maNhanVien) {
-    const db = await connectDB();
-    return accountService.withAccountCreationLock(db, maNhanVien, async () =>
-        withBorrowOperationLock(db, async () => {
-            const collection = db.collection(EMPLOYEE_COLLECTION);
-            if (!(await collection.findOne({ maNhanVien }))) {
-                const error = new Error("Khong tim thay nhan vien");
-                error.code = "NOT_FOUND";
-                throw error;
-            }
-            const hasAccount = await db.collection(ACCOUNT_COLLECTION).findOne({ maTaiKhoan: maNhanVien });
-            const hasBorrowHistory = await db.collection(BORROW_COLLECTION).findOne({ maNhanVien });
-            if (hasAccount || hasBorrowHistory) {
-                const error = new Error("Khong the xoa nhan vien dang duoc tham chieu");
-                error.code = "EMPLOYEE_REFERENCED";
-                throw error;
-            }
-            return collection.deleteOne({ maNhanVien });
-        })
-    );
-}
-
 module.exports = {
     findAll,
     findOne,
     create,
-    update,
-    remove
+    update
 };
