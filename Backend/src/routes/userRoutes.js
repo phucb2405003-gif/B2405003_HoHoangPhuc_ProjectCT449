@@ -49,12 +49,4 @@ router.put(
     userController.update
 );
 
-// Chỉ Quản lý được xóa
-router.delete(
-    "/:maDocGia",
-    authenticateToken,
-    allowRoles("Quản lý"),
-    userController.remove
-);
-
 module.exports = router;

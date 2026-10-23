@@ -423,6 +423,7 @@ module.exports = {
     generateCompliantPassword,
     createGeneratedForProfile,
     ACCOUNT_CREATION_LOCK_ERROR_CODES,
+    withAccountCreationLock,
     findAll,
     findOne,
     create,

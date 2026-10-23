@@ -33,11 +33,4 @@ router.put(
     employeeController.update
 );
 
-router.delete(
-    "/:maNhanVien",
-    authenticateToken,
-    allowRoles("Quản lý"),
-    employeeController.remove
-);
-
 module.exports = router;

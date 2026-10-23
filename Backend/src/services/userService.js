@@ -3,6 +3,9 @@ const { USER_COLLECTION } = require("../models/User");
 const { generateCode } = require("./codeGeneratorService");
 const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 const accountService = require("./accountService");
+const { ACCOUNT_COLLECTION } = require("../models/Account");
+const { BORROW_COLLECTION } = require("../models/Borrow");
+const { withBorrowOperationLock } = require("./borrowOperationLock");
 
 // Lấy collection độc giả
 async function getCollection() {
@@ -102,11 +105,25 @@ async function update(maDocGia, user) {
 
 // Xóa theo mã độc giả
 async function remove(maDocGia) {
-    const collection = await getCollection();
-
-    return await collection.deleteOne({
-        maDocGia: maDocGia,
-    });
+    const db = await connectDB();
+    return accountService.withAccountCreationLock(db, maDocGia, async () =>
+        withBorrowOperationLock(db, async () => {
+            const collection = db.collection(USER_COLLECTION);
+            if (!(await collection.findOne({ maDocGia }))) {
+                const error = new Error("Khong tim thay doc gia");
+                error.code = "NOT_FOUND";
+                throw error;
+            }
+            const hasAccount = await db.collection(ACCOUNT_COLLECTION).findOne({ maTaiKhoan: maDocGia });
+            const hasBorrowHistory = await db.collection(BORROW_COLLECTION).findOne({ maDocGia });
+            if (hasAccount || hasBorrowHistory) {
+                const error = new Error("Khong the xoa doc gia dang duoc tham chieu");
+                error.code = "USER_REFERENCED";
+                throw error;
+            }
+            return collection.deleteOne({ maDocGia });
+        })
+    );
 }
 
 module.exports = {

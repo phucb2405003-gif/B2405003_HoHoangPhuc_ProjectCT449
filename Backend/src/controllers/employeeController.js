@@ -140,6 +140,12 @@ async function remove(req, res) {
             message: "Xoa nhan vien thanh cong"
         });
     } catch (error) {
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay nhan vien" });
+        }
+        if (error.code === "EMPLOYEE_REFERENCED") {
+            return res.status(409).json({ code: error.code, message: "Khong the xoa nhan vien dang duoc tham chieu" });
+        }
         console.error("Loi xoa nhan vien:", error);
 
         res.status(500).json({
