@@ -1,12 +1,7 @@
 <script setup>
-import AppHeader from '@/components/AppHeader.vue'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import FeaturedBooks from '@/components/home/featured-books/FeaturedBooks.vue'
 import './HomeView.css'
-
-const featuredBooks = [
-  { title: "Sách mẫu 01", author: "Tác giả minh họa", genre: "Thể loại mẫu", key: 'sample-book-1' },
-  { title: "Sách mẫu 02", author: "Tác giả minh họa", genre: "Thể loại mẫu", key: 'sample-book-2' },
-  { title: "Sách mẫu 03", author: "Tác giả minh họa", genre: "Thể loại mẫu", key: 'sample-book-3' },
-]
 </script>
 
 <template>
@@ -25,23 +20,40 @@ const featuredBooks = [
         </div>
       </section>
 
-      <section class="home-page__content featured-books" aria-labelledby="featured-books-title">
-        <h2 id="featured-books-title" class="featured-books__heading">Sách nổi bật</h2>
-        <p class="featured-books__sample-note">Dữ liệu mẫu minh họa, không phải dữ liệu hệ thống.</p>
-        <div class="featured-books__grid">
-          <article v-for="book in featuredBooks" :key="book.key" class="book-card">
-            <div class="book-card__cover" role="img" aria-label="Ảnh minh họa">Ảnh minh họa</div>
-            <div class="book-card__details">
-              <h3 class="book-card__title">{{ book.title }}</h3>
-              <p class="book-card__author">{{ book.author }}</p>
-              <span class="book-card__genre">{{ book.genre }}</span>
-            </div>
-          </article>
-        </div>
-      </section>
+      <FeaturedBooks />
     </main>
+
     <footer class="home-footer">
-      <div class="home-footer__content">© 2026 Thư viện trực tuyến. Tất cả quyền được bảo lưu.</div>
+      <div class="home-footer__columns">
+        <section class="home-footer__column home-footer__about">
+          <h2 class="home-footer__brand">
+            <img src="@/assets/icons/square-library.svg" alt="" />
+            <span>Thư viện trực tuyến</span>
+          </h2>
+          <p>Mở rộng tri thức, kết nối đam mê đọc sách.</p>
+        </section>
+
+        <section class="home-footer__column">
+          <h2 class="home-footer__heading">Liên kết nhanh</h2>
+          <ul class="home-footer__list">
+            <li><RouterLink to="/">Trang chủ</RouterLink></li>
+            <li><span class="home-footer__unavailable">Danh sách sách <small>Chưa có trang</small></span></li>
+            <li><span class="home-footer__unavailable">Đăng nhập <small>Chưa có trang</small></span></li>
+            <li><span class="home-footer__unavailable">Đăng ký <small>Chưa có trang</small></span></li>
+            <li><span class="home-footer__unavailable">Trang cá nhân <small>Chưa có trang</small></span></li>
+          </ul>
+        </section>
+
+        <section class="home-footer__column">
+          <h2 class="home-footer__heading">Kết nối với thư viện</h2>
+          <ul class="home-footer__list home-footer__socials">
+            <li><span class="home-footer__social"><img src="@/assets/icons/facebook.svg" alt="" />Facebook <small>Chưa có URL</small></span></li>
+            <li><span class="home-footer__social"><img src="@/assets/icons/instagram.svg" alt="" />Instagram <small>Chưa có URL</small></span></li>
+            <li><span class="home-footer__social"><img src="@/assets/icons/twitter-alt.svg" alt="" />X <small>Chưa có URL</small></span></li>
+          </ul>
+        </section>
+      </div>
+      <div class="home-footer__copyright">© 2026 Thư viện trực tuyến. Tất cả quyền được bảo lưu.</div>
     </footer>
   </div>
 </template>

@@ -1,0 +1,105 @@
+.featured-books {
+  padding-block: 1.5rem 5rem;
+}
+
+.featured-books__topline {
+  display: flex;
+  margin-bottom: 1.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.featured-books__heading {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.featured-books__sample-note {
+  margin: 0.35rem 0 0;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+
+.featured-books__controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.55rem;
+}
+
+.featured-books__arrow {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 50%;
+  background: rgb(15 23 42 / 78%);
+  color: #f8fafc;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.featured-books__arrow span {
+  margin-top: -0.15rem;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.featured-books__arrow:hover {
+  border-color: #60a5fa;
+  background: #1d4ed8;
+}
+
+.featured-books__arrow:focus-visible,
+.featured-books__viewport:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 3px;
+}
+
+.featured-books__viewport {
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.featured-books__track {
+  display: flex;
+  gap: 1.25rem;
+  will-change: transform;
+  cursor: grab;
+}
+
+.featured-books__track.is-dragging {
+  cursor: grabbing;
+}
+
+@media (max-width: 680px) {
+  .featured-books__topline {
+    align-items: center;
+  }
+}
+
+@media (max-width: 430px) {
+  .featured-books__topline {
+    align-items: flex-start;
+  }
+
+  .featured-books__controls {
+    gap: 0.35rem;
+  }
+
+  .featured-books__arrow {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featured-books__arrow {
+    transition-duration: 0.01ms;
+  }
+}
