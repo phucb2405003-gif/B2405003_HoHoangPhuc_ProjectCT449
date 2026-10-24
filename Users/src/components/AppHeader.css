@@ -33,12 +33,12 @@
   place-items: center;
   border-radius: 0.8rem;
   background: #2563eb;
-  color: #fff;
 }
 
-.app-header__logo svg {
-  width: 1.5rem;
-  height: 1.5rem;
+.app-header__logo-image {
+  width: 1.75rem;
+  height: 1.75rem;
+  filter: brightness(0) invert(1);
 }
 
 .app-header__name {

@@ -7,9 +7,7 @@ import './AppHeader.css'
     <div class="app-header__inner">
       <RouterLink to="/" class="app-header__brand">
         <span class="app-header__logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5V5.75A2.75 2.75 0 0 1 6.75 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5m4-11h8m-8 4h8" />
-          </svg>
+          <img class="app-header__logo-image" src="@/assets/icons/square-library.svg" alt="" />
         </span>
         <span class="app-header__name">Thư viện trực tuyến</span>
       </RouterLink>
