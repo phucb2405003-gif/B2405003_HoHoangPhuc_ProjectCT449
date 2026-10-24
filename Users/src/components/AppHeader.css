@@ -1,9 +1,9 @@
 .app-header {
   position: relative;
   z-index: 1;
-  border-bottom: 1px solid #e2e8f0;
-  background: #fff;
-  box-shadow: 0 2px 8px rgb(15 23 42 / 5%);
+  border-bottom: 1px solid rgb(255 255 255 / 14%);
+  background: rgb(8 15 27 / 72%);
+  backdrop-filter: blur(14px);
 }
 
 .app-header__inner {
@@ -21,7 +21,7 @@
   min-width: 0;
   align-items: center;
   gap: 0.75rem;
-  color: #0f172a;
+  color: #f8fafc;
   text-decoration: none;
 }
 
@@ -31,8 +31,9 @@
   height: 2.75rem;
   flex: 0 0 auto;
   place-items: center;
+  border: 1px solid rgb(147 197 253 / 40%);
   border-radius: 0.8rem;
-  background: #2563eb;
+  background: rgb(37 99 235 / 20%);
 }
 
 .app-header__logo-image {
@@ -60,18 +61,19 @@
 }
 
 .app-header__link {
-  color: #475569;
+  color: #d1d5db;
   text-decoration: none;
   transition: color 150ms ease;
 }
 
 .app-header__link:hover,
 .app-header__link--active {
-  color: #1d4ed8;
+  color: #93c5fd;
 }
 
 .app-header__login {
   padding: 0.55rem 1rem;
+  border: 1px solid rgb(147 197 253 / 42%);
   border-radius: 0.6rem;
   background: #2563eb;
   color: #fff;
