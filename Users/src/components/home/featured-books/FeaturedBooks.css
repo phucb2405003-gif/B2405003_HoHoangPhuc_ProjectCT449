@@ -67,6 +67,7 @@
 
 .featured-books__track {
   display: flex;
+  align-items: stretch;
   gap: 1.25rem;
   will-change: transform;
   cursor: grab;

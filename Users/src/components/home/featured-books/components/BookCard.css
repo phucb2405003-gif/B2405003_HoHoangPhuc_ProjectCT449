@@ -1,6 +1,9 @@
 .book-card {
   min-width: 0;
   flex: 0 0 calc((100% - 3.75rem) / 4);
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 0.9rem;
@@ -9,9 +12,12 @@
 }
 
 .book-card__cover {
-  display: grid;
+  position: relative;
+  display: block;
+  width: 100%;
   aspect-ratio: 3 / 4;
-  place-items: center;
+  flex: 0 0 auto;
+  overflow: hidden;
   background: linear-gradient(145deg, #1e3a5f, #172554 58%, #111827);
   color: #bfdbfe;
   font-size: 0.8125rem;
@@ -28,31 +34,70 @@
   background: linear-gradient(145deg, #3730a3, #312e81 48%, #111827);
 }
 
-.book-card__image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.book-card__cover > img.book-card__image {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: calc(100% - 16px);
+  max-height: calc(100% - 16px);
+  object-fit: contain;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 8px;
+  transform: translateX(-50%);
+}
+
+.book-card__cover > img.book-card__image--1984 {
+  height: calc(100% - 16px);
+}
+
+.book-card__cover > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  padding: 1rem;
+  place-items: center;
 }
 
 .book-card__details {
+  display: flex;
+  min-height: 10.5rem;
+  flex: 1 1 0;
+  flex-direction: column;
   padding: 1rem 1.1rem 1.2rem;
 }
 
 .book-card__title {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0;
   color: #f8fafc;
   font-size: 1.05rem;
   font-weight: 600;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .book-card__author {
+  display: -webkit-box;
+  overflow: hidden;
   margin: 0.4rem 0 0.8rem;
   color: #cbd5e1;
   font-size: 0.875rem;
   font-weight: 400;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .book-card__genre {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: auto;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   display: inline-block;
   padding: 0.25rem 0.6rem;
   border: 1px solid rgb(147 197 253 / 25%);
