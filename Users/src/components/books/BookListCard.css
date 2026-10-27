@@ -1,0 +1,88 @@
+.book-list-card {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1px solid rgb(148 163 184 / 17%);
+  border-radius: 0.9rem;
+  background: rgb(15 23 42 / 82%);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 16%);
+}
+
+.book-list-card__cover-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background: linear-gradient(145deg, #1e3a5f, #172554 58%, #111827);
+}
+
+.book-list-card__cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.book-list-card__body {
+  display: flex;
+  min-height: 11rem;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0.9rem 1rem 1rem;
+}
+
+.book-list-card__status {
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgb(148 163 184 / 25%);
+  border-radius: 999px;
+  background: rgb(148 163 184 / 9%);
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-list-card__title {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 2.8rem;
+  margin: 0.65rem 0 0;
+  color: #f8fafc;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.45;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.book-list-card__author {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0.45rem 0 0.8rem;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.book-list-card__genre {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  margin-top: auto;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid rgb(147 197 253 / 25%);
+  border-radius: 999px;
+  background: rgb(37 99 235 / 16%);
+  color: #bfdbfe;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

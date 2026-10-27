@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
+import BooksView from '@/views/BooksView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
+import { authState, initializeAuth } from '@/services/authService'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -17,11 +19,27 @@ const router = createRouter({
       component: LoginView,
     },
     {
+      path: '/sach',
+      name: 'books',
+      component: BooksView,
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: NotFoundView,
     },
   ],
+})
+
+router.beforeEach(async (to) => {
+  if (to.name !== 'login') return true
+
+  await initializeAuth({ revalidate: true })
+  if (authState.isAuthenticated && authState.user?.loaiTaiKhoan === 'DOCGIA') {
+    return { name: 'home', replace: true }
+  }
+
+  return true
 })
 
 export default router

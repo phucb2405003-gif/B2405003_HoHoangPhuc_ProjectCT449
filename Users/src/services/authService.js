@@ -13,6 +13,7 @@ export const authState = reactive({
 })
 
 let profileRequestVersion = 0
+let authInitializationPromise = null
 
 function setReaderState(user) {
   authState.user = {
@@ -170,54 +171,60 @@ export async function loginReader(tenDangNhap, password) {
   saveSession(result.token, result.user)
 }
 
-export async function initializeAuth() {
-  if (authState.isChecking || (authState.initialized && authState.isAuthenticated)) return
+export function initializeAuth({ revalidate = false } = {}) {
+  if (authInitializationPromise) return authInitializationPromise
+  if (!revalidate && authState.initialized && authState.isAuthenticated) return Promise.resolve()
 
   authState.isChecking = true
-  const session = readStoredSession()
-  if (!session) {
-    clearReaderState()
-    authState.initialized = true
-    authState.isChecking = false
-    return
-  }
+  authInitializationPromise = Promise.resolve().then(async () => {
+    try {
+      const session = readStoredSession()
+      if (!session) {
+        clearReaderState()
+        return
+      }
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${session.token}` },
-    })
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${session.token}` },
+      })
+      if (readStoredSession()?.token !== session.token) return
 
-    if (response.status === 401) {
-      removeStoredSession()
+      if (response.status === 401) {
+        removeStoredSession()
+        clearReaderState()
+        return
+      }
+
+      if (!response.ok) {
+        clearReaderState()
+        return
+      }
+
+      const result = await response.json()
+      if (readStoredSession()?.token !== session.token) return
+      const user = result?.user
+      if (
+        user?.loaiTaiKhoan !== 'DOCGIA' ||
+        typeof user.maTaiKhoan !== 'string' ||
+        typeof user.tenDangNhap !== 'string'
+      ) {
+        removeStoredSession()
+        clearReaderState()
+        return
+      }
+
+      saveSession(session.token, user)
+    } catch {
+      // Fail closed in the UI; keep the session so a temporary outage can be retried after reload.
       clearReaderState()
-      return
+    } finally {
+      authState.initialized = true
+      authState.isChecking = false
+      authInitializationPromise = null
     }
+  })
 
-    if (!response.ok) {
-      clearReaderState()
-      return
-    }
-
-    const result = await response.json()
-    const user = result?.user
-    if (
-      user?.loaiTaiKhoan !== 'DOCGIA' ||
-      typeof user.maTaiKhoan !== 'string' ||
-      typeof user.tenDangNhap !== 'string'
-    ) {
-      removeStoredSession()
-      clearReaderState()
-      return
-    }
-
-    saveSession(session.token, user)
-  } catch {
-    // Fail closed in the UI; keep the session so a temporary outage can be retried after reload.
-    clearReaderState()
-  } finally {
-    authState.initialized = true
-    authState.isChecking = false
-  }
+  return authInitializationPromise
 }
 
 export function logoutReader() {

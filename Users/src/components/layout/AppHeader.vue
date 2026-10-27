@@ -7,6 +7,13 @@ import chevronDownIcon from '@/assets/icons/chevron-down.svg'
 import chevronUpIcon from '@/assets/icons/chevron-up.svg'
 import './AppHeader.css'
 
+defineProps({
+  minimal: {
+    type: Boolean,
+    default: false,
+  },
+})
+
 const router = useRouter()
 const isAccountMenuOpen = ref(false)
 void initializeAuth()
@@ -48,9 +55,11 @@ onUnmounted(() => {
         <span class="app-header__name">Thư viện trực tuyến</span>
       </RouterLink>
       <nav class="app-header__nav" aria-label="Điều hướng chính">
-        <RouterLink to="/" class="app-header__link app-header__link--active">Trang chủ</RouterLink>
-        <RouterLink to="/sach" class="app-header__link">Sách</RouterLink>
-        <RouterLink to="/theo-doi-muon-sach" class="app-header__link">Theo dõi mượn sách</RouterLink>
+        <template v-if="!minimal">
+          <RouterLink to="/" class="app-header__link app-header__link--active">Trang chủ</RouterLink>
+          <RouterLink to="/sach" class="app-header__link">Sách</RouterLink>
+          <RouterLink to="/theo-doi-muon-sach" class="app-header__link">Theo dõi mượn sách</RouterLink>
+        </template>
         <RouterLink v-if="!authState.isAuthenticated && !authState.isChecking" to="/dang-nhap" class="app-header__login">Đăng nhập</RouterLink>
         <span v-else-if="authState.isChecking" class="app-header__account-loading" aria-label="Đang kiểm tra phiên đăng nhập"></span>
         <div v-else class="app-header__account" @click.stop>

@@ -1,7 +1,18 @@
 <script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import FeaturedBooks from '@/components/home/featured-books/FeaturedBooks.vue'
 import './HomeView.css'
+
+const router = useRouter()
+const searchTerm = ref('')
+
+function searchBooks() {
+  const query = searchTerm.value.trim()
+  void router.push({ name: 'books', query: query ? { q: query } : {} })
+}
 </script>
 
 <template>
@@ -13,9 +24,12 @@ import './HomeView.css'
           <p class="home-hero__eyebrow">THƯ VIỆN TRỰC TUYẾN</p>
           <h1>Chào mừng bạn đến với trang độc giả</h1>
           <p class="home-hero__description">Khám phá và theo dõi những cuốn sách bạn yêu thích.</p>
-          <form class="home-search" role="search" @submit.prevent>
-            <input class="home-search__input" type="search" placeholder="Tìm kiếm sách, tác giả, thể loại..." aria-label="Tìm kiếm sách, tác giả, thể loại" />
-            <button class="home-search__button" type="submit" disabled>Tìm kiếm</button>
+          <form class="home-search" role="search" @submit.prevent="searchBooks">
+            <input v-model="searchTerm" class="home-search__input" type="search" placeholder="Tìm kiếm sách, tác giả, thể loại..." aria-label="Tìm kiếm sách, tác giả, thể loại" />
+            <button class="home-search__button" type="submit">
+              <img src="@/assets/icons/search.svg" alt="" />
+              <span>Tìm kiếm</span>
+            </button>
           </form>
         </div>
       </section>
@@ -23,36 +37,6 @@ import './HomeView.css'
       <FeaturedBooks />
     </main>
 
-    <footer class="home-footer">
-      <div class="home-footer__columns">
-        <section class="home-footer__column home-footer__about">
-          <h2 class="home-footer__brand">
-            <img src="@/assets/icons/square-library.svg" alt="" />
-            <span>Thư viện trực tuyến</span>
-          </h2>
-          <p>Mở rộng tri thức, kết nối đam mê đọc sách.</p>
-        </section>
-
-        <section class="home-footer__column">
-          <h2 class="home-footer__heading">Liên kết nhanh</h2>
-          <ul class="home-footer__list">
-            <li><RouterLink to="/">Trang chủ</RouterLink></li>
-            <li><span class="home-footer__unavailable">Danh sách sách <small>Chưa có trang</small></span></li>
-            <li><RouterLink to="/dang-nhap">Đăng nhập</RouterLink></li>
-            <li><span class="home-footer__unavailable">Trang cá nhân <small>Chưa có trang</small></span></li>
-          </ul>
-        </section>
-
-        <section class="home-footer__column">
-          <h2 class="home-footer__heading">Kết nối với thư viện</h2>
-          <ul class="home-footer__list home-footer__socials">
-            <li><span class="home-footer__social"><img src="@/assets/icons/facebook.svg" alt="" />Facebook </span></li>
-            <li><span class="home-footer__social"><img src="@/assets/icons/instagram.svg" alt="" />Instagram </span></li>
-            <li><span class="home-footer__social"><img src="@/assets/icons/twitter-alt.svg" alt="" />X </span></li>
-          </ul>
-        </section>
-      </div>
-      <div class="home-footer__copyright">© 2026 Thư viện trực tuyến. Tất cả quyền được bảo lưu.</div>
-    </footer>
+    <AppFooter />
   </div>
 </template>
