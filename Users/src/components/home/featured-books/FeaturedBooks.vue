@@ -1,15 +1,20 @@
 <script setup>
-import featuredBooks from '@/data/featuredBooks'
+import { onMounted, ref } from 'vue'
+import { getBookCatalog } from '@/services/bookCatalogService'
 import BookCard from './components/BookCard.vue'
 import useFeaturedBooks from './useFeaturedBooks'
 import chevronLeftIcon from '@/assets/icons/chevron-left.svg'
 import chevronRightIcon from '@/assets/icons/chevron-right.svg'
 import './FeaturedBooks.css'
 
+const featuredBooks = ref([])
+const isLoading = ref(true)
+const loadError = ref('')
 const {
   displayBooks,
   finishDrag,
   handleKeydown,
+  handleClick,
   handleTransitionEnd,
   handleWheel,
   isDragging,
@@ -20,6 +25,16 @@ const {
   trackStyle,
   viewport,
 } = useFeaturedBooks(featuredBooks)
+
+onMounted(async () => {
+  try {
+    featuredBooks.value = (await getBookCatalog()).slice(0, 10)
+  } catch (error) {
+    loadError.value = error.message || 'Không thể tải sách nổi bật.'
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -27,9 +42,11 @@ const {
     <div class="featured-books__topline">
       <div>
         <h2 id="featured-books-title" class="featured-books__heading">Sách nổi bật</h2>
-        <p class="featured-books__sample-note">Dữ liệu mẫu minh họa, không phải dữ liệu hệ thống.</p>
+        <p v-if="isLoading" class="featured-books__sample-note" role="status">Đang tải sách…</p>
+        <p v-else-if="loadError" class="featured-books__sample-note" role="alert">{{ loadError }}</p>
+        <p v-else-if="!featuredBooks.length" class="featured-books__sample-note" role="status">Chưa có sách để hiển thị.</p>
       </div>
-      <div class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
+      <div v-if="featuredBooks.length" class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
         <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-4)">
           <img class="featured-books__arrow-icon" :src="chevronLeftIcon" alt="" aria-hidden="true" />
         </button>
@@ -40,6 +57,7 @@ const {
     </div>
 
     <div
+      v-if="featuredBooks.length"
       ref="viewport"
       class="featured-books__viewport"
       tabindex="0"
@@ -50,6 +68,7 @@ const {
       @pointercancel="finishDrag"
       @wheel.passive="handleWheel"
       @keydown="handleKeydown"
+      @click.capture="handleClick"
     >
       <div
         ref="track"

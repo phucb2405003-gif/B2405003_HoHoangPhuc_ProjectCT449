@@ -1,17 +1,20 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import BookListCard from '@/components/books/BookListCard.vue'
 import booksBanner from '@/assets/images/banner.jpg'
-import books from '@/data/books'
+import { getBookCatalog } from '@/services/bookCatalogService'
 import searchIcon from '@/assets/icons/search.svg'
 import './BooksView.css'
 
 const route = useRoute()
 const router = useRouter()
 const pageSize = 12
+const books = ref([])
+const isLoadingBooks = ref(true)
+const booksLoadError = ref('')
 const searchTerm = ref('')
 const selectedGenre = ref('')
 const selectedAuthor = ref('')
@@ -28,13 +31,13 @@ function normalize(value) {
     .trim()
 }
 
-const genres = computed(() => [...new Set(books.map((book) => book.genre))].sort((a, b) => a.localeCompare(b, 'vi')))
-const authors = computed(() => [...new Set(books.map((book) => book.author))].sort((a, b) => a.localeCompare(b, 'vi')))
+const genres = computed(() => [...new Set(books.value.map((book) => book.genre).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
+const authors = computed(() => [...new Set(books.value.map((book) => book.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
 const featuredAuthors = computed(() => authors.value.slice(0, 5))
 
 const filteredBooks = computed(() => {
   const query = normalize(searchTerm.value)
-  const result = books.filter((book) => {
+  const result = books.value.filter((book) => {
     const matchesQuery = !query || normalize(`${book.title} ${book.author}`).includes(query)
     const matchesGenre = !selectedGenre.value || book.genre === selectedGenre.value
     const matchesAuthor = !selectedAuthor.value || book.author === selectedAuthor.value
@@ -52,6 +55,16 @@ const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, i
 const visibleBooks = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return filteredBooks.value.slice(start, start + pageSize)
+})
+
+onMounted(async () => {
+  try {
+    books.value = await getBookCatalog()
+  } catch (error) {
+    booksLoadError.value = error.message || 'Không thể tải danh sách sách.'
+  } finally {
+    isLoadingBooks.value = false
+  }
 })
 
 watch(() => route.query, (query) => {
@@ -152,7 +165,7 @@ function resetFilters() {
               </section>
 
               <section class="books-sidebar__section">
-                <h2>Tác giả nổi bật <small>(minh họa)</small></h2>
+                <h2>Tác giả trong danh mục</h2>
                 <button
                   v-for="author in featuredAuthors"
                   :key="author"
@@ -169,12 +182,15 @@ function resetFilters() {
             <div class="books-results__heading">
               <div>
                 <h2 id="books-results-title">Tất cả sách</h2>
-                <p>{{ filteredBooks.length }} cuốn · Thông tin sách đang dùng dữ liệu minh họa và nhãn từ tên ảnh bìa.</p>
+                <p>{{ filteredBooks.length }} cuốn sách từ danh mục thư viện.</p>
               </div>
               <span class="books-results__page-count">Trang {{ currentPage }} / {{ pageCount }}</span>
             </div>
 
-            <div v-if="visibleBooks.length" class="books-grid">
+            <div v-if="isLoadingBooks" class="books-empty" role="status">Đang tải danh sách sách…</div>
+            <div v-else-if="booksLoadError" class="books-empty" role="alert">{{ booksLoadError }}</div>
+            <div v-else-if="!books.length" class="books-empty" role="status">Thư viện chưa có sách để hiển thị.</div>
+            <div v-else-if="visibleBooks.length" class="books-grid">
               <BookListCard
                 v-for="book in visibleBooks"
                 :key="book.id"
@@ -198,7 +214,7 @@ function resetFilters() {
               <button type="button" @click="resetFilters">Xóa bộ lọc</button>
             </div>
 
-            <nav v-if="filteredBooks.length" class="books-pagination" aria-label="Phân trang danh sách sách">
+            <nav v-if="!isLoadingBooks && !booksLoadError && filteredBooks.length" class="books-pagination" aria-label="Phân trang danh sách sách">
               <button type="button" :disabled="currentPage === 1" aria-label="Trang trước" @click="currentPage--">‹</button>
               <button
                 v-for="page in pageNumbers"

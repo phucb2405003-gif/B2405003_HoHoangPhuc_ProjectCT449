@@ -1,23 +1,25 @@
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, unref, watch } from 'vue'
 
 export default function useFeaturedBooks(featuredBooks) {
-  const bookCount = featuredBooks.length
+  const bookList = computed(() => unref(featuredBooks))
+  const bookCount = computed(() => bookList.value.length)
   const viewport = ref(null)
   const track = ref(null)
-  const position = ref(bookCount)
+  const position = ref(bookCount.value)
   const trackOffset = ref(0)
   const stepSize = ref(0)
   const transitionEnabled = ref(false)
   const isDragging = ref(false)
   const isAnimating = ref(false)
+  const suppressClick = ref(false)
   const trackStyle = computed(() => ({
     transform: `translate3d(${trackOffset.value}px, 0, 0)`,
     transition: transitionEnabled.value ? 'transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
   }))
   const displayBooks = computed(() => [
-    ...featuredBooks.map((book) => ({ ...book, renderKey: `before-${book.id}` })),
-    ...featuredBooks.map((book) => ({ ...book, renderKey: `source-${book.id}` })),
-    ...featuredBooks.map((book) => ({ ...book, renderKey: `after-${book.id}` })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `before-${book.id}` })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `source-${book.id}` })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `after-${book.id}` })),
   ])
 
   const autoplayDelay = 10_000
@@ -29,6 +31,8 @@ export default function useFeaturedBooks(featuredBooks) {
   let dragStartX = 0
   let dragStartOffset = 0
   let dragStartPosition = 0
+  let suppressClickTimer = null
+  let didDrag = false
 
   const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -54,9 +58,10 @@ export default function useFeaturedBooks(featuredBooks) {
   const normalizeClonedPosition = () => {
     let normalizedPosition = position.value
 
-    if (normalizedPosition < bookCount) normalizedPosition += bookCount
-    else if (normalizedPosition >= bookCount * 2) normalizedPosition -= bookCount
-    else return
+    if (!bookCount.value) return
+    while (normalizedPosition < bookCount.value) normalizedPosition += bookCount.value
+    while (normalizedPosition >= bookCount.value * 2) normalizedPosition -= bookCount.value
+    if (normalizedPosition === position.value) return
 
     transitionEnabled.value = false
     isAnimating.value = false
@@ -71,9 +76,14 @@ export default function useFeaturedBooks(featuredBooks) {
 
   const moveOneBook = (direction, userInitiated = true) => {
     if (userInitiated) resetAutoplayTimer()
-    if (stepSize.value <= 0 || isDragging.value || isAnimating.value) return
+    if (stepSize.value <= 0 || !bookCount.value || isDragging.value || isAnimating.value) return
 
-    position.value += direction
+    if (Math.abs(direction) >= bookCount.value) {
+      const logicalPosition = position.value - bookCount.value
+      position.value = bookCount.value + ((logicalPosition + direction) % bookCount.value + bookCount.value) % bookCount.value
+    } else {
+      position.value += direction
+    }
     trackOffset.value = -position.value * stepSize.value
 
     if (prefersReducedMotion()) {
@@ -94,9 +104,11 @@ export default function useFeaturedBooks(featuredBooks) {
     const nextStepSize = firstCard.getBoundingClientRect().width + gap
     if (nextStepSize <= 0) return
 
-    const logicalBook = ((position.value - bookCount) % bookCount + bookCount) % bookCount
+    const count = bookCount.value
+    if (!count) return
+    const logicalBook = ((position.value - count) % count + count) % count
     stepSize.value = nextStepSize
-    position.value = bookCount + logicalBook
+    position.value = count + logicalBook
     transitionEnabled.value = false
     isAnimating.value = false
     trackOffset.value = -position.value * stepSize.value
@@ -120,7 +132,7 @@ export default function useFeaturedBooks(featuredBooks) {
 
     isDragging.value = true
     isAnimating.value = false
-    if (viewport.value?.setPointerCapture) viewport.value.setPointerCapture(event.pointerId)
+    didDrag = false
     transitionEnabled.value = false
     trackOffset.value = getCurrentTrackOffset()
     position.value = Math.round(-trackOffset.value / stepSize.value)
@@ -132,6 +144,11 @@ export default function useFeaturedBooks(featuredBooks) {
   const moveDrag = (event) => {
     if (!isDragging.value) return
     const delta = event.clientX - dragStartX
+    if (!didDrag && Math.abs(delta) < 8) return
+    if (!didDrag) {
+      didDrag = true
+      if (viewport.value?.setPointerCapture) viewport.value.setPointerCapture(event.pointerId)
+    }
     if (Math.abs(delta) > 1) resetAutoplayTimer()
     trackOffset.value = dragStartOffset + delta
   }
@@ -139,6 +156,14 @@ export default function useFeaturedBooks(featuredBooks) {
   const finishDrag = (event) => {
     if (!isDragging.value) return
     const delta = event.clientX - dragStartX
+    if (didDrag) {
+      suppressClick.value = true
+      if (suppressClickTimer !== null) clearTimeout(suppressClickTimer)
+      suppressClickTimer = setTimeout(() => {
+        suppressClick.value = false
+        suppressClickTimer = null
+      }, 350)
+    }
     const threshold = Math.max(24, stepSize.value * 0.16)
     let targetPosition = Math.round(-trackOffset.value / stepSize.value)
 
@@ -146,6 +171,12 @@ export default function useFeaturedBooks(featuredBooks) {
     else if (delta > threshold) targetPosition = dragStartPosition - 1
 
     isDragging.value = false
+    if (!didDrag) {
+      transitionEnabled.value = true
+      resetAutoplayTimer()
+      return
+    }
+    didDrag = false
     resetAutoplayTimer()
     position.value = targetPosition
     trackOffset.value = -targetPosition * stepSize.value
@@ -156,6 +187,15 @@ export default function useFeaturedBooks(featuredBooks) {
       transitionEnabled.value = true
       isAnimating.value = true
     }
+  }
+
+  const handleClick = (event) => {
+    if (!suppressClick.value) return
+    event.preventDefault()
+    event.stopPropagation()
+    suppressClick.value = false
+    if (suppressClickTimer !== null) clearTimeout(suppressClickTimer)
+    suppressClickTimer = null
   }
 
   const handleWheel = (event) => {
@@ -189,9 +229,16 @@ export default function useFeaturedBooks(featuredBooks) {
     resetAutoplayTimer()
   })
 
+  watch(() => bookCount.value, async (count) => {
+    if (!count) return
+    await nextTick()
+    updateStepSize()
+  }, { flush: 'post' })
+
   onUnmounted(() => {
     if (autoplayTimer !== null) clearTimeout(autoplayTimer)
     if (wheelTimer !== null) clearTimeout(wheelTimer)
+    if (suppressClickTimer !== null) clearTimeout(suppressClickTimer)
     if (transitionFrame) cancelAnimationFrame(transitionFrame)
     resizeObserver?.disconnect()
   })
@@ -200,6 +247,7 @@ export default function useFeaturedBooks(featuredBooks) {
     displayBooks,
     finishDrag,
     handleKeydown,
+    handleClick,
     handleTransitionEnd,
     handleWheel,
     isDragging,

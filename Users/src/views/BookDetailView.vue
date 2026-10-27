@@ -3,9 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
-import books from '@/data/books'
 import { authState, getReaderAccessToken, initializeAuth } from '@/services/authService'
-import { createBorrowWithBook, getBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
+import { getBookCatalog } from '@/services/bookCatalogService'
+import { createBorrowWithBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
 import authorIcon from '@/assets/icons/author.svg'
 import bookIcon from '@/assets/icons/book-open-text.svg'
 import bookBorrowIcon from '@/assets/icons/book-lock.svg'
@@ -33,7 +33,6 @@ const selectedBorrowId = ref('')
 const borrowDetailsById = ref({})
 let bookLoadVersion = 0
 
-const localBook = computed(() => books.find((item) => item.id === route.params.maSach) || null)
 const title = computed(() => book.value?.tenSach || book.value?.title || 'Chi tiết sách')
 const author = computed(() => book.value?.tacGia || book.value?.author || '')
 const genre = computed(() => book.value?.genre || '')
@@ -57,27 +56,16 @@ async function loadBook() {
   const requestVersion = ++bookLoadVersion
   isLoading.value = true
   loadError.value = ''
-  book.value = localBook.value
+  book.value = null
 
-  if (!localBook.value) {
-    await initializeAuth({ revalidate: true })
+  try {
+    const catalog = await getBookCatalog()
     if (requestVersion !== bookLoadVersion) return
-    const token = getReaderAccessToken()
-    if (!token) {
-      loadError.value = 'Đăng nhập bằng tài khoản độc giả để xem thông tin sách từ hệ thống.'
-      isLoading.value = false
-      return
-    }
-
-    try {
-      const result = await getBook(route.params.maSach, token)
-      if (requestVersion !== bookLoadVersion) return
-      book.value = result
-      if (!result?.maSach) throw new Error('Không tìm thấy dữ liệu sách hợp lệ.')
-    } catch (error) {
-      if (requestVersion !== bookLoadVersion) return
-      loadError.value = error.message || 'Không thể tải thông tin sách.'
-    }
+    book.value = catalog.find((item) => item.id === route.params.maSach) || null
+    if (!book.value) throw new Error('Không tìm thấy dữ liệu sách hợp lệ.')
+  } catch (error) {
+    if (requestVersion !== bookLoadVersion) return
+    loadError.value = error.message || 'Không thể tải thông tin sách.'
   }
 
   if (requestVersion !== bookLoadVersion) return
