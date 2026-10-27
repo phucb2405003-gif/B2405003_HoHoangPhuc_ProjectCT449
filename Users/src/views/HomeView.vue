@@ -38,8 +38,7 @@ import './HomeView.css'
           <ul class="home-footer__list">
             <li><RouterLink to="/">Trang chủ</RouterLink></li>
             <li><span class="home-footer__unavailable">Danh sách sách <small>Chưa có trang</small></span></li>
-            <li><span class="home-footer__unavailable">Đăng nhập <small>Chưa có trang</small></span></li>
-            <li><span class="home-footer__unavailable">Đăng ký <small>Chưa có trang</small></span></li>
+            <li><RouterLink to="/dang-nhap">Đăng nhập</RouterLink></li>
             <li><span class="home-footer__unavailable">Trang cá nhân <small>Chưa có trang</small></span></li>
           </ul>
         </section>
@@ -47,9 +46,9 @@ import './HomeView.css'
         <section class="home-footer__column">
           <h2 class="home-footer__heading">Kết nối với thư viện</h2>
           <ul class="home-footer__list home-footer__socials">
-            <li><span class="home-footer__social"><img src="@/assets/icons/facebook.svg" alt="" />Facebook <small>Chưa có URL</small></span></li>
-            <li><span class="home-footer__social"><img src="@/assets/icons/instagram.svg" alt="" />Instagram <small>Chưa có URL</small></span></li>
-            <li><span class="home-footer__social"><img src="@/assets/icons/twitter-alt.svg" alt="" />X <small>Chưa có URL</small></span></li>
+            <li><span class="home-footer__social"><img src="@/assets/icons/facebook.svg" alt="" />Facebook </span></li>
+            <li><span class="home-footer__social"><img src="@/assets/icons/instagram.svg" alt="" />Instagram </span></li>
+            <li><span class="home-footer__social"><img src="@/assets/icons/twitter-alt.svg" alt="" />X </span></li>
           </ul>
         </section>
       </div>
