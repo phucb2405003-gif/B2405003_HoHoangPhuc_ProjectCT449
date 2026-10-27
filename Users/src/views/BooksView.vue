@@ -33,7 +33,12 @@ function normalize(value) {
 
 const genres = computed(() => [...new Set(books.value.map((book) => book.genre).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
 const authors = computed(() => [...new Set(books.value.map((book) => book.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
-const featuredAuthors = computed(() => authors.value.slice(0, 5))
+const sidebarGenres = computed(() => genres.value.slice(0, 10))
+const sidebarAuthors = computed(() => authors.value.slice(0, 10))
+const genreCounts = computed(() => books.value.reduce((counts, book) => {
+  if (book.genre) counts[book.genre] = (counts[book.genre] || 0) + 1
+  return counts
+}, {}))
 
 const filteredBooks = computed(() => {
   const query = normalize(searchTerm.value)
@@ -155,19 +160,19 @@ function resetFilters() {
                   @click="selectedGenre = ''"
                 >Tất cả sách <span>{{ books.length }}</span></button>
                 <button
-                  v-for="genre in genres"
+                  v-for="genre in sidebarGenres"
                   :key="genre"
                   class="books-sidebar__option"
                   :class="{ 'is-selected': selectedGenre === genre }"
                   type="button"
                   @click="selectedGenre = genre"
-                >{{ genre }} <span>{{ books.filter((book) => book.genre === genre).length }}</span></button>
+                >{{ genre }} <span>{{ genreCounts[genre] || 0 }}</span></button>
               </section>
 
               <section class="books-sidebar__section">
                 <h2>Tác giả trong danh mục</h2>
                 <button
-                  v-for="author in featuredAuthors"
+                  v-for="author in sidebarAuthors"
                   :key="author"
                   class="books-sidebar__author"
                   :class="{ 'is-selected': selectedAuthor === author }"
@@ -182,7 +187,7 @@ function resetFilters() {
             <div class="books-results__heading">
               <div>
                 <h2 id="books-results-title">Tất cả sách</h2>
-                <p>{{ filteredBooks.length }} cuốn sách từ danh mục thư viện.</p>
+                <p>{{ filteredBooks.length }} cuốn từ bộ dữ liệu sách mẫu.</p>
               </div>
               <span class="books-results__page-count">Trang {{ currentPage }} / {{ pageCount }}</span>
             </div>

@@ -36,7 +36,7 @@ let bookLoadVersion = 0
 const title = computed(() => book.value?.tenSach || book.value?.title || 'Chi tiết sách')
 const author = computed(() => book.value?.tacGia || book.value?.author || '')
 const genre = computed(() => book.value?.genre || '')
-const publisher = computed(() => book.value?.maNXB || '')
+const publisher = computed(() => book.value?.tenNXB || '')
 const availableCopies = computed(() => Number.isSafeInteger(book.value?.soQuyenConLai) ? book.value.soQuyenConLai : null)
 const activeDuplicate = computed(() => allBorrows.value.some((borrow) => {
   const details = borrowDetailsById.value[borrow.maPhieu] || []
@@ -202,7 +202,7 @@ onMounted(loadBook)
                 <dl class="book-detail-meta">
                   <div>
                     <img :src="publisherIcon" alt="" aria-hidden="true" />
-                    <dt>Mã nhà xuất bản</dt><dd>{{ publisher || 'Chưa cập nhật' }}</dd>
+                    <dt>Nhà xuất bản</dt><dd>{{ publisher || 'Chưa cập nhật' }}</dd>
                   </div>
                   <div>
                     <img :src="calendarIcon" alt="" aria-hidden="true" />
