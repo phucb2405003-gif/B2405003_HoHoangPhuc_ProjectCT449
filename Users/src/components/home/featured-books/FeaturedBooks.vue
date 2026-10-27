@@ -28,10 +28,10 @@ const {
         <p class="featured-books__sample-note">Dữ liệu mẫu minh họa, không phải dữ liệu hệ thống.</p>
       </div>
       <div class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
-        <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-1)">
+        <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-4)">
           <span aria-hidden="true">&#x2039;</span>
         </button>
-        <button class="featured-books__arrow" type="button" aria-label="Cuộn về phải" @click="moveOneBook(1)">
+        <button class="featured-books__arrow" type="button" aria-label="Cuộn về phải" @click="moveOneBook(4)">
           <span aria-hidden="true">&#x203a;</span>
         </button>
       </div>
