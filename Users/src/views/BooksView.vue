@@ -54,9 +54,12 @@ const visibleBooks = computed(() => {
   return filteredBooks.value.slice(start, start + pageSize)
 })
 
-watch(() => route.query.q, (query) => {
-  searchTerm.value = typeof query === 'string' ? query : ''
-  currentPage.value = 1
+watch(() => route.query, (query) => {
+  searchTerm.value = typeof query.q === 'string' ? query.q : ''
+  selectedGenre.value = typeof query.genre === 'string' ? query.genre : ''
+  selectedAuthor.value = typeof query.author === 'string' ? query.author : ''
+  sortOrder.value = query.sort === 'title-asc' ? 'title-asc' : 'default'
+  currentPage.value = Math.max(1, Number.parseInt(query.page, 10) || 1)
 }, { immediate: true })
 
 watch([searchTerm, selectedGenre, selectedAuthor, sortOrder], () => {
@@ -172,7 +175,22 @@ function resetFilters() {
             </div>
 
             <div v-if="visibleBooks.length" class="books-grid">
-              <BookListCard v-for="book in visibleBooks" :key="book.id" :book="book" />
+              <BookListCard
+                v-for="book in visibleBooks"
+                :key="book.id"
+                :book="book"
+                :detail-to="{
+                  name: 'book-detail',
+                  params: { maSach: book.id },
+                  query: {
+                    q: searchTerm || undefined,
+                    genre: selectedGenre || undefined,
+                    author: selectedAuthor || undefined,
+                    sort: sortOrder === 'default' ? undefined : sortOrder,
+                    page: currentPage === 1 ? undefined : String(currentPage),
+                  },
+                }"
+              />
             </div>
             <div v-else class="books-empty" role="status">
               <h3>Không tìm thấy sách phù hợp</h3>

@@ -232,3 +232,8 @@ export function logoutReader() {
   clearReaderState()
   authState.initialized = true
 }
+
+export function getReaderAccessToken() {
+  if (!authState.isAuthenticated || authState.user?.loaiTaiKhoan !== 'DOCGIA') return null
+  return readStoredSession()?.token || null
+}
