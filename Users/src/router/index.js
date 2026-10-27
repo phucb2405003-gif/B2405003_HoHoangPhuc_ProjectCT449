@@ -3,6 +3,7 @@ import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import BooksView from '@/views/BooksView.vue'
 import BookDetailView from '@/views/BookDetailView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 import { authState, initializeAuth } from '@/services/authService'
 
@@ -38,6 +39,11 @@ const router = createRouter({
       props: true,
     },
     {
+      path: '/trang-ca-nhan',
+      name: 'reader-profile',
+      component: ProfileView,
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: NotFoundView,
@@ -45,7 +51,20 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+  if (to.name === 'reader-profile') {
+    if (from.name === 'reader-profile') return true
+
+    await initializeAuth({ revalidate: true })
+    if (authState.isAuthenticated && authState.user?.loaiTaiKhoan === 'DOCGIA') return true
+
+    return {
+      name: 'login',
+      query: { redirect: to.fullPath },
+      replace: true,
+    }
+  }
+
   if (to.name !== 'login') return true
 
   await initializeAuth({ revalidate: true })

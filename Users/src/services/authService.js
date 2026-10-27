@@ -20,6 +20,7 @@ function setReaderState(user) {
     maTaiKhoan: user.maTaiKhoan,
     tenDangNhap: user.tenDangNhap,
     loaiTaiKhoan: 'DOCGIA',
+    email: typeof user.email === 'string' && user.email.trim() ? user.email.trim() : null,
   }
   authState.readerName = null
   // Login and /api/auth/me succeed only after Backend confirms account.trangThai === true.
@@ -44,13 +45,15 @@ function removeStoredSession() {
 }
 
 function saveSession(token, user) {
+  const sessionUser = {
+    maTaiKhoan: user.maTaiKhoan,
+    tenDangNhap: user.tenDangNhap,
+    loaiTaiKhoan: 'DOCGIA',
+    email: typeof user.email === 'string' && user.email.trim() ? user.email.trim() : null,
+  }
   const session = {
     token,
-    user: {
-      maTaiKhoan: user.maTaiKhoan,
-      tenDangNhap: user.tenDangNhap,
-      loaiTaiKhoan: 'DOCGIA',
-    },
+    user: sessionUser,
   }
 
   try {
@@ -213,7 +216,7 @@ export function initializeAuth({ revalidate = false } = {}) {
         return
       }
 
-      saveSession(session.token, user)
+      saveSession(session.token, { ...user, email: user.email || session.user.email })
     } catch {
       // Fail closed in the UI; keep the session so a temporary outage can be retried after reload.
       clearReaderState()

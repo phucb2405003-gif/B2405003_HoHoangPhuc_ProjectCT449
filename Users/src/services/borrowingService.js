@@ -18,7 +18,9 @@ async function request(path, token, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(payload?.message || 'Không thể hoàn tất yêu cầu mượn sách.')
+    const error = new Error(payload?.message || 'Không thể hoàn tất yêu cầu mượn sách.')
+    error.status = response.status
+    throw error
   }
 
   return payload

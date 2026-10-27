@@ -44,7 +44,7 @@ onUnmounted(() => clearTimeout(loginNoticeTimer))
           <li><RouterLink to="/">Trang chủ</RouterLink></li>
           <li><RouterLink to="/sach">Sách</RouterLink></li>
           <li><a href="/dang-nhap" @click.prevent="handleLoginLink">Đăng nhập</a></li>
-          <li><span class="home-footer__unavailable">Trang cá nhân <small>Chưa có trang</small></span></li>
+          <li><RouterLink :to="{ name: 'reader-profile', query: { tab: 'thong-tin' } }">Trang cá nhân</RouterLink></li>
         </ul>
       </section>
 
