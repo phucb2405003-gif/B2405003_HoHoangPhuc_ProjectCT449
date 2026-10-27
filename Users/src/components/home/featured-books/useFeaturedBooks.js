@@ -78,12 +78,14 @@ export default function useFeaturedBooks(featuredBooks) {
     if (userInitiated) resetAutoplayTimer()
     if (stepSize.value <= 0 || !bookCount.value || isDragging.value || isAnimating.value) return
 
+    const currentPosition = position.value
     if (Math.abs(direction) >= bookCount.value) {
       const logicalPosition = position.value - bookCount.value
       position.value = bookCount.value + ((logicalPosition + direction) % bookCount.value + bookCount.value) % bookCount.value
     } else {
       position.value += direction
     }
+    if (position.value === currentPosition) return
     trackOffset.value = -position.value * stepSize.value
 
     if (prefersReducedMotion()) {

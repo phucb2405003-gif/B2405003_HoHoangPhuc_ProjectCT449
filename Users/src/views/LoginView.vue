@@ -15,6 +15,7 @@ const isSubmitting = ref(false)
 const errorMessage = ref('')
 
 async function submitLogin() {
+  if (isSubmitting.value) return
   errorMessage.value = ''
   if (!tenDangNhap.value.trim() || !password.value) {
     errorMessage.value = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.'

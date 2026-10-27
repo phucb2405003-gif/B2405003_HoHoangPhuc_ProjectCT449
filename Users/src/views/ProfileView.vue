@@ -184,6 +184,7 @@ function clearPasswordFields() {
 }
 
 async function submitPasswordChange() {
+  if (isChangingPassword.value) return
   passwordError.value = ''
   passwordNotice.value = ''
   if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
