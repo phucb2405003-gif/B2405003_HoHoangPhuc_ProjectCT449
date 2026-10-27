@@ -86,6 +86,177 @@
   background: #1d4ed8;
 }
 
+.app-header__account {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.app-header__account-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  max-width: 15rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  border: 1px solid rgb(147 197 253 / 38%);
+  border-radius: 0.7rem;
+  background: rgb(37 99 235 / 16%);
+  color: #f8fafc;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.app-header__account-button:hover,
+.app-header__account-button[aria-expanded='true'] {
+  border-color: rgb(147 197 253 / 68%);
+  background: rgb(37 99 235 / 26%);
+}
+
+.app-header__avatar {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgb(147 197 253 / 30%);
+  border-radius: 50%;
+  background: rgb(8 15 27 / 58%);
+}
+
+.app-header__avatar img {
+  width: 1.2rem;
+  height: 1.2rem;
+  filter: brightness(0) invert(1);
+}
+
+.app-header__account-name {
+  overflow: hidden;
+  max-width: 9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-header__account-chevron {
+  display: flex;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-header__account-chevron img {
+  display: block;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  filter: brightness(0) saturate(100%) invert(86%) sepia(12%) saturate(904%) hue-rotate(182deg) brightness(101%) contrast(96%);
+}
+
+.app-header__account-loading {
+  display: block;
+  width: 8rem;
+  height: 2.75rem;
+  border: 1px solid rgb(148 163 184 / 18%);
+  border-radius: 0.7rem;
+  background: rgb(148 163 184 / 8%);
+}
+
+.app-header__account-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  width: min(17rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid rgb(148 163 184 / 25%);
+  border-radius: 0.85rem;
+  background: #111c2f;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 36%);
+  color: #f8fafc;
+}
+
+.account-menu-enter-active,
+.account-menu-leave-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.account-menu-enter-from,
+.account-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-0.4rem);
+}
+
+.app-header__account-menu-label,
+.app-header__account-menu-name,
+.app-header__account-menu-id {
+  margin: 0;
+}
+
+.app-header__account-menu-label {
+  color: #93c5fd;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.app-header__account-menu-name {
+  overflow-wrap: anywhere;
+  margin-top: 0.45rem;
+  font-weight: 700;
+}
+
+.app-header__account-menu-id {
+  margin-top: 0.2rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.app-header__account-detail + .app-header__account-detail {
+  margin-top: 0.75rem;
+}
+
+.app-header__account-status {
+  display: flex;
+  width: fit-content;
+  margin: 0.85rem 0 0;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid rgb(74 222 128 / 24%);
+  border-radius: 999px;
+  background: rgb(22 101 52 / 22%);
+  color: #bbf7d0;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.app-header__account-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #4ade80;
+}
+
+.app-header__logout {
+  width: 100%;
+  margin-top: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgb(248 113 113 / 32%);
+  border-radius: 0.55rem;
+  background: rgb(127 29 29 / 20%);
+  color: #fecaca;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-header__logout:hover {
+  background: rgb(127 29 29 / 38%);
+}
+
 @media (max-width: 700px) {
   .app-header__inner {
     min-height: 0;
@@ -109,5 +280,12 @@
   .app-header__nav {
     column-gap: 0.75rem;
     font-size: 0.88rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-menu-enter-active,
+  .account-menu-leave-active {
+    transition-duration: 1ms;
   }
 }

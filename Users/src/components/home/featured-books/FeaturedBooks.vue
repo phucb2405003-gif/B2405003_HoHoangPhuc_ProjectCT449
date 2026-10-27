@@ -2,6 +2,8 @@
 import featuredBooks from '@/data/featuredBooks'
 import BookCard from './components/BookCard.vue'
 import useFeaturedBooks from './useFeaturedBooks'
+import chevronLeftIcon from '@/assets/icons/chevron-left.svg'
+import chevronRightIcon from '@/assets/icons/chevron-right.svg'
 import './FeaturedBooks.css'
 
 const {
@@ -29,10 +31,10 @@ const {
       </div>
       <div class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
         <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-4)">
-          <span aria-hidden="true">&#x2039;</span>
+          <img class="featured-books__arrow-icon" :src="chevronLeftIcon" alt="" aria-hidden="true" />
         </button>
         <button class="featured-books__arrow" type="button" aria-label="Cuộn về phải" @click="moveOneBook(4)">
-          <span aria-hidden="true">&#x203a;</span>
+          <img class="featured-books__arrow-icon" :src="chevronRightIcon" alt="" aria-hidden="true" />
         </button>
       </div>
     </div>

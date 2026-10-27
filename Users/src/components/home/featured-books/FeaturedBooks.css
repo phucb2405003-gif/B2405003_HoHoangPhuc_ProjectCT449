@@ -30,10 +30,12 @@
 }
 
 .featured-books__arrow {
-  display: grid;
+  display: flex;
   width: 2.65rem;
   height: 2.65rem;
-  place-items: center;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgb(255 255 255 / 20%);
   border-radius: 50%;
   background: rgb(15 23 42 / 78%);
@@ -42,10 +44,12 @@
   transition: background-color 150ms ease, border-color 150ms ease;
 }
 
-.featured-books__arrow span {
-  margin-top: -0.15rem;
-  font-size: 2rem;
-  line-height: 1;
+.featured-books__arrow-icon {
+  display: block;
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  filter: brightness(0) invert(1);
 }
 
 .featured-books__arrow:hover {
