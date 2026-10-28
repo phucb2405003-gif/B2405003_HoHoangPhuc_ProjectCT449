@@ -94,7 +94,7 @@ async function remove(req, res) {
         if (result.invalidStatus) {
             return res.status(403).json({
                 message:
-                    "Chi duoc xoa sach khi phieu dang chon sach hoac cho duyet"
+                    "Chỉ được xóa sách khi phiếu đang ở trạng thái Đang chọn sách"
             });
         }
 

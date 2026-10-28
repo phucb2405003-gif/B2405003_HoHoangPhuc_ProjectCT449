@@ -170,11 +170,9 @@ router.delete(
 );
 
 // =====================================================
-// TRUONG HOP DAC BIET:
-// XOA MOT SACH KHOI CHI TIET KHI PHIEU CHUA DUYET
+// Them hoac xoa sach khoi phieu khi dang chon sach
 // =====================================================
 
-// Chi Quan ly duoc thuc hien nghiep vu dac biet nay
 router.delete(
     "/:maPhieu/borrow-details/:maSach",
     authenticateToken,

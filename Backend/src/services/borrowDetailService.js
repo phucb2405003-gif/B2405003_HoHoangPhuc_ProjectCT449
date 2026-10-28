@@ -3,12 +3,10 @@ const { BORROW_DETAIL_COLLECTION } = require("../models/BorrowDetail");
 const { BORROW_COLLECTION } = require("../models/Borrow");
 const { BOOK_COLLECTION } = require("../models/Book");
 const { withBorrowOperationLock } = require("./borrowOperationLock");
-const { changeAvailable, undoAvailableChange } = require("./bookStockService");
 const { isDeepStrictEqual } = require("node:util");
 
 const CANCELLED = "Hủy";
 
-const PENDING = "Chờ duyệt";
 const DRAFT = "Đang chọn sách";
 const DETAIL_ROLLBACK_FIELDS = ["_id", "maPhieu", "maSach", "trangThai", "hanTra", "ngayTra"];
 const BORROW_ROLLBACK_FIELDS = [
@@ -114,27 +112,22 @@ async function remove(maPhieu, maSach, requester) {
     return withBorrowOperationLock(db, async (assertOwned) => {
         const borrow = await borrowCollection.findOne({ maPhieu });
         if (!borrow) return { notFound: true };
-        const isDraft = borrow.trangThai === DRAFT;
-        if (Object.prototype.hasOwnProperty.call(borrow, "trangThai") && ![PENDING, DRAFT].includes(borrow.trangThai)) {
-            return { invalidStatus: true };
-        }
 
-        if (requester?.loaiTaiKhoan === "DOCGIA") {
+        const isReader = requester?.loaiTaiKhoan === "DOCGIA";
+        const isManager = requester?.loaiTaiKhoan === "NHANVIEN" && requester.chucVu === "Quản lý";
+        if (!isReader && !isManager) return { forbidden: true };
+
+        if (isReader) {
             const readerId = requester.maDocGia || requester.maTaiKhoan;
             if (!readerId || borrow.maDocGia !== readerId) return { forbidden: true };
-
-            const allDetails = await detailCollection.find({ maPhieu }).toArray();
-            const expected = isDraft ? DRAFT : PENDING;
-            if (!allDetails.length || allDetails.some((item) => item.trangThai !== expected)) {
-                return { invalidStatus: true };
-            }
         }
+
+        if (borrow.trangThai !== DRAFT) return { invalidStatus: true };
 
         const detail = await detailCollection.findOne({ maPhieu, maSach });
         if (!detail) return { detailNotFound: true };
-        const expectedDetailStatus = isDraft ? DRAFT : PENDING;
-        if (detail.trangThai !== expectedDetailStatus) return { invalidStatus: true };
-        if (isDraft && (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now())) return { expired: true };
+        if (detail.trangThai !== DRAFT) return { invalidStatus: true };
+        if (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
 
         const totalDetails = await detailCollection.countDocuments({ maPhieu });
         if (!Number.isSafeInteger(borrow.soLuong) || borrow.soLuong !== totalDetails) {
@@ -148,11 +141,10 @@ async function remove(maPhieu, maSach, requester) {
             error.statusCode = 404;
             throw error;
         }
-        const receipt = isDraft ? null : await changeAvailable(bookCollection, maSach, 1, assertOwned);
         let detailDeleteAttempted = false;
         let parentUpdateAttempted = false;
         const parentFields = totalDetails === 1
-            ? { soLuong: 0, trangThai: CANCELLED, ...(isDraft ? { ngayHuy: new Date(), lyDoHuy: "Phiếu không còn sách" } : {}) }
+            ? { soLuong: 0, trangThai: CANCELLED, ngayHuy: new Date(), lyDoHuy: "Phiếu không còn sách" }
             : { soLuong: borrow.soLuong - 1 };
         const originalStatusFilter = Object.prototype.hasOwnProperty.call(borrow, "trangThai")
             ? { trangThai: borrow.trangThai }
@@ -165,7 +157,7 @@ async function remove(maPhieu, maSach, requester) {
                 _id: detail._id,
                 maPhieu,
                 maSach,
-                trangThai: expectedDetailStatus
+                trangThai: DRAFT
             });
             if (removeResult.deletedCount !== 1) {
                 throw new Error("Chi tiet phieu da thay doi; vui long thu lai");
@@ -182,7 +174,7 @@ async function remove(maPhieu, maSach, requester) {
             }
 
             return {
-                detail: { maPhieu, maSach, trangThai: expectedDetailStatus },
+                detail: { maPhieu, maSach, trangThai: DRAFT },
                 tenSach: book.tenSach || maSach,
                 borrowCancelled: totalDetails === 1
             };
@@ -280,7 +272,6 @@ async function remove(maPhieu, maSach, requester) {
                     if (!currentDetail) {
                         throw new Error("Khong tim thay chi tiet sau rollback; can doi soat");
                     }
-                    if (receipt) await undoAvailableChange(bookCollection, receipt, assertOwned);
                 } catch (rollbackError) {
                     rollbackErrors.push(rollbackError);
                 }
