@@ -102,7 +102,7 @@ const {
                   </div>
                   <div>
                     <img :src="pageIcon" alt="" aria-hidden="true" />
-                    <dt>Số trang</dt><dd>Chưa cập nhật</dd>
+                    <dt>Số quyển khả dụng</dt><dd>{{ availableCopies === null ? 'Chưa cập nhật' : availableCopies }}</dd>
                   </div>
                 </dl>
 
