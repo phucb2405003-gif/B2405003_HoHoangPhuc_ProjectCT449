@@ -35,6 +35,10 @@ export function getBook(maSach, token) {
   return request(`/api/books/${encodeURIComponent(maSach)}`, token)
 }
 
+export function getBooks(token) {
+  return request('/api/books', token)
+}
+
 export function getMyBorrows(token) {
   return request('/api/borrows/mine', token)
 }
@@ -44,8 +48,28 @@ export function getBorrowDetails(maPhieu, token) {
 }
 
 export function createBorrowWithBook(maSach, token) {
+  return createBorrowWithBooks([maSach], token)
+}
+
+export function createBorrowWithBooks(maSachs, token) {
   return request('/api/borrows', token, {
     method: 'POST',
-    body: JSON.stringify({ borrowDetails: [{ maSach }] }),
+    body: JSON.stringify({ borrowDetails: maSachs.map((maSach) => ({ maSach })) }),
   })
+}
+
+export function submitBorrow(maPhieu, token) {
+  return request(`/api/borrows/${encodeURIComponent(maPhieu)}/submit`, token, { method: 'PUT' })
+}
+
+export function deleteBorrow(maPhieu, token) {
+  return request(`/api/borrows/${encodeURIComponent(maPhieu)}`, token, { method: 'DELETE' })
+}
+
+export function deleteBorrowDetail(maPhieu, maSach, token) {
+  return request(
+    `/api/borrows/${encodeURIComponent(maPhieu)}/borrow-details/${encodeURIComponent(maSach)}`,
+    token,
+    { method: 'DELETE' },
+  )
 }

@@ -4,12 +4,18 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import useProfile from '@/composables/useProfile'
 import userIcon from '@/assets/icons/user.svg'
 import listIcon from '@/assets/icons/list.svg'
+import trashIcon from '@/assets/icons/trash.svg'
 import './ProfileView.css'
 
 const {
   activeTab,
   authState,
+  availableBookCount,
+  borrowActionError,
+  borrowActionNotice,
   bookNames,
+  borrowableBooks,
+  borrowableBooksError,
   borrowDate,
   borrowDetailErrors,
   borrowDetailLoaded,
@@ -22,22 +28,35 @@ const {
   chooseTab,
   confirmPassword,
   currentPassword,
+  createDraftBorrow,
+  deletingBorrowIds,
+  deletingDetailIds,
+  submittingBorrowIds,
+  submitDraftBorrow,
   expandedBorrows,
   formatDate,
   fullName,
   isChangingPassword,
+  isBorrowDialogOpen,
+  isCreatingBorrow,
+  isLoadingBorrowableBooks,
   isPasswordFormOpen,
   loadBorrows,
   loadProfile,
+  hasAvailableStock,
   newPassword,
   passwordError,
   passwordNotice,
   profile,
   profileError,
   profileLoading,
+  removeDraftBook,
+  removeDraftBorrow,
+  selectedBookIds,
   statusClass,
   submitPasswordChange,
   toggleBorrowDetails,
+  toggleBookSelection,
 } = useProfile()
 </script>
 
@@ -128,6 +147,9 @@ const {
             <div><p>LỊCH SỬ MƯỢN SÁCH</p><h2>Theo dõi mượn sách</h2></div>
           </div>
 
+          <p v-if="borrowActionNotice" class="reader-profile-notice" role="status">{{ borrowActionNotice }}</p>
+          <p v-if="borrowActionError" class="reader-profile-state reader-profile-state--error" role="alert">{{ borrowActionError }}</p>
+
           <div v-if="borrowsLoading" class="reader-profile-state" role="status">Đang tải phiếu mượn…</div>
           <div v-else-if="borrowsError" class="reader-profile-state reader-profile-state--error" role="alert">
             <p>{{ borrowsError }}</p>
@@ -141,9 +163,32 @@ const {
                 <div><span>{{ borrowDate(borrow).label }}</span><strong>{{ formatDate(borrowDate(borrow).value) }}</strong></div>
                 <div><span>Số sách</span><strong>{{ Number.isSafeInteger(borrow.soLuong) ? borrow.soLuong : 'Chưa cập nhật' }}</strong></div>
                 <div><span>Trạng thái phiếu</span><strong class="reader-borrow-status" :class="`reader-borrow-status--${statusClass(borrow.trangThai)}`">{{ borrow.trangThai || 'Chưa cập nhật' }}</strong></div>
-                <button type="button" class="reader-borrow-details-toggle" :aria-expanded="Boolean(expandedBorrows[borrow.maPhieu])" @click="toggleBorrowDetails(borrow)">
-                  {{ expandedBorrows[borrow.maPhieu] ? 'Ẩn chi tiết' : 'Xem chi tiết' }}
-                </button>
+                <div class="reader-borrow-card__actions">
+                  <button type="button" class="reader-borrow-details-toggle" :aria-expanded="Boolean(expandedBorrows[borrow.maPhieu])" @click="toggleBorrowDetails(borrow)">
+                    {{ expandedBorrows[borrow.maPhieu] ? 'Ẩn chi tiết' : 'Xem chi tiết' }}
+                  </button>
+                  <button
+                    v-if="borrow.trangThai === 'Đang chọn sách'"
+                    type="button"
+                    class="reader-borrow-submit-button"
+                    :disabled="Boolean(submittingBorrowIds[borrow.maPhieu] || deletingBorrowIds[borrow.maPhieu])"
+                    @click="submitDraftBorrow(borrow)"
+                  >
+                    {{ submittingBorrowIds[borrow.maPhieu] ? 'Đang gửi…' : 'Gửi duyệt' }}
+                  </button>
+                  <button
+                    v-if="borrow.trangThai === 'Đang chọn sách'"
+                    type="button"
+                    class="reader-borrow-delete-button"
+                    :disabled="Boolean(deletingBorrowIds[borrow.maPhieu] || submittingBorrowIds[borrow.maPhieu])"
+                    :title="`Hủy phiếu nháp ${borrow.maPhieu}`"
+                    :aria-label="`Hủy phiếu nháp ${borrow.maPhieu}`"
+                    @click="removeDraftBorrow(borrow)"
+                  >
+                    <img :src="trashIcon" alt="" aria-hidden="true" />
+                    {{ deletingBorrowIds[borrow.maPhieu] ? 'Đang hủy…' : 'Hủy phiếu nháp' }}
+                  </button>
+                </div>
               </div>
 
               <div v-if="expandedBorrows[borrow.maPhieu]" class="reader-borrow-details">
@@ -155,14 +200,63 @@ const {
                 <p v-else-if="borrowDetailLoaded[borrow.maPhieu] && !borrowDetails[borrow.maPhieu]?.length" class="reader-profile-state">Phiếu chưa có chi tiết sách.</p>
                 <div v-else class="reader-borrow-books">
                   <article v-for="detail in borrowDetails[borrow.maPhieu]" :key="`${detail.maPhieu}-${detail.maSach}`" class="reader-borrow-book">
-                    <div><span>Tên sách</span><strong>{{ bookNames[detail.maSach] || detail.maSach || 'Chưa cập nhật' }}</strong></div>
-                    <div><span>Mã sách</span><strong>{{ detail.maSach || 'Chưa cập nhật' }}</strong></div>
-                    <div><span>Trạng thái sách</span><strong class="reader-borrow-status" :class="`reader-borrow-status--${statusClass(detail.trangThai)}`">{{ detail.trangThai || 'Chưa cập nhật' }}</strong></div>
-                    <div><span>Hạn trả</span><strong>{{ formatDate(detail.hanTra) }}</strong></div>
+                    <div class="reader-borrow-book__info">
+                      <div class="reader-borrow-book__field"><span>Tên sách</span><strong>{{ bookNames[detail.maSach] || detail.maSach || 'Chưa cập nhật' }}</strong></div>
+                      <div class="reader-borrow-book__field"><span>Mã sách</span><strong>{{ detail.maSach || 'Chưa cập nhật' }}</strong></div>
+                      <div class="reader-borrow-book__field"><span>Trạng thái sách</span><strong class="reader-borrow-status" :class="`reader-borrow-status--${statusClass(detail.trangThai)}`">{{ detail.trangThai || 'Chưa cập nhật' }}</strong></div>
+                      <div class="reader-borrow-book__field"><span>Hạn trả</span><strong>{{ formatDate(detail.hanTra) }}</strong></div>
+                    </div>
+                    <button
+                      v-if="borrow.trangThai === 'Đang chọn sách' && detail.trangThai === 'Đang chọn sách'"
+                      type="button"
+                      class="reader-borrow-delete-button"
+                      :disabled="Boolean(deletingBorrowIds[borrow.maPhieu] || submittingBorrowIds[borrow.maPhieu] || deletingDetailIds[`${borrow.maPhieu}:${detail.maSach}`])"
+                      :title="`Xóa ${bookNames[detail.maSach] || detail.maSach} khỏi phiếu nháp`"
+                      :aria-label="`Xóa ${bookNames[detail.maSach] || detail.maSach} khỏi phiếu nháp ${borrow.maPhieu}`"
+                      @click="removeDraftBook(borrow, detail)"
+                    >
+                      <img :src="trashIcon" alt="" aria-hidden="true" />
+                      {{ deletingDetailIds[`${borrow.maPhieu}:${detail.maSach}`] ? 'Đang xóa…' : 'Xóa sách' }}
+                    </button>
                   </article>
                 </div>
               </div>
             </article>
+          </div>
+
+          <div v-if="isBorrowDialogOpen" class="reader-borrow-picker-backdrop" @click.self="!isCreatingBorrow && (isBorrowDialogOpen = false)">
+            <section class="reader-borrow-picker" role="dialog" aria-modal="true" aria-labelledby="reader-borrow-picker-title">
+              <header class="reader-borrow-picker__header">
+                <div><p>LẬP PHIẾU NHÁP</p><h2 id="reader-borrow-picker-title">Chọn sách muốn mượn</h2></div>
+                <button type="button" class="reader-borrow-picker__close" aria-label="Đóng" :disabled="isCreatingBorrow" @click="isBorrowDialogOpen = false">×</button>
+              </header>
+              <p class="reader-borrow-picker__count">Đã chọn {{ selectedBookIds.length }} / 5 cuốn</p>
+              <p v-if="isLoadingBorrowableBooks" class="reader-profile-state" role="status">Đang tải danh sách sách…</p>
+              <p v-else-if="borrowableBooksError" class="reader-profile-state reader-profile-state--error" role="alert">{{ borrowableBooksError }}</p>
+              <p v-else-if="!borrowableBooks.length" class="reader-profile-state">Backend chưa có sách để chọn.</p>
+              <div v-else class="reader-borrow-picker__list">
+                <label v-for="book in borrowableBooks" :key="book.maSach" class="reader-borrow-picker__option" :class="{ 'reader-borrow-picker__option--unavailable': !hasAvailableStock(book) }">
+                  <input
+                    type="checkbox"
+                    :checked="selectedBookIds.includes(book.maSach)"
+                    :disabled="isCreatingBorrow || (!selectedBookIds.includes(book.maSach) && (!hasAvailableStock(book) || selectedBookIds.length >= 5))"
+                    @change="toggleBookSelection(book.maSach)"
+                  />
+                  <span class="reader-borrow-picker__book">
+                    <strong>{{ book.tenSach || 'Chưa cập nhật tên sách' }}</strong>
+                    <span>{{ book.tacGia || 'Chưa cập nhật tác giả' }} · {{ book.maSach }}</span>
+                  </span>
+                  <span class="reader-borrow-picker__stock">{{ availableBookCount(book) === null ? 'Chưa cập nhật tồn kho' : `${availableBookCount(book)} quyển khả dụng` }}</span>
+                </label>
+              </div>
+              <p v-if="borrowActionError" class="reader-profile-state reader-profile-state--error" role="alert">{{ borrowActionError }}</p>
+              <footer class="reader-borrow-picker__footer">
+                <button type="button" class="reader-borrow-picker__cancel" :disabled="isCreatingBorrow" @click="isBorrowDialogOpen = false">Đóng</button>
+                <button type="button" class="reader-profile-primary-button" :disabled="isCreatingBorrow || !selectedBookIds.length || selectedBookIds.length > 5" @click="createDraftBorrow">
+                  {{ isCreatingBorrow ? 'Đang tạo phiếu…' : 'Tạo phiếu nháp' }}
+                </button>
+              </footer>
+            </section>
           </div>
         </section>
       </section>

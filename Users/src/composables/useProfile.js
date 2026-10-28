@@ -1,7 +1,16 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authState, getReaderAccessToken, logoutReader } from '@/services/authService'
-import { getBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
+import {
+  createBorrowWithBooks,
+  deleteBorrow,
+  deleteBorrowDetail,
+  getBook,
+  getBooks,
+  getBorrowDetails,
+  getMyBorrows,
+  submitBorrow,
+} from '@/services/borrowingService'
 import { changeReaderPassword, getReaderProfile } from '@/services/readerProfileService'
 
 export default function useProfile() {
@@ -23,6 +32,17 @@ export default function useProfile() {
   const borrowDetailLoaded = ref({})
   const borrowDetailErrors = ref({})
   const bookNames = ref({})
+  const borrowableBooks = ref([])
+  const selectedBookIds = ref([])
+  const isBorrowDialogOpen = ref(false)
+  const isLoadingBorrowableBooks = ref(false)
+  const borrowableBooksError = ref('')
+  const isCreatingBorrow = ref(false)
+  const borrowActionError = ref('')
+  const borrowActionNotice = ref('')
+  const deletingBorrowIds = ref({})
+  const submittingBorrowIds = ref({})
+  const deletingDetailIds = ref({})
 
   const isPasswordFormOpen = ref(false)
   const isChangingPassword = ref(false)
@@ -76,8 +96,8 @@ export default function useProfile() {
     }
   }
 
-  async function loadBorrows() {
-    if (borrowsLoaded.value || borrowsLoading.value) return
+  async function loadBorrows(force = false) {
+    if ((!force && borrowsLoaded.value) || borrowsLoading.value) return
     const token = getReaderAccessToken()
     if (!token || authState.user?.loaiTaiKhoan !== 'DOCGIA') {
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
@@ -99,18 +119,11 @@ export default function useProfile() {
     }
   }
 
-  async function toggleBorrowDetails(borrow) {
-    const maPhieu = borrow.maPhieu
-    if (!maPhieu) return
-    expandedBorrows.value[maPhieu] = !expandedBorrows.value[maPhieu]
-    if (!expandedBorrows.value[maPhieu] || borrowDetailLoaded.value[maPhieu] || borrowDetailLoading.value[maPhieu]) return
-
-    const token = getReaderAccessToken()
+  async function loadBorrowDetailRows(maPhieu, token = getReaderAccessToken()) {
     if (!token) {
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
-      return
+      return false
     }
-
     borrowDetailLoading.value[maPhieu] = true
     borrowDetailErrors.value[maPhieu] = ''
     try {
@@ -129,12 +142,201 @@ export default function useProfile() {
         }
       }))
       bookNames.value = { ...bookNames.value, ...Object.fromEntries(resolvedNames) }
+      return true
     } catch (error) {
       if (!await handleUnauthorized(error)) {
         borrowDetailErrors.value[maPhieu] = error.message || 'Không thể tải chi tiết phiếu mượn.'
       }
+      return false
     } finally {
       borrowDetailLoading.value[maPhieu] = false
+    }
+  }
+
+  async function toggleBorrowDetails(borrow) {
+    const maPhieu = borrow.maPhieu
+    if (!maPhieu) return
+    expandedBorrows.value[maPhieu] = !expandedBorrows.value[maPhieu]
+    if (!expandedBorrows.value[maPhieu] || borrowDetailLoaded.value[maPhieu] || borrowDetailLoading.value[maPhieu]) return
+    await loadBorrowDetailRows(maPhieu)
+  }
+
+  function availableBookCount(book) {
+    const available = book?.soQuyenConLai
+    const total = book?.soQuyen
+    if (!Number.isSafeInteger(available) || available < 0) return null
+    if (!Number.isSafeInteger(total) || total < 0 || available > total) return null
+    return available
+  }
+
+  function hasAvailableStock(book) {
+    return availableBookCount(book) > 0
+  }
+
+  function toggleBookSelection(maSach) {
+    if (selectedBookIds.value.includes(maSach)) {
+      selectedBookIds.value = selectedBookIds.value.filter((selectedId) => selectedId !== maSach)
+      return
+    }
+    if (selectedBookIds.value.length >= 5) return
+    selectedBookIds.value = [...selectedBookIds.value, maSach]
+  }
+
+  async function openBorrowDialog() {
+    if (isLoadingBorrowableBooks.value || isCreatingBorrow.value) return
+    const token = getReaderAccessToken()
+    if (!token || authState.user?.loaiTaiKhoan !== 'DOCGIA') {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    isBorrowDialogOpen.value = true
+    isLoadingBorrowableBooks.value = true
+    borrowableBooksError.value = ''
+    borrowActionError.value = ''
+    selectedBookIds.value = []
+    try {
+      const rows = await getBooks(token)
+      if (!Array.isArray(rows)) throw new Error('Máy chủ trả về danh sách sách không hợp lệ.')
+      borrowableBooks.value = rows.filter((book) => typeof book?.maSach === 'string' && book.maSach.trim())
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        borrowableBooksError.value = error.message || 'Không thể tải danh sách sách.'
+      }
+    } finally {
+      isLoadingBorrowableBooks.value = false
+    }
+  }
+
+  async function createDraftBorrow() {
+    if (isCreatingBorrow.value) return
+    borrowActionError.value = ''
+    borrowActionNotice.value = ''
+    if (selectedBookIds.value.length < 1 || selectedBookIds.value.length > 5) {
+      borrowActionError.value = 'Chọn từ 1 đến 5 cuốn sách cho mỗi phiếu.'
+      return
+    }
+
+    const token = getReaderAccessToken()
+    if (!token) {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    isCreatingBorrow.value = true
+    try {
+      const created = await createBorrowWithBooks(selectedBookIds.value, token)
+      if (!created?.maPhieu || created.trangThai !== 'Đang chọn sách') {
+        throw new Error('Máy chủ không xác nhận phiếu nháp vừa tạo.')
+      }
+      isBorrowDialogOpen.value = false
+      selectedBookIds.value = []
+      borrowActionNotice.value = `Đã tạo phiếu nháp ${created.maPhieu} với ${created.soLuong} cuốn sách.`
+      await loadBorrows(true)
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        borrowActionError.value = error.message || 'Không thể tạo phiếu mượn.'
+        await loadBorrows(true)
+      }
+    } finally {
+      isCreatingBorrow.value = false
+    }
+  }
+
+  async function refreshBorrowAfterMutation(maPhieu) {
+    borrowsLoaded.value = false
+    borrowDetailLoaded.value[maPhieu] = false
+    await loadBorrows(true)
+    if (expandedBorrows.value[maPhieu]) await loadBorrowDetailRows(maPhieu)
+  }
+
+  async function submitDraftBorrow(borrow) {
+    const maPhieu = borrow?.maPhieu
+    if (borrow?.trangThai !== 'Đang chọn sách' || !maPhieu || submittingBorrowIds.value[maPhieu]) return
+    if (!window.confirm(`Gửi phiếu ${maPhieu} để chờ duyệt?`)) return
+
+    const token = getReaderAccessToken()
+    if (!token) {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    submittingBorrowIds.value[maPhieu] = true
+    borrowActionError.value = ''
+    borrowActionNotice.value = ''
+    try {
+      await submitBorrow(maPhieu, token)
+      borrowActionNotice.value = `Đã gửi phiếu ${maPhieu} để chờ duyệt.`
+      await refreshBorrowAfterMutation(maPhieu)
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        borrowActionError.value = error.message || 'Không thể gửi phiếu mượn để duyệt.'
+        await refreshBorrowAfterMutation(maPhieu)
+      }
+    } finally {
+      delete submittingBorrowIds.value[maPhieu]
+    }
+  }
+
+  async function removeDraftBook(borrow, detail) {
+    const maPhieu = borrow?.maPhieu
+    const maSach = detail?.maSach
+    if (borrow?.trangThai !== 'Đang chọn sách' || detail?.trangThai !== 'Đang chọn sách' || !maPhieu || !maSach) return
+    const key = `${maPhieu}:${maSach}`
+    if (deletingDetailIds.value[key] || deletingBorrowIds.value[maPhieu] || submittingBorrowIds.value[maPhieu]) return
+    const bookName = bookNames.value[maSach] || maSach
+    if (!window.confirm(`Xóa sách "${bookName}" khỏi phiếu nháp ${maPhieu}?`)) return
+
+    const token = getReaderAccessToken()
+    if (!token) {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    deletingDetailIds.value[key] = true
+    deletingBorrowIds.value[maPhieu] = true
+    borrowActionError.value = ''
+    borrowActionNotice.value = ''
+    try {
+      await deleteBorrowDetail(maPhieu, maSach, token)
+      borrowActionNotice.value = `Đã xóa "${bookName}" khỏi phiếu ${maPhieu}.`
+      await refreshBorrowAfterMutation(maPhieu)
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        borrowActionError.value = error.message || 'Không thể xóa sách khỏi phiếu.'
+        await refreshBorrowAfterMutation(maPhieu)
+      }
+    } finally {
+      delete deletingDetailIds.value[key]
+      delete deletingBorrowIds.value[maPhieu]
+    }
+  }
+
+  async function removeDraftBorrow(borrow) {
+    const maPhieu = borrow?.maPhieu
+    if (borrow?.trangThai !== 'Đang chọn sách' || !maPhieu || deletingBorrowIds.value[maPhieu] || submittingBorrowIds.value[maPhieu]) return
+    if (!window.confirm(`Hủy phiếu nháp ${maPhieu}? Phiếu sẽ được lưu trong lịch sử với trạng thái Hủy.`)) return
+
+    const token = getReaderAccessToken()
+    if (!token) {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    deletingBorrowIds.value[maPhieu] = true
+    borrowActionError.value = ''
+    borrowActionNotice.value = ''
+    try {
+      await deleteBorrow(maPhieu, token)
+      borrowActionNotice.value = `Đã hủy phiếu nháp ${maPhieu}.`
+      await refreshBorrowAfterMutation(maPhieu)
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        borrowActionError.value = error.message || 'Không thể hủy phiếu nháp.'
+        await refreshBorrowAfterMutation(maPhieu)
+      }
+    } finally {
+      delete deletingBorrowIds.value[maPhieu]
     }
   }
 
@@ -227,7 +429,12 @@ export default function useProfile() {
   return {
     activeTab,
     authState,
+    availableBookCount,
+    borrowActionError,
+    borrowActionNotice,
     bookNames,
+    borrowableBooks,
+    borrowableBooksError,
     borrowDate,
     borrowDetailErrors,
     borrowDetailLoaded,
@@ -237,16 +444,29 @@ export default function useProfile() {
     borrowsError,
     borrowsLoaded,
     borrowsLoading,
+    createDraftBorrow,
+    deletingBorrowIds,
+    deletingDetailIds,
+    submittingBorrowIds,
+    submitDraftBorrow,
     chooseTab,
     confirmPassword,
     currentPassword,
     expandedBorrows,
+    hasAvailableStock,
     formatDate,
     fullName,
     isChangingPassword,
     isPasswordFormOpen,
+    isBorrowDialogOpen,
+    isCreatingBorrow,
+    isLoadingBorrowableBooks,
     loadBorrows,
     loadProfile,
+    openBorrowDialog,
+    removeDraftBook,
+    removeDraftBorrow,
+    selectedBookIds,
     newPassword,
     passwordError,
     passwordNotice,
@@ -256,5 +476,6 @@ export default function useProfile() {
     statusClass,
     submitPasswordChange,
     toggleBorrowDetails,
+    toggleBookSelection,
   }
 }
