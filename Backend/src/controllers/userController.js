@@ -95,6 +95,31 @@ async function update(req, res) {
     }
 }
 
+async function updateReaderStatus(req, res) {
+    if (
+        req.body === null ||
+        typeof req.body !== "object" ||
+        Array.isArray(req.body) ||
+        Object.getPrototypeOf(req.body) !== Object.prototype ||
+        Object.keys(req.body).length !== 1 ||
+        !Object.hasOwn(req.body, "trangThai")
+    ) {
+        return res.status(400).json({ message: "Trang thai doc gia khong hop le" });
+    }
+    try {
+        const user = await userService.updateReaderStatus(req.params.maDocGia, req.body?.trangThai);
+        return res.json(user);
+    } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Trang thai doc gia khong hop le" });
+        }
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay doc gia" });
+        }
+        return res.status(500).json({ message: "Loi khi cap nhat trang thai doc gia" });
+    }
+}
+
 // Độc giả tự cập nhật hồ sơ dựa trên danh tính do authenticateToken xác minh
 async function updateMe(req, res) {
     if (!req.user) {
@@ -129,5 +154,6 @@ module.exports = {
     findOne,
     create,
     update,
+    updateReaderStatus,
     updateMe,
 };

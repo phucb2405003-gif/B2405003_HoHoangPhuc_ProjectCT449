@@ -58,6 +58,14 @@ router.put(
     userController.updateMe
 );
 
+// Chỉ Quản lý được thay đổi trạng thái nghiệp vụ của độc giả
+router.put(
+    "/:maDocGia/status",
+    authenticateToken,
+    allowRoles("Quản lý"),
+    userController.updateReaderStatus
+);
+
 // Chỉ Quản lý được sửa
 router.put(
     "/:maDocGia",

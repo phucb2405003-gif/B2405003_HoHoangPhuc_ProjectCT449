@@ -11,7 +11,7 @@ import {
   getMyBorrows,
   submitBorrow,
 } from '@/services/borrowingService'
-import { changeReaderPassword, getReaderProfile } from '@/services/readerProfileService'
+import { changeReaderPassword, getReaderProfile, updateMyReaderProfile } from '@/services/readerProfileService'
 
 export default function useProfile() {
   const route = useRoute()
@@ -22,6 +22,11 @@ export default function useProfile() {
   const profile = ref(null)
   const profileLoading = ref(true)
   const profileError = ref('')
+  const isProfileEditOpen = ref(false)
+  const isUpdatingProfile = ref(false)
+  const profileUpdateError = ref('')
+  const profileUpdateNotice = ref('')
+  const profileForm = ref({ hoLot: '', ten: '', ngaySinh: '', phai: null, diaChi: '', dienThoai: '' })
   const borrows = ref([])
   const borrowsLoading = ref(false)
   const borrowsLoaded = ref(false)
@@ -93,6 +98,79 @@ export default function useProfile() {
       profileError.value = error.message || 'Không thể tải thông tin cá nhân.'
     } finally {
       profileLoading.value = false
+    }
+  }
+
+  function openProfileEditor() {
+    const date = profile.value?.ngaySinh ? new Date(profile.value.ngaySinh) : null
+    profileForm.value = {
+      hoLot: profile.value?.hoLot || '',
+      ten: profile.value?.ten || '',
+      ngaySinh: date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '',
+      phai: typeof profile.value?.phai === 'boolean' ? profile.value.phai : null,
+      diaChi: profile.value?.diaChi || '',
+      dienThoai: profile.value?.dienThoai || '',
+    }
+    profileUpdateError.value = ''
+    profileUpdateNotice.value = ''
+    isProfileEditOpen.value = true
+  }
+
+  function cancelProfileEdit() {
+    if (isUpdatingProfile.value) return
+    isProfileEditOpen.value = false
+    profileUpdateError.value = ''
+    profileForm.value = { hoLot: '', ten: '', ngaySinh: '', phai: null, diaChi: '', dienThoai: '' }
+  }
+
+  async function saveReaderProfile() {
+    if (isUpdatingProfile.value) return
+    profileUpdateError.value = ''
+    profileUpdateNotice.value = ''
+
+    const form = profileForm.value
+    if (typeof form.hoLot !== 'string' || !form.hoLot.trim() || typeof form.ten !== 'string' || !form.ten.trim()) {
+      profileUpdateError.value = 'Vui lòng nhập họ lót và tên.'
+      return
+    }
+    if (typeof form.phai !== 'boolean') {
+      profileUpdateError.value = 'Vui lòng chọn giới tính.'
+      return
+    }
+    if (form.ngaySinh && !/^\d{4}-\d{2}-\d{2}$/.test(form.ngaySinh)) {
+      profileUpdateError.value = 'Ngày sinh không hợp lệ.'
+      return
+    }
+
+    const payload = {
+      hoLot: form.hoLot.trim(),
+      ten: form.ten.trim(),
+      phai: form.phai,
+      ...(form.ngaySinh ? { ngaySinh: form.ngaySinh } : {}),
+      ...(form.diaChi.trim() ? { diaChi: form.diaChi.trim() } : {}),
+      ...(form.dienThoai.trim() ? { dienThoai: form.dienThoai.trim() } : {}),
+    }
+    const token = getReaderAccessToken()
+    if (!token) {
+      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+      return
+    }
+
+    isUpdatingProfile.value = true
+    try {
+      const updated = await updateMyReaderProfile(payload, token)
+      if (!updated || updated.maDocGia !== readerId.value) {
+        throw new Error('Máy chủ không xác nhận hồ sơ độc giả sau cập nhật.')
+      }
+      profile.value = { ...profile.value, ...updated }
+      isProfileEditOpen.value = false
+      profileUpdateNotice.value = 'Cập nhật thông tin cá nhân thành công.'
+    } catch (error) {
+      if (!await handleUnauthorized(error)) {
+        profileUpdateError.value = error.message || 'Không thể cập nhật thông tin cá nhân.'
+      }
+    } finally {
+      isUpdatingProfile.value = false
     }
   }
 
@@ -473,6 +551,14 @@ export default function useProfile() {
     profile,
     profileError,
     profileLoading,
+    isProfileEditOpen,
+    isUpdatingProfile,
+    profileForm,
+    profileUpdateError,
+    profileUpdateNotice,
+    cancelProfileEdit,
+    openProfileEditor,
+    saveReaderProfile,
     statusClass,
     submitPasswordChange,
     toggleBorrowDetails,

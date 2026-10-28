@@ -5,6 +5,8 @@ const { getUpdateFields, validateCreateFields } = require("./updatePayload");
 const accountService = require("./accountService");
 const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
+const READER_STATUSES = new Set(["Bình thường", "Hạn chế", "Bị cấm"]);
+
 // Lấy collection độc giả
 async function getCollection() {
     const db = await connectDB();
@@ -110,9 +112,27 @@ async function update(maDocGia, user) {
     return await findOne(maDocGia);
 }
 
+async function updateReaderStatus(maDocGia, trangThai) {
+    if (typeof trangThai !== "string" || !READER_STATUSES.has(trangThai)) {
+        const error = new Error("Trang thai doc gia khong hop le");
+        error.code = "INVALID_UPDATE";
+        throw error;
+    }
+
+    const collection = await getCollection();
+    const result = await collection.updateOne({ maDocGia }, { $set: { trangThai } });
+    if (result.matchedCount === 0) {
+        const error = new Error("Khong tim thay doc gia");
+        error.code = "NOT_FOUND";
+        throw error;
+    }
+    return await findOne(maDocGia);
+}
+
 module.exports = {
     findAll,
     findOne,
     create,
     update,
+    updateReaderStatus,
 };

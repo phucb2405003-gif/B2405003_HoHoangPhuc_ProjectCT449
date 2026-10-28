@@ -50,6 +50,14 @@ const {
   profile,
   profileError,
   profileLoading,
+  isProfileEditOpen,
+  isUpdatingProfile,
+  profileForm,
+  profileUpdateError,
+  profileUpdateNotice,
+  cancelProfileEdit,
+  openProfileEditor,
+  saveReaderProfile,
   removeDraftBook,
   removeDraftBorrow,
   selectedBookIds,
@@ -109,18 +117,32 @@ const {
             <button type="button" @click="loadProfile">Thử tải lại</button>
           </div>
           <template v-else-if="profile">
+            <p v-if="profileUpdateNotice" class="reader-profile-notice" role="status">{{ profileUpdateNotice }}</p>
             <dl class="reader-profile-fields">
               <div class="reader-profile-field reader-profile-field--wide"><dt>Họ và tên</dt><dd>{{ fullName || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Mã độc giả</dt><dd>{{ profile.maDocGia || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Tên đăng nhập</dt><dd>{{ authState.user?.tenDangNhap || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Ngày sinh</dt><dd>{{ formatDate(profile.ngaySinh) }}</dd></div>
-              <div><dt>Giới tính</dt><dd>{{ profile.phai || 'Chưa cập nhật' }}</dd></div>
+              <div><dt>Giới tính</dt><dd>{{ profile.phai === true ? 'Nam' : profile.phai === false ? 'Nữ' : 'Chưa cập nhật' }}</dd></div>
               <div><dt>Số điện thoại</dt><dd>{{ profile.dienThoai || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Email</dt><dd>{{ authState.user?.email || 'Chưa cập nhật' }}</dd></div>
               <div class="reader-profile-field--wide"><dt>Địa chỉ</dt><dd>{{ profile.diaChi || 'Chưa cập nhật' }}</dd></div>
             </dl>
 
-            <p class="reader-profile-edit-note">Chỉnh sửa hồ sơ hiện chưa được hỗ trợ cho độc giả. API cập nhật hồ sơ chỉ cho phép Quản lý.</p>
+            <button v-if="!isProfileEditOpen" type="button" class="reader-profile-primary-button reader-profile-edit-button" @click="openProfileEditor">Chỉnh sửa thông tin</button>
+            <form v-if="isProfileEditOpen" class="reader-password-form reader-profile-edit-form" @submit.prevent="saveReaderProfile">
+              <label>Họ lót<input v-model="profileForm.hoLot" type="text" autocomplete="family-name" maxlength="100" required :disabled="isUpdatingProfile" /></label>
+              <label>Tên<input v-model="profileForm.ten" type="text" autocomplete="given-name" maxlength="100" required :disabled="isUpdatingProfile" /></label>
+              <label>Ngày sinh<input v-model="profileForm.ngaySinh" type="date" :disabled="isUpdatingProfile" /></label>
+              <label>Giới tính<select v-model="profileForm.phai" required :disabled="isUpdatingProfile"><option :value="null" disabled>Chọn giới tính</option><option :value="true">Nam</option><option :value="false">Nữ</option></select></label>
+              <label>Số điện thoại<input v-model="profileForm.dienThoai" type="tel" autocomplete="tel" maxlength="30" :disabled="isUpdatingProfile" /></label>
+              <label>Địa chỉ<input v-model="profileForm.diaChi" type="text" autocomplete="street-address" maxlength="250" :disabled="isUpdatingProfile" /></label>
+              <p v-if="profileUpdateError" class="reader-profile-state--error" role="alert">{{ profileUpdateError }}</p>
+              <div class="reader-profile-edit-actions">
+                <button type="button" class="reader-borrow-picker__cancel" :disabled="isUpdatingProfile" @click="cancelProfileEdit">Hủy</button>
+                <button type="submit" class="reader-profile-primary-button" :disabled="isUpdatingProfile">{{ isUpdatingProfile ? 'Đang lưu…' : 'Lưu thông tin' }}</button>
+              </div>
+            </form>
 
             <section class="reader-password-card" aria-labelledby="reader-password-title">
               <div class="reader-password-card__heading">

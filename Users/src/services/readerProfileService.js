@@ -35,6 +35,13 @@ export function getReaderProfile(maDocGia, token) {
   return request(`/api/users/${encodeURIComponent(maDocGia)}`, token)
 }
 
+export function updateMyReaderProfile(profile, token) {
+  return request('/api/users/me', token, {
+    method: 'PUT',
+    body: JSON.stringify(profile),
+  })
+}
+
 export function changeReaderPassword(currentPassword, newPassword, token) {
   return request('/api/accounts/me/password', token, {
     method: 'PUT',
