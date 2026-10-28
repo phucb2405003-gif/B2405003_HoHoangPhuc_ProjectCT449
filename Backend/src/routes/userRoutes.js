@@ -6,6 +6,15 @@ const { allowOwnReader } = require("../middlewares/readerMiddleware");
 
 const router = express.Router();
 
+function allowReader(req, res, next) {
+    if (req.user?.loaiTaiKhoan !== "DOCGIA") {
+        return res.status(403).json({
+            message: "Ban khong co quyen thuc hien chuc nang nay"
+        });
+    }
+    return next();
+}
+
 // Quản lý xem tất cả độc giả
 router.get(
     "/",
@@ -39,6 +48,14 @@ router.post(
     authenticateToken,
     allowRoles("Quản lý"),
     userController.create
+);
+
+// Độc giả chỉ được cập nhật hồ sơ của tài khoản đang đăng nhập
+router.put(
+    "/me",
+    authenticateToken,
+    allowReader,
+    userController.updateMe
 );
 
 // Chỉ Quản lý được sửa

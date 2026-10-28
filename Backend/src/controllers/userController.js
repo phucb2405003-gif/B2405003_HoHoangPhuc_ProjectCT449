@@ -95,9 +95,39 @@ async function update(req, res) {
     }
 }
 
+// Độc giả tự cập nhật hồ sơ dựa trên danh tính do authenticateToken xác minh
+async function updateMe(req, res) {
+    if (!req.user) {
+        return res.status(401).json({ message: "Chua dang nhap" });
+    }
+    if (req.user.loaiTaiKhoan !== "DOCGIA") {
+        return res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+    }
+
+    try {
+        const user = await userService.update(req.user.maTaiKhoan, req.body);
+        const responseUser = Object.fromEntries(
+            ["maDocGia", "hoLot", "ten", "ngaySinh", "phai", "diaChi", "dienThoai", "trangThai"]
+                .filter((field) => Object.hasOwn(user, field))
+                .map((field) => [field, user[field]])
+        );
+        return res.json(responseUser);
+    } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+        }
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay doc gia" });
+        }
+
+        return res.status(500).json({ message: "Loi khi cap nhat thong tin ca nhan" });
+    }
+}
+
 module.exports = {
     findAll,
     findOne,
     create,
     update,
+    updateMe,
 };
