@@ -28,6 +28,27 @@ const MAX_BOOKS_PER_BORROW = 5;
 const MAX_ACTIVE_BOOKS = 5;
 const MAX_PENDING_BORROWS = 3;
 const ACTIVE_STATUSES = [STATUSES.PENDING, STATUSES.BORROWED];
+const READER_BORROW_LIMITS = new Map([
+    ["Bình thường", MAX_ACTIVE_BOOKS],
+    ["Hạn chế", 3],
+    ["Bị cấm", 0]
+]);
+
+function getReaderBorrowLimit(reader) {
+    if (!reader || !READER_BORROW_LIMITS.has(reader.trangThai)) {
+        const error = new Error("Trang thai doc gia thieu hoac khong hop le; can ra soat du lieu");
+        error.statusCode = 409;
+        error.publicMessage = "Trang thai doc gia thieu hoac khong hop le; can ra soat du lieu";
+        throw error;
+    }
+    if (reader.trangThai === "Bị cấm") {
+        const error = new Error("Doc gia dang bi cam muon sach");
+        error.statusCode = 403;
+        error.publicMessage = "Doc gia dang bi cam muon sach";
+        throw error;
+    }
+    return READER_BORROW_LIMITS.get(reader.trangThai);
+}
 
 function normalizeDetails(details, allowEmpty = false) {
     if (!Array.isArray(details) || (!allowEmpty && details.length === 0)) {
@@ -165,6 +186,7 @@ async function create(borrow) {
             error.statusCode = 400;
             throw error;
         }
+        const readerBorrowLimit = direct ? getReaderBorrowLimit(reader) : null;
         if (!direct) {
             for (const detail of details) {
                 if (!await bookCollection.findOne({ maSach: detail.maSach })) {
@@ -197,8 +219,8 @@ async function create(borrow) {
                 throw error;
             }
             const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
-            if (activeBookCount + details.length > MAX_ACTIVE_BOOKS) {
-                const error = new Error(`Vuot gioi han ${MAX_ACTIVE_BOOKS} sach dang cho duyet hoac dang muon`);
+            if (activeBookCount + details.length > readerBorrowLimit) {
+                const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -327,12 +349,25 @@ async function addBooks(maPhieu, requestedDetails, requester) {
         if (requester?.loaiTaiKhoan !== "DOCGIA" || borrow.maDocGia !== (requester.maTaiKhoan || requester.maDocGia)) return { forbidden: true };
         if (borrow.trangThai !== BORROW_STATUSES.DRAFT) return { invalidStatus: true };
         if (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
+        const readerProfile = await db.collection(USER_COLLECTION).findOne({ maDocGia: borrow.maDocGia });
+        const readerBorrowLimit = getReaderBorrowLimit(readerProfile);
         const existing = await detailCollection.find({ maPhieu }).toArray();
         if (!Number.isSafeInteger(borrow.soLuong) || borrow.soLuong !== existing.length) {
             const error = new Error("So luong sach trong phieu khong khop chi tiet; can doi soat"); error.statusCode = 409; throw error;
         }
         if (existing.length + details.length > MAX_BOOKS_PER_BORROW) {
             const error = new Error("Moi phieu muon chi duoc toi da 5 sach"); error.statusCode = 400; throw error;
+        }
+        const readerBorrows = await borrows.find({ maDocGia: borrow.maDocGia }, { projection: { maPhieu: 1 } }).toArray();
+        const readerBorrowIds = readerBorrows.map((item) => item.maPhieu);
+        const activeDetails = readerBorrowIds.length
+            ? await detailCollection.find({ maPhieu: { $in: readerBorrowIds }, trangThai: { $in: ACTIVE_STATUSES } }).toArray()
+            : [];
+        const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
+        if (activeBookCount + existing.length + details.length > readerBorrowLimit) {
+            const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`);
+            error.statusCode = 400;
+            throw error;
         }
         const seen = new Set(existing.map((item) => item.maSach));
         if (details.some((item) => seen.has(item.maSach))) {
@@ -391,6 +426,8 @@ async function submit(maPhieu, requester) {
         if (requester?.loaiTaiKhoan !== "DOCGIA" || borrow.maDocGia !== (requester.maTaiKhoan || requester.maDocGia)) return { forbidden: true };
         if (borrow.trangThai !== BORROW_STATUSES.DRAFT) return { invalidStatus: true };
         if (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
+        const readerProfile = await db.collection(USER_COLLECTION).findOne({ maDocGia: borrow.maDocGia });
+        const readerBorrowLimit = getReaderBorrowLimit(readerProfile);
         const details = await detailCollection.find({ maPhieu }).toArray();
         if (!details.length || details.length > MAX_BOOKS_PER_BORROW || details.length !== borrow.soLuong || details.some((item) => item.trangThai !== STATUSES.DRAFT) || new Set(details.map((item) => item.maSach)).size !== details.length) return { invalidDetails: true };
         const readerBorrows = await borrows.find({ maDocGia: borrow.maDocGia }, { projection: { maPhieu: 1 } }).toArray();
@@ -399,8 +436,8 @@ async function submit(maPhieu, requester) {
         if (active.some((item) => details.some((detail) => detail.maSach === item.maSach))) {
             const error = new Error("Sach da co trong phieu dang hoat dong"); error.statusCode = 400; throw error;
         }
-        if (new Set(active.map((item) => item.maSach)).size + details.length > MAX_ACTIVE_BOOKS) {
-            const error = new Error(`Doc gia chi duoc co toi da ${MAX_ACTIVE_BOOKS} sach dang hoat dong`); error.statusCode = 400; throw error;
+        if (new Set(active.map((item) => item.maSach)).size + details.length > readerBorrowLimit) {
+            const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`); error.statusCode = 400; throw error;
         }
         const pendingIds = new Set(active.filter((item) => item.trangThai === STATUSES.PENDING).map((item) => item.maPhieu));
         if (pendingIds.size >= MAX_PENDING_BORROWS) { const error = new Error(`Moi doc gia chi duoc co toi da ${MAX_PENDING_BORROWS} phieu cho duyet`); error.statusCode = 400; throw error; }

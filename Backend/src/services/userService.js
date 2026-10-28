@@ -37,6 +37,7 @@ async function create(user) {
         diaChi: "string",
         dienThoai: "string",
     }, ["hoLot", "ten", "phai"]);
+    userToCreate.trangThai = "Bình thường";
     const collection = await getCollection();
     const maDocGia = await generateCode("DG");
     userToCreate.maDocGia = maDocGia;
