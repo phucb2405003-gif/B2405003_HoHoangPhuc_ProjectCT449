@@ -87,10 +87,14 @@ async function remove(req, res) {
             });
         }
 
+        if (result.expired) {
+            return res.status(400).json({ message: "Phieu muon da het han" });
+        }
+
         if (result.invalidStatus) {
             return res.status(403).json({
                 message:
-                    "Chi duoc xoa sach khi phieu dang cho duyet"
+                    "Chi duoc xoa sach khi phieu dang chon sach hoac cho duyet"
             });
         }
 
@@ -119,8 +123,23 @@ async function remove(req, res) {
     }
 }
 
+async function add(req, res) {
+    try {
+        if (!Array.isArray(req.body?.borrowDetails)) return res.status(400).json({ message: "borrowDetails phai la danh sach sach can them" });
+        const result = await borrowService.addBooks(req.params.maPhieu, req.body.borrowDetails, req.user);
+        if (result.forbidden) return res.status(403).json({ message: "Ban khong co quyen them sach vao phieu muon nay" });
+        if (result.notFound) return res.status(404).json({ message: "Khong tim thay phieu muon" });
+        if (result.invalidStatus || result.expired) return res.status(400).json({ message: "Chi duoc them sach vao phieu dang chon sach chua het han" });
+        return res.status(201).json({ message: "Them sach vao phieu muon thanh cong", borrow: result.borrow, details: result.details });
+    } catch (error) {
+        const statusCode = Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode <= 599 ? error.statusCode : 500;
+        return res.status(statusCode).json({ message: statusCode < 500 ? (error.publicMessage || error.message) : (error.publicMessage || "Khong the them sach vao phieu muon") });
+    }
+}
+
 module.exports = {
     findAll,
     findByMaPhieu,
+    add,
     remove
 };

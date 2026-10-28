@@ -98,6 +98,19 @@ async function create(req, res) {
     }
 }
 
+async function submit(req, res) {
+    try {
+        const result = await borrowService.submit(req.params.maPhieu, req.user);
+        if (result.notFound) return res.status(404).json({ message: "Khong tim thay phieu muon" });
+        if (result.forbidden) return res.status(403).json({ message: "Ban khong co quyen gui phieu muon nay" });
+        if (result.invalidStatus || result.invalidDetails) return res.status(400).json({ message: "Phieu muon khong hop le de gui" });
+        if (result.expired) return res.status(400).json({ message: "Phieu da het han" });
+        return res.json({ message: "Gui phieu muon thanh cong", borrow: result.borrow });
+    } catch (error) {
+        return serviceErrorResponse(res, error, `gui phieu muon ${req.params.maPhieu}`, "Khong the gui phieu muon");
+    }
+}
+
 async function remove(req, res) {
     try {
         const result = await borrowService.deletePendingBorrow(
@@ -115,6 +128,10 @@ async function remove(req, res) {
             return res.status(403).json({
                 message: "Ban khong co quyen xoa phieu muon nay"
             });
+        }
+
+        if (result.expired) {
+            return res.status(400).json({ message: "Phieu muon da het han" });
         }
 
         if (result.invalidStatus) {
@@ -254,6 +271,7 @@ module.exports = {
     findMine,
     findOne,
     create,
+    submit,
     approve,
     reject,
     returnBook,

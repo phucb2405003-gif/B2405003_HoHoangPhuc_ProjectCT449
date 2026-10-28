@@ -10,6 +10,7 @@ const { ObjectId } = require("mongodb");
 const { isMongoDuplicateKey } = require("./mongoDuplicateError");
 
 const STATUSES = {
+    DRAFT: "Đang chọn sách",
     PENDING: "Chờ duyệt",
     BORROWED: "Đang mượn",
     RETURNED: "Đã trả",
@@ -17,6 +18,7 @@ const STATUSES = {
     CANCELLED: "Hủy"
 };
 const BORROW_STATUSES = {
+    DRAFT: "Đang chọn sách",
     PENDING: "Chờ duyệt",
     APPROVED: "Đã duyệt",
     REJECTED: "Từ chối",
@@ -27,8 +29,8 @@ const MAX_ACTIVE_BOOKS = 5;
 const MAX_PENDING_BORROWS = 3;
 const ACTIVE_STATUSES = [STATUSES.PENDING, STATUSES.BORROWED];
 
-function normalizeDetails(details) {
-    if (!Array.isArray(details) || details.length === 0) {
+function normalizeDetails(details, allowEmpty = false) {
+    if (!Array.isArray(details) || (!allowEmpty && details.length === 0)) {
         const error = new Error("Phieu muon phai co it nhat mot sach");
         error.statusCode = 400;
         throw error;
@@ -136,8 +138,8 @@ async function restoreStock(bookCollection, maSach, amount = 1, assertOwned) {
 }
 
 async function create(borrow) {
-    const details = normalizeDetails(borrow.borrowDetails || borrow.detaiMuon);
     const direct = borrow.mode === "direct";
+    const details = normalizeDetails(borrow.borrowDetails || borrow.detaiMuon || (direct ? undefined : []), !direct);
 
     if (
         typeof borrow.maDocGia !== "string" ||
@@ -163,6 +165,15 @@ async function create(borrow) {
             error.statusCode = 400;
             throw error;
         }
+        if (!direct) {
+            for (const detail of details) {
+                if (!await bookCollection.findOne({ maSach: detail.maSach })) {
+                    const error = new Error(`Khong tim thay sach ${detail.maSach}`);
+                    error.statusCode = 404;
+                    throw error;
+                }
+            }
+        }
 
         const readerBorrows = await borrowCollection.find(
             { maDocGia: borrow.maDocGia },
@@ -176,38 +187,18 @@ async function create(borrow) {
             }).toArray()
             : [];
 
-        const duplicate = activeDetails.find((item) =>
-            details.some((detail) => detail.maSach === item.maSach)
-        );
-        if (duplicate) {
-            const error = new Error(
-                duplicate.trangThai === STATUSES.PENDING
-                    ? `Ban da dang ky sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu} va dang cho duyet`
-                    : `Ban dang muon sach ${duplicate.maSach} trong phieu ${duplicate.maPhieu}`
+        if (direct) {
+            const duplicate = activeDetails.find((item) =>
+                details.some((detail) => detail.maSach === item.maSach)
             );
-            error.statusCode = 400;
-            throw error;
-        }
-
-        const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
-        if (activeBookCount + details.length > MAX_ACTIVE_BOOKS) {
-            const error = new Error(
-                `Vuot gioi han ${MAX_ACTIVE_BOOKS} sach dang cho duyet hoac dang muon`
-            );
-            error.statusCode = 400;
-            throw error;
-        }
-
-        if (!direct) {
-            const pendingBorrowIds = new Set(
-                activeDetails
-                    .filter((item) => item.trangThai === STATUSES.PENDING)
-                    .map((item) => item.maPhieu)
-            );
-            if (pendingBorrowIds.size >= MAX_PENDING_BORROWS) {
-                const error = new Error(
-                    `Moi doc gia chi duoc co toi da ${MAX_PENDING_BORROWS} phieu cho duyet`
-                );
+            if (duplicate) {
+                const error = new Error(`Sach ${duplicate.maSach} da co trong phieu dang hoat dong ${duplicate.maPhieu}`);
+                error.statusCode = 400;
+                throw error;
+            }
+            const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
+            if (activeBookCount + details.length > MAX_ACTIVE_BOOKS) {
+                const error = new Error(`Vuot gioi han ${MAX_ACTIVE_BOOKS} sach dang cho duyet hoac dang muon`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -228,9 +219,11 @@ async function create(borrow) {
                 throw error;
             }
 
-            for (const detail of details) {
-                const receipt = await reserveBook(bookCollection, detail.maSach, assertOwned);
-                reserved.push(receipt);
+            if (direct) {
+                for (const detail of details) {
+                    const receipt = await reserveBook(bookCollection, detail.maSach, assertOwned);
+                    reserved.push(receipt);
+                }
             }
 
             const ngayMuon = direct ? new Date() : null;
@@ -240,7 +233,7 @@ async function create(borrow) {
                 maDocGia: borrow.maDocGia,
                 maNhanVien: direct ? borrow.maNhanVien : null,
                 soLuong: details.length,
-                trangThai: direct ? BORROW_STATUSES.APPROVED : BORROW_STATUSES.PENDING,
+                trangThai: direct ? BORROW_STATUSES.APPROVED : BORROW_STATUSES.DRAFT,
                 ngayYeuCau: direct ? null : new Date(),
                 ngayMuon
             };
@@ -257,10 +250,10 @@ async function create(borrow) {
                 maSach: detail.maSach,
                 hanTra: direct ? addOneCalendarMonth(ngayMuon) : null,
                 ngayTra: null,
-                trangThai: direct ? STATUSES.BORROWED : STATUSES.PENDING
+                trangThai: direct ? STATUSES.BORROWED : STATUSES.DRAFT
             }));
             await assertOwned();
-            const detailInsert = await detailCollection.insertMany(detailRecords);
+            const detailInsert = detailRecords.length ? await detailCollection.insertMany(detailRecords) : { insertedCount: 0 };
             if (detailInsert.insertedCount !== detailRecords.length) {
                 throw new Error("MongoDB khong xac nhan da tao day du chi tiet phieu");
             }
@@ -317,6 +310,195 @@ async function create(borrow) {
             }
             throw error;
         }
+    });
+}
+
+async function addBooks(maPhieu, requestedDetails, requester) {
+    if (!Array.isArray(requestedDetails) || !requestedDetails.length) {
+        const error = new Error("borrowDetails phai co it nhat mot sach"); error.statusCode = 400; throw error;
+    }
+    const details = normalizeDetails(requestedDetails);
+    const db = await connectDB();
+    const borrows = db.collection(BORROW_COLLECTION);
+    const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        const borrow = await borrows.findOne({ maPhieu });
+        if (!borrow) return { notFound: true };
+        if (requester?.loaiTaiKhoan !== "DOCGIA" || borrow.maDocGia !== (requester.maTaiKhoan || requester.maDocGia)) return { forbidden: true };
+        if (borrow.trangThai !== BORROW_STATUSES.DRAFT) return { invalidStatus: true };
+        if (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
+        const existing = await detailCollection.find({ maPhieu }).toArray();
+        if (!Number.isSafeInteger(borrow.soLuong) || borrow.soLuong !== existing.length) {
+            const error = new Error("So luong sach trong phieu khong khop chi tiet; can doi soat"); error.statusCode = 409; throw error;
+        }
+        if (existing.length + details.length > MAX_BOOKS_PER_BORROW) {
+            const error = new Error("Moi phieu muon chi duoc toi da 5 sach"); error.statusCode = 400; throw error;
+        }
+        const seen = new Set(existing.map((item) => item.maSach));
+        if (details.some((item) => seen.has(item.maSach))) {
+            const error = new Error("Sach da co trong phieu muon"); error.statusCode = 409; throw error;
+        }
+        for (const detail of details) {
+            if (!await db.collection(BOOK_COLLECTION).findOne({ maSach: detail.maSach })) {
+                const error = new Error(`Khong tim thay sach ${detail.maSach}`); error.statusCode = 404; throw error;
+            }
+        }
+        const newDetails = details.map((item) => ({ _id: new ObjectId(), maPhieu, maSach: item.maSach, hanTra: null, ngayTra: null, trangThai: STATUSES.DRAFT }));
+        let insertAttempted = false;
+        let parentAttempted = false;
+        try {
+            await assertOwned(); insertAttempted = true;
+            const inserted = await detailCollection.insertMany(newDetails);
+            if (!inserted.acknowledged || inserted.insertedCount !== newDetails.length) throw new Error("Khong the them day du sach vao phieu");
+            await assertOwned(); parentAttempted = true;
+            const updated = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: borrow.soLuong }, { $inc: { soLuong: newDetails.length } });
+            if (updated.matchedCount !== 1) throw new Error("Phieu da thay doi; khong the cap nhat so luong sach");
+            const verified = await borrows.findOne({ _id: borrow._id, maPhieu });
+            if (verified?.soLuong !== borrow.soLuong + newDetails.length) throw new Error("Khong xac minh duoc so luong sach moi trong phieu");
+            return { borrow: verified, details: newDetails };
+        } catch (error) {
+            const rollbackErrors = [];
+            if (parentAttempted) {
+                try {
+                    const current = await borrows.findOne({ _id: borrow._id, maPhieu });
+                    if (current?.soLuong === borrow.soLuong + newDetails.length) {
+                        const rollback = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: current.soLuong }, { $inc: { soLuong: -newDetails.length } });
+                        if (rollback.matchedCount !== 1) throw new Error("Khong the rollback so luong sach trong phieu");
+                    } else if (current?.soLuong !== borrow.soLuong) throw new Error("So luong phieu khong khop khi rollback");
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+            }
+            if (insertAttempted && !rollbackErrors.length) {
+                try {
+                    await assertOwned();
+                    await detailCollection.deleteMany({ _id: { $in: newDetails.map((item) => item._id) }, maPhieu });
+                    if (await detailCollection.countDocuments({ _id: { $in: newDetails.map((item) => item._id) } }) !== 0) throw new Error("Chi tiet vua them van con sau rollback");
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+            }
+            if (rollbackErrors.length) throw makeRollbackError("Them sach that bai va rollback khong hoan tat", error, rollbackErrors);
+            throw error;
+        }
+    });
+}
+
+async function submit(maPhieu, requester) {
+    const db = await connectDB();
+    const borrows = db.collection(BORROW_COLLECTION);
+    const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
+    const books = db.collection(BOOK_COLLECTION);
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        const borrow = await borrows.findOne({ maPhieu });
+        if (!borrow) return { notFound: true };
+        if (requester?.loaiTaiKhoan !== "DOCGIA" || borrow.maDocGia !== (requester.maTaiKhoan || requester.maDocGia)) return { forbidden: true };
+        if (borrow.trangThai !== BORROW_STATUSES.DRAFT) return { invalidStatus: true };
+        if (!(borrow.ngayYeuCau instanceof Date) || borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
+        const details = await detailCollection.find({ maPhieu }).toArray();
+        if (!details.length || details.length > MAX_BOOKS_PER_BORROW || details.length !== borrow.soLuong || details.some((item) => item.trangThai !== STATUSES.DRAFT) || new Set(details.map((item) => item.maSach)).size !== details.length) return { invalidDetails: true };
+        const readerBorrows = await borrows.find({ maDocGia: borrow.maDocGia }, { projection: { maPhieu: 1 } }).toArray();
+        const ids = readerBorrows.map((item) => item.maPhieu);
+        const active = ids.length ? await detailCollection.find({ maPhieu: { $in: ids }, trangThai: { $in: ACTIVE_STATUSES } }).toArray() : [];
+        if (active.some((item) => details.some((detail) => detail.maSach === item.maSach))) {
+            const error = new Error("Sach da co trong phieu dang hoat dong"); error.statusCode = 400; throw error;
+        }
+        if (new Set(active.map((item) => item.maSach)).size + details.length > MAX_ACTIVE_BOOKS) {
+            const error = new Error(`Doc gia chi duoc co toi da ${MAX_ACTIVE_BOOKS} sach dang hoat dong`); error.statusCode = 400; throw error;
+        }
+        const pendingIds = new Set(active.filter((item) => item.trangThai === STATUSES.PENDING).map((item) => item.maPhieu));
+        if (pendingIds.size >= MAX_PENDING_BORROWS) { const error = new Error(`Moi doc gia chi duoc co toi da ${MAX_PENDING_BORROWS} phieu cho duyet`); error.statusCode = 400; throw error; }
+        const receipts = [];
+        let detailWriteAttempted = false;
+        let parentWriteAttempted = false;
+        const dueStatus = BORROW_STATUSES.PENDING;
+        try {
+            for (const detail of details) receipts.push(await reserveBook(books, detail.maSach, assertOwned));
+            await assertOwned(); detailWriteAttempted = true;
+            const changed = await detailCollection.updateMany({ maPhieu, trangThai: STATUSES.DRAFT }, { $set: { trangThai: STATUSES.PENDING } });
+            if (changed.modifiedCount !== details.length) throw new Error("Khong the cap nhat day du trang thai chi tiet");
+            await assertOwned(); parentWriteAttempted = true;
+            const changedParent = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: borrow.soLuong }, { $set: { trangThai: dueStatus } });
+            if (changedParent.matchedCount !== 1) throw new Error("Phieu da thay doi; khong the gui");
+            return { borrow: await borrows.findOne({ _id: borrow._id }) };
+        } catch (error) {
+            stopOnUncertainStockChange(error);
+            const rollbackErrors = [];
+            if (parentWriteAttempted) {
+                try {
+                    const current = await borrows.findOne({ _id: borrow._id });
+                    if (current?.trangThai === BORROW_STATUSES.PENDING) {
+                        const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.PENDING }, { $set: { trangThai: BORROW_STATUSES.DRAFT } });
+                        if (restored.matchedCount !== 1) throw new Error("Khong the rollback trang thai phieu");
+                    }
+                    else if (current?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac dinh duoc trang thai phieu sau loi");
+                    const verified = await borrows.findOne({ _id: borrow._id });
+                    if (verified?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac minh duoc trang thai phieu sau rollback");
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+            }
+            if (detailWriteAttempted && !rollbackErrors.length) {
+                try {
+                    await detailCollection.updateMany({ maPhieu, trangThai: STATUSES.PENDING }, { $set: { trangThai: STATUSES.DRAFT } });
+                    if (await detailCollection.countDocuments({ maPhieu, trangThai: STATUSES.PENDING }) !== 0 || await detailCollection.countDocuments({ maPhieu, trangThai: STATUSES.DRAFT }) !== details.length) throw new Error("Khong the xac minh rollback trang thai chi tiet");
+                } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+            }
+            for (const receipt of rollbackErrors.length ? [] : receipts.reverse()) {
+                try { await undoAvailableChange(books, receipt, assertOwned); } catch (rollbackError) { rollbackErrors.push(rollbackError); break; }
+            }
+            if (rollbackErrors.length) throw makeRollbackError("Gui phieu that bai va rollback khong hoan tat; can kiem tra du lieu", error, rollbackErrors);
+            throw error;
+        }
+    });
+}
+
+async function expireDraftBorrows(now = new Date()) {
+    const db = await connectDB();
+    const borrows = db.collection(BORROW_COLLECTION);
+    const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
+    const cutoff = new Date(now.getTime() - 3 * 86400000);
+    return withBorrowOperationLock(db, async (assertOwned) => {
+        const expired = await borrows.find({ trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }).toArray();
+        let count = 0;
+        for (const borrow of expired) {
+            const details = await detailCollection.find({ maPhieu: borrow.maPhieu }).toArray();
+            if (details.length !== borrow.soLuong || details.some((detail) => detail.trangThai !== STATUSES.DRAFT)) {
+                const error = new Error(`Phieu ${borrow.maPhieu} khong khop chi tiet; can doi soat truoc khi het han`);
+                error.statusCode = 409;
+                throw error;
+            }
+            let detailsWriteAttempted = false;
+            let parentWriteAttempted = false;
+            try {
+                await assertOwned();
+                if (details.length) {
+                    detailsWriteAttempted = true;
+                    const updated = await detailCollection.updateMany({ maPhieu: borrow.maPhieu, trangThai: STATUSES.DRAFT }, { $set: { trangThai: STATUSES.CANCELLED } });
+                    if (updated.modifiedCount !== details.length) throw new Error("Khong the huy day du chi tiet phieu het han");
+                }
+                await assertOwned();
+                parentWriteAttempted = true;
+                const updatedBorrow = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDoHuy: "Phiếu đã quá hạn" } });
+                if (updatedBorrow.matchedCount !== 1) throw new Error("Phieu da thay doi trong luc xu ly het han");
+                count++;
+            } catch (error) {
+                const rollbackErrors = [];
+                if (parentWriteAttempted) {
+                    try {
+                        const current = await borrows.findOne({ _id: borrow._id, maPhieu });
+                        if (current?.trangThai === BORROW_STATUSES.CANCELLED && current.lyDoHuy === "Phiếu đã quá hạn" && current.ngayHuy instanceof Date && current.ngayHuy.getTime() === now.getTime()) {
+                            const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDoHuy: "Phiếu đã quá hạn" }, { $set: { trangThai: BORROW_STATUSES.DRAFT }, $unset: { ngayHuy: "", lyDoHuy: "" } });
+                            if (restored.matchedCount !== 1) throw new Error("Khong the rollback trang thai phieu het han");
+                        } else if (current?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac dinh duoc trang thai phieu sau loi het han");
+                    } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+                }
+                if (detailsWriteAttempted && !rollbackErrors.length) {
+                    try {
+                        await assertOwned();
+                        await detailCollection.updateMany({ maPhieu: borrow.maPhieu, trangThai: STATUSES.CANCELLED }, { $set: { trangThai: STATUSES.DRAFT } });
+                        if (await detailCollection.countDocuments({ maPhieu: borrow.maPhieu, trangThai: STATUSES.CANCELLED }) !== 0) throw new Error("Khong the rollback chi tiet phieu het han");
+                    } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+                }
+                if (rollbackErrors.length) throw makeRollbackError("Xu ly phieu het han that bai va rollback khong hoan tat", error, rollbackErrors);
+                throw error;
+            }
+        }
+        return count;
     });
 }
 
@@ -624,13 +806,17 @@ async function deletePendingBorrow(maPhieu, requester) {
         if (requester?.loaiTaiKhoan !== "DOCGIA") return { forbidden: true };
         const readerId = requester.maDocGia || requester.maTaiKhoan;
         if (!readerId || borrow.maDocGia !== readerId) return { forbidden: true };
-        if (await getBorrowStatus(borrow, detailCollection) !== BORROW_STATUSES.PENDING) {
+        const borrowStatus = await getBorrowStatus(borrow, detailCollection);
+        const isDraft = borrowStatus === BORROW_STATUSES.DRAFT;
+        if (!isDraft && borrowStatus !== BORROW_STATUSES.PENDING) {
             return { invalidStatus: true };
         }
         if (borrow.maNhanVien || !borrow.ngayYeuCau) return { invalidStatus: true };
+        if (isDraft && borrow.ngayYeuCau.getTime() + 3 * 86400000 <= Date.now()) return { expired: true };
 
         const details = await detailCollection.find({ maPhieu }).toArray();
-        if (!details.length || details.some((detail) => detail.trangThai !== STATUSES.PENDING)) {
+        const expectedDetailStatus = isDraft ? STATUSES.DRAFT : STATUSES.PENDING;
+        if ((!isDraft && !details.length) || details.some((detail) => detail.trangThai !== expectedDetailStatus) || borrow.soLuong !== details.length) {
             return { invalidStatus: true };
         }
 
@@ -639,15 +825,17 @@ async function deletePendingBorrow(maPhieu, requester) {
         let parentUpdateAttempted = false;
         const cancelledAt = new Date();
         try {
-            for (const detail of details) {
-                const receipt = await restoreStock(bookCollection, detail.maSach, 1, assertOwned);
-                restored.push(receipt);
+            if (!isDraft) {
+                for (const detail of details) {
+                    const receipt = await restoreStock(bookCollection, detail.maSach, 1, assertOwned);
+                    restored.push(receipt);
+                }
             }
             await assertOwned();
             detailUpdateAttempted = true;
             const changedDetails = await detailCollection.updateMany({
                 maPhieu,
-                trangThai: STATUSES.PENDING
+                trangThai: expectedDetailStatus
             }, { $set: { trangThai: STATUSES.CANCELLED } });
             if (changedDetails.modifiedCount !== details.length) {
                 throw new Error("Khong the huy day du chi tiet phieu muon");
@@ -661,7 +849,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                 _id: borrow._id,
                 maPhieu,
                 ...parentStatusFilter
-            }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: cancelledAt } });
+            }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: cancelledAt, ...(isDraft ? { lyDoHuy: "Độc giả đã hủy phiếu" } : {}) } });
             if (updateBorrow.matchedCount !== 1) {
                 throw new Error("Khong the cap nhat trang thai phieu muon");
             }
@@ -680,7 +868,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                         left instanceof Date && right instanceof Date
                             ? left.getTime() === right.getTime()
                             : left === right;
-                    const fields = ["trangThai", "ngayHuy"];
+                    const fields = ["trangThai", "ngayHuy", ...(isDraft ? ["lyDoHuy"] : [])];
                     const alreadyOriginal = fields.every((field) =>
                         Object.prototype.hasOwnProperty.call(currentBorrow, field) ===
                             Object.prototype.hasOwnProperty.call(borrow, field) &&
@@ -690,7 +878,8 @@ async function deletePendingBorrow(maPhieu, requester) {
                     if (alreadyOriginal) {
                         // The parent update failed before applying; nothing to restore.
                     } else if (currentBorrow.trangThai !== BORROW_STATUSES.CANCELLED ||
-                        !sameValue(currentBorrow.ngayHuy, cancelledAt)) {
+                        !sameValue(currentBorrow.ngayHuy, cancelledAt) ||
+                        (isDraft && currentBorrow.lyDoHuy !== "Độc giả đã hủy phiếu")) {
                         throw new Error("Trang thai phieu khong khop khi rollback");
                     } else {
                         const set = {};
@@ -710,7 +899,8 @@ async function deletePendingBorrow(maPhieu, requester) {
                                 _id: borrow._id,
                                 maPhieu,
                                 trangThai: BORROW_STATUSES.CANCELLED,
-                                ngayHuy: cancelledAt
+                                ngayHuy: cancelledAt,
+                                ...(isDraft ? { lyDoHuy: "Độc giả đã hủy phiếu" } : {})
                             },
                             update
                         );
@@ -725,7 +915,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                     await assertOwned();
                     await detailCollection.updateMany(
                         { maPhieu, trangThai: STATUSES.CANCELLED },
-                        { $set: { trangThai: STATUSES.PENDING } }
+                        { $set: { trangThai: expectedDetailStatus } }
                     );
                     const remaining = await detailCollection.countDocuments({ maPhieu, trangThai: STATUSES.CANCELLED });
                     if (remaining !== 0) {
@@ -754,6 +944,9 @@ module.exports = {
     findOne,
     findByMaDocGia,
     create,
+    addBooks,
+    submit,
+    expireDraftBorrows,
     changeStatus,
     returnBook,
     deletePendingBorrow,

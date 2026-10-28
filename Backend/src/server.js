@@ -37,6 +37,15 @@ async function startServer() {
         const { ensureIndexes } = require("./config/databaseIndexes");
         await ensureIndexes(db);
 
+        const borrowService = require("./services/borrowService");
+        await borrowService.expireDraftBorrows();
+        const expiryTimer = setInterval(() => {
+            borrowService.expireDraftBorrows().catch((error) => {
+                console.error("Khong the xu ly phieu muon het han:", error?.code || error?.name || "Error");
+            });
+        }, 60 * 1000);
+        expiryTimer.unref();
+
         const app = require("./app");
         const server = app.listen(PORT, () => {
             console.log(`Server dang chay tren cong ${PORT}.`);

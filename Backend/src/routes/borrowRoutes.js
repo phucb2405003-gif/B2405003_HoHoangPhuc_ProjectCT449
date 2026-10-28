@@ -109,6 +109,18 @@ router.post(
     borrowController.create
 );
 
+router.put(
+    "/:maPhieu/submit",
+    authenticateToken,
+    borrowController.submit
+);
+
+router.post(
+    "/:maPhieu/borrow-details",
+    authenticateToken,
+    borrowDetailController.add
+);
+
 // =====================================================
 // DUYET PHIEU
 // =====================================================
