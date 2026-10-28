@@ -1,18 +1,11 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import FeaturedBooks from '@/components/home/featured-books/FeaturedBooks.vue'
+import useHome from '@/composables/useHome'
 import './HomeView.css'
 
-const router = useRouter()
-const searchTerm = ref('')
-
-function searchBooks() {
-  const query = searchTerm.value.trim()
-  void router.push({ name: 'books', query: query ? { q: query } : {} })
-}
+const { searchBooks, searchTerm } = useHome()
 </script>
 
 <template>
