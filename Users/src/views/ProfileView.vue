@@ -25,6 +25,11 @@ const {
   borrowsError,
   borrowsLoaded,
   borrowsLoading,
+  currentBorrowPage,
+  borrowPageCount,
+  paginatedBorrows,
+  previousBorrowPage,
+  nextBorrowPage,
   chooseTab,
   confirmPassword,
   currentPassword,
@@ -55,6 +60,7 @@ const {
   profileForm,
   profileUpdateError,
   profileUpdateNotice,
+  readerStatusClass,
   cancelProfileEdit,
   openProfileEditor,
   saveReaderProfile,
@@ -126,7 +132,8 @@ const {
               <div><dt>Giới tính</dt><dd>{{ profile.phai === true ? 'Nam' : profile.phai === false ? 'Nữ' : 'Chưa cập nhật' }}</dd></div>
               <div><dt>Số điện thoại</dt><dd>{{ profile.dienThoai || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Email</dt><dd>{{ authState.user?.email || 'Chưa cập nhật' }}</dd></div>
-              <div class="reader-profile-field--wide"><dt>Địa chỉ</dt><dd>{{ profile.diaChi || 'Chưa cập nhật' }}</dd></div>
+              <div><dt>Địa chỉ</dt><dd>{{ profile.diaChi || 'Chưa cập nhật' }}</dd></div>
+              <div class="reader-profile-reader-status"><dt>Trạng thái độc giả</dt><dd><span v-if="profile.trangThai" class="reader-profile-reader-status__badge" :class="`reader-profile-reader-status__badge--${readerStatusClass(profile.trangThai)}`">{{ profile.trangThai }}</span><span v-else>Chưa cập nhật</span></dd></div>
             </dl>
 
             <button v-if="!isProfileEditOpen" type="button" class="reader-profile-primary-button reader-profile-edit-button" @click="openProfileEditor">Chỉnh sửa thông tin</button>
@@ -179,7 +186,7 @@ const {
           </div>
           <div v-else-if="borrowsLoaded && !borrows.length" class="reader-profile-state">Chưa có phiếu mượn.</div>
           <div v-else class="reader-borrow-list">
-            <article v-for="borrow in borrows" :key="borrow.maPhieu" class="reader-borrow-card">
+            <article v-for="borrow in paginatedBorrows" :key="borrow.maPhieu" class="reader-borrow-card">
               <div class="reader-borrow-card__summary">
                 <div class="reader-borrow-card__code"><span>Mã phiếu</span><strong>{{ borrow.maPhieu || 'Chưa cập nhật' }}</strong></div>
                 <div><span>{{ borrowDate(borrow).label }}</span><strong>{{ formatDate(borrowDate(borrow).value) }}</strong></div>
@@ -211,6 +218,11 @@ const {
                     {{ deletingBorrowIds[borrow.maPhieu] ? 'Đang hủy…' : 'Hủy phiếu nháp' }}
                   </button>
                 </div>
+              </div>
+
+              <div v-if="borrow.trangThai === 'Từ chối'" class="reader-borrow-rejection-reason">
+                <strong>Lý do từ chối:</strong>
+                <span>{{ typeof borrow.lyDoTuChoi === 'string' && borrow.lyDoTuChoi.trim() ? borrow.lyDoTuChoi : 'Chưa cập nhật' }}</span>
               </div>
 
               <div v-if="expandedBorrows[borrow.maPhieu]" class="reader-borrow-details">
@@ -245,6 +257,12 @@ const {
               </div>
             </article>
           </div>
+
+          <nav v-if="!borrowsLoading && !borrowsError && borrowsLoaded && borrows.length" class="reader-borrow-pagination" aria-label="Phân trang phiếu mượn">
+            <button type="button" :disabled="currentBorrowPage <= 1" @click="previousBorrowPage">Trước</button>
+            <span>Trang {{ currentBorrowPage }} / {{ borrowPageCount }}</span>
+            <button type="button" :disabled="currentBorrowPage >= borrowPageCount" @click="nextBorrowPage">Sau</button>
+          </nav>
 
           <div v-if="isBorrowDialogOpen" class="reader-borrow-picker-backdrop" @click.self="!isCreatingBorrow && (isBorrowDialogOpen = false)">
             <section class="reader-borrow-picker" role="dialog" aria-modal="true" aria-labelledby="reader-borrow-picker-title">

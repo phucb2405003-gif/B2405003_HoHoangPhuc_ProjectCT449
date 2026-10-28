@@ -13,6 +13,8 @@ import {
 } from '@/services/borrowingService'
 import { changeReaderPassword, getReaderProfile, updateMyReaderProfile } from '@/services/readerProfileService'
 
+const BORROWS_PER_PAGE = 5
+
 export default function useProfile() {
   const route = useRoute()
   const router = useRouter()
@@ -31,6 +33,26 @@ export default function useProfile() {
   const borrowsLoading = ref(false)
   const borrowsLoaded = ref(false)
   const borrowsError = ref('')
+  const currentBorrowPage = ref(1)
+  const borrowPageCount = computed(() => Math.max(1, Math.ceil(borrows.value.length / BORROWS_PER_PAGE)))
+  const sortedBorrows = computed(() => borrows.value
+    .map((borrow, index) => {
+      const timestamp = [borrow?.ngayYeuCau, borrow?.ngayMuon]
+        .map((dateValue) => dateValue ? new Date(dateValue).getTime() : Number.NaN)
+        .find(Number.isFinite)
+      return { borrow, index, timestamp: timestamp ?? null }
+    })
+    .sort((left, right) => {
+      if (left.timestamp === null && right.timestamp === null) return left.index - right.index
+      if (left.timestamp === null) return 1
+      if (right.timestamp === null) return -1
+      return right.timestamp - left.timestamp || left.index - right.index
+    })
+    .map(({ borrow }) => borrow))
+  const paginatedBorrows = computed(() => {
+    const start = (currentBorrowPage.value - 1) * BORROWS_PER_PAGE
+    return sortedBorrows.value.slice(start, start + BORROWS_PER_PAGE)
+  })
   const expandedBorrows = ref({})
   const borrowDetails = ref({})
   const borrowDetailLoading = ref({})
@@ -57,6 +79,10 @@ export default function useProfile() {
   const passwordError = ref('')
   const passwordNotice = ref('')
   let isRedirectingToLogin = false
+
+  watch(borrowPageCount, (pageCount) => {
+    if (currentBorrowPage.value > pageCount) currentBorrowPage.value = pageCount
+  }, { flush: 'sync' })
 
   const fullName = computed(() => [profile.value?.hoLot, profile.value?.ten]
     .filter((part) => typeof part === 'string' && part.trim())
@@ -187,6 +213,10 @@ export default function useProfile() {
     try {
       const result = await getMyBorrows(token)
       if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách phiếu mượn không hợp lệ.')
+      const previousBorrowIds = new Set(borrows.value.map((borrow) => borrow.maPhieu))
+      if (borrowsLoaded.value && result.some((borrow) => !previousBorrowIds.has(borrow.maPhieu))) {
+        currentBorrowPage.value = 1
+      }
       borrows.value = result
       borrowsLoaded.value = true
     } catch (error) {
@@ -309,6 +339,7 @@ export default function useProfile() {
       }
       isBorrowDialogOpen.value = false
       selectedBookIds.value = []
+      currentBorrowPage.value = 1
       borrowActionNotice.value = `Đã tạo phiếu nháp ${created.maPhieu} với ${created.soLuong} cuốn sách.`
       await loadBorrows(true)
     } catch (error) {
@@ -326,6 +357,14 @@ export default function useProfile() {
     borrowDetailLoaded.value[maPhieu] = false
     await loadBorrows(true)
     if (expandedBorrows.value[maPhieu]) await loadBorrowDetailRows(maPhieu)
+  }
+
+  function previousBorrowPage() {
+    if (currentBorrowPage.value > 1) currentBorrowPage.value -= 1
+  }
+
+  function nextBorrowPage() {
+    if (currentBorrowPage.value < borrowPageCount.value) currentBorrowPage.value += 1
   }
 
   async function submitDraftBorrow(borrow) {
@@ -443,6 +482,15 @@ export default function useProfile() {
     return classes[status] || 'unknown'
   }
 
+  function readerStatusClass(status) {
+    const classes = {
+      'Bình thường': 'normal',
+      'Hạn chế': 'restricted',
+      'Bị cấm': 'banned',
+    }
+    return classes[status] || 'unknown'
+  }
+
   function passwordMeetsBackendRules(value) {
     return [...value].length >= 8 &&
       !/^\s*$/u.test(value) &&
@@ -522,6 +570,11 @@ export default function useProfile() {
     borrowsError,
     borrowsLoaded,
     borrowsLoading,
+    currentBorrowPage,
+    borrowPageCount,
+    paginatedBorrows,
+    previousBorrowPage,
+    nextBorrowPage,
     createDraftBorrow,
     deletingBorrowIds,
     deletingDetailIds,
@@ -560,6 +613,7 @@ export default function useProfile() {
     openProfileEditor,
     saveReaderProfile,
     statusClass,
+    readerStatusClass,
     submitPasswordChange,
     toggleBorrowDetails,
     toggleBookSelection,
