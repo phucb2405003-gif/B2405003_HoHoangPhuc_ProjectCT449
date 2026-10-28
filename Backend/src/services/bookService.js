@@ -44,9 +44,10 @@ async function create(book) {
     const bookToCreate = validateCreateFields(book, {
         tenSach: "string",
         tacGia: "string",
+        theLoai: "string",
         maNXB: "string",
         soQuyen: "nonNegativeInteger",
-    }, ["tenSach", "tacGia", "maNXB", "soQuyen"]);
+    }, ["tenSach", "tacGia", "theLoai", "maNXB", "soQuyen"]);
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
         return createWithinLock(db, bookToCreate, assertOwned);
@@ -58,6 +59,7 @@ async function createWithinLock(db, book, assertOwned) {
         ...book,
         tenSach: normalizeWhitespace(book.tenSach),
         tacGia: normalizeWhitespace(book.tacGia),
+        theLoai: normalizeWhitespace(book.theLoai),
     };
     const publisher = await db.collection(PUBLISHER_COLLECTION).findOne({
         maNXB: normalizedBook.maNXB,
@@ -118,6 +120,7 @@ async function update(maSach, book) {
     const bookToUpdate = getUpdateFields(book, {
         tenSach: "string",
         tacGia: "string",
+        theLoai: "string",
         maNXB: "string",
     });
     const db = await connectDB();
@@ -128,6 +131,9 @@ async function update(maSach, book) {
     }
     if (bookToUpdate.tacGia !== undefined) {
         bookToUpdate.tacGia = normalizeWhitespace(bookToUpdate.tacGia);
+    }
+    if (bookToUpdate.theLoai !== undefined) {
+        bookToUpdate.theLoai = normalizeWhitespace(bookToUpdate.theLoai);
     }
 
     if (bookToUpdate.maNXB !== undefined) {
