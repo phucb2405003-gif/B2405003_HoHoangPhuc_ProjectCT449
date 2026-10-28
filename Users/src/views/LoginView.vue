@@ -1,47 +1,10 @@
 <script setup>
-import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { loginReader } from '@/services/authService'
+import useLogin from '@/composables/useLogin'
 import bookLockIcon from '@/assets/icons/book-lock.svg'
 import bookOpenIcon from '@/assets/icons/book-open-text.svg'
 import './LoginView.css'
 
-const router = useRouter()
-const route = useRoute()
-const tenDangNhap = ref('')
-const password = ref('')
-const showPassword = ref(false)
-const isSubmitting = ref(false)
-const errorMessage = ref('')
-
-async function submitLogin() {
-  if (isSubmitting.value) return
-  errorMessage.value = ''
-  if (!tenDangNhap.value.trim() || !password.value) {
-    errorMessage.value = 'Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.'
-    return
-  }
-
-  isSubmitting.value = true
-  try {
-    await loginReader(tenDangNhap.value.trim(), password.value)
-    const requestedTarget = typeof route.query.redirect === 'string'
-      ? router.resolve(route.query.redirect)
-      : null
-    if (requestedTarget?.name === 'reader-profile') {
-      await router.replace({
-        name: 'reader-profile',
-        query: { tab: requestedTarget.query.tab === 'muon' ? 'muon' : 'thong-tin' },
-      })
-    } else {
-      await router.replace({ name: 'home' })
-    }
-  } catch (error) {
-    errorMessage.value = error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.'
-  } finally {
-    isSubmitting.value = false
-  }
-}
+const { errorMessage, isSubmitting, password, showPassword, submitLogin, tenDangNhap } = useLogin()
 </script>
 
 <template>
