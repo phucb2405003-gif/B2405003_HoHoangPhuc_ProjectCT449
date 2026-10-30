@@ -3,6 +3,7 @@ import { authState } from '@/services/authService'
 import { entityStore } from '@/data/entityStore'
 import { createPublisher, deletePublisher, getPublishers, updatePublisher } from '@/services/publisherService'
 import { addBookStock, createBook, deleteBook, destroyBookStock, getBooks, updateBook } from '@/services/bookService'
+import { createReader, getReader, getReaders, updateReader, updateReaderStatus } from '@/services/readerService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -19,9 +20,11 @@ export default function useEntityManagement(config) {
   const actionNotice = ref('')
   const isPublisher = config.key === 'publishers'
   const isBook = config.key === 'books'
-  const isRemoteEntity = isPublisher || isBook
+  const isReader = config.key === 'readers'
+  const isRemoteEntity = isPublisher || isBook || isReader
   const publisherRows = ref([])
   const bookRows = ref([])
+  const readerRows = ref([])
   const bookPublisherRows = ref([])
   const loading = ref(false)
   const loadError = ref('')
@@ -32,9 +35,11 @@ export default function useEntityManagement(config) {
   const stockMode = ref('add')
   const stockBook = ref(null)
   const isStockOperation = ref(false)
+  const isStatusOperation = ref(false)
+  const credentials = ref(null)
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : entityStore[config.key])
+  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : entityStore[config.key])
   const publisherOptions = computed(() => isBook ? bookPublisherRows.value : entityStore.publishers)
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
@@ -96,8 +101,18 @@ export default function useEntityManagement(config) {
     }
   }
 
+  async function loadReaders() {
+    loading.value = true
+    loadError.value = ''
+    operationError.value = ''
+    try { readerRows.value = await getReaders() }
+    catch (error) { readerRows.value = []; loadError.value = error.message || 'Không thể tải danh sách độc giả.' }
+    finally { loading.value = false }
+  }
+
   if (isPublisher) onMounted(loadPublishers)
   if (isBook) onMounted(loadBooks)
+  if (isReader) onMounted(loadReaders)
 
   function openCreate() {
     validationErrors.value = {}
@@ -124,10 +139,15 @@ export default function useEntityManagement(config) {
     dialogOpen.value = true
   }
 
-  function openDetail(row) {
-    currentRecord.value = row
+  async function openDetail(row) {
     dialogMode.value = 'detail'
+    operationError.value = ''
     dialogOpen.value = true
+    currentRecord.value = row
+    if (isReader) {
+      try { currentRecord.value = await getReader(row.maDocGia) }
+      catch (error) { operationError.value = error.message || 'Không thể tải chi tiết độc giả.' }
+    }
   }
 
   function closeDialog() {
@@ -153,11 +173,6 @@ export default function useEntityManagement(config) {
     if (isBook && dialogMode.value !== 'edit' && !Number.isSafeInteger(Number(record.soQuyen))) {
       errors.soQuyen = 'Tổng số lượng phải là số nguyên an toàn không âm.'
     }
-    const reasonField = config.statusReasonFields?.[record.trangThai]
-    if (reasonField && !String(record[reasonField] || '').trim()) {
-      errors[reasonField] = `Vui lòng nhập lý do ${record.trangThai.toLocaleLowerCase('vi')}.`
-    }
-
     const code = String(record[config.codeField] || '').trim().toLocaleLowerCase('vi')
     const duplicate = rows.value.some((row) => String(row[config.codeField]).toLocaleLowerCase('vi') === code && row[config.codeField] !== currentRecord.value[config.codeField])
     if (code && duplicate) errors[config.codeField] = 'Mã này đã tồn tại.'
@@ -221,6 +236,39 @@ export default function useEntityManagement(config) {
       return
     }
 
+    if (isReader) {
+      isSaving.value = true
+      operationError.value = ''
+      try {
+        const creating = dialogMode.value === 'create'
+        if (creating) {
+          const result = await createReader(normalized)
+          const index = readerRows.value.findIndex((row) => row.maDocGia === result.reader.maDocGia)
+          if (index < 0) readerRows.value.unshift(result.reader)
+          page.value = 1
+          credentials.value = result.accountCreation?.created && canManage.value
+            ? { maDocGia: result.reader.maDocGia, tenDangNhap: result.accountCreation.tenDangNhap, initialPassword: result.accountCreation.initialPassword }
+            : null
+          actionNotice.value = 'Đã tạo hồ sơ độc giả và tài khoản.'
+        } else {
+          const reader = await updateReader(currentRecord.value.maDocGia, normalized)
+          const index = readerRows.value.findIndex((row) => row.maDocGia === reader.maDocGia)
+          if (index >= 0) readerRows.value.splice(index, 1, reader)
+          actionNotice.value = 'Đã cập nhật hồ sơ độc giả.'
+        }
+        closeDialog()
+      } catch (error) {
+        const data = error.responseData
+        if (data?.profileCreated === true && data?.accountCreated === false && typeof data.maDocGia === 'string') {
+          actionNotice.value = `Đã tạo hồ sơ độc giả ${data.maDocGia}, nhưng chưa tạo được tài khoản. Hãy tạo tài khoản thủ công cho mã hồ sơ này.`
+          await loadReaders()
+          operationError.value = ''
+          closeDialog()
+        } else operationError.value = error.message || 'Không thể lưu hồ sơ độc giả.'
+      } finally { isSaving.value = false }
+      return
+    }
+
     if (dialogMode.value === 'create') entityStore[config.key].unshift(normalized)
     else {
       const index = entityStore[config.key].findIndex((row) => row[config.codeField] === currentRecord.value[config.codeField])
@@ -231,10 +279,41 @@ export default function useEntityManagement(config) {
   }
 
   function requestStatusChange(row) {
+    if (isReader) {
+      operationError.value = ''
+      pendingStatusChange.value = row
+      statusDialogOpen.value = true
+      return
+    }
     pendingDeletion.value = null
     pendingStatusChange.value = row
     confirmOpen.value = true
   }
+
+  const statusDialogOpen = ref(false)
+  async function saveReaderStatus(status) {
+    if (!isReader || !canManage.value || isStatusOperation.value || !pendingStatusChange.value) return
+    isStatusOperation.value = true
+    operationError.value = ''
+    try {
+      const updated = await updateReaderStatus(pendingStatusChange.value.maDocGia, status)
+      const index = readerRows.value.findIndex((row) => row.maDocGia === updated.maDocGia)
+      if (index >= 0) readerRows.value.splice(index, 1, updated)
+      actionNotice.value = 'Đã cập nhật trạng thái độc giả.'
+      statusDialogOpen.value = false
+      pendingStatusChange.value = null
+    } catch (error) { operationError.value = error.message || 'Không thể cập nhật trạng thái độc giả.' }
+    finally { isStatusOperation.value = false }
+  }
+
+  function closeReaderStatus() {
+    if (isStatusOperation.value) return
+    statusDialogOpen.value = false
+    pendingStatusChange.value = null
+    operationError.value = ''
+  }
+
+  function closeCredentials() { credentials.value = null }
 
   function requestStockAdjustment(book, mode) {
     operationError.value = ''
@@ -377,10 +456,11 @@ export default function useEntityManagement(config) {
 
   return {
     search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-    isPublisher, isBook, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks,
+    isPublisher, isBook, isReader, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders,
     tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
     dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,
     openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestStockAdjustment, confirmStockAdjustment, closeStockDialog, requestDelete, confirmStatusChange, closeConfirmation,
+    statusDialogOpen, pendingStatusChange, isStatusOperation, saveReaderStatus, closeReaderStatus, credentials, closeCredentials,
   }
 }

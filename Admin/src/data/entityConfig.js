@@ -58,13 +58,13 @@ export const entityConfigs = {
     statusVariants: { 'Bình thường': 'success', 'Hạn chế': 'warning', 'Bị cấm': 'danger' },
     fields: [
       { key: 'hoTen', label: 'Họ và tên', required: true, wide: true },
-      { key: 'gioiTinh', label: 'Giới tính', type: 'select', required: true, options: ['Nam', 'Nữ', 'Khác'] },
+      { key: 'gioiTinh', label: 'Giới tính', type: 'select', required: true, options: ['Nam', 'Nữ'] },
       { key: 'ngaySinh', label: 'Ngày sinh', type: 'date', required: true },
       { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', required: true, minLength: 9 },
-      { key: 'trangThai', label: 'Trạng thái độc giả', type: 'select', required: true, options: ['Bình thường', 'Hạn chế', 'Bị cấm'] },
+      { key: 'diaChi', label: 'Địa chỉ', type: 'textarea', wide: true },
     ],
-    additionalFields: ['lyDoHanChe', 'lyDoCam'],
-    statusReasonFields: { 'Hạn chế': 'lyDoHanChe', 'Bị cấm': 'lyDoCam' },
+    statusOptions: ['Bình thường', 'Hạn chế', 'Bị cấm'],
+    statusAction: { key: 'trangThai', activeValue: '', inactiveValue: '', activeLabel: 'Đổi trạng thái', inactiveLabel: 'Đổi trạng thái' },
   },
   employees: {
     key: 'employees',

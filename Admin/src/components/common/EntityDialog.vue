@@ -22,12 +22,6 @@ watch(() => [props.open, props.mode, props.record], () => {
   Object.assign(values, props.record || {})
 }, { immediate: true, deep: true })
 
-watch(() => values.trangThai, (nextStatus, previousStatus) => {
-  if (props.config.key !== 'readers' || !previousStatus || !nextStatus || nextStatus === previousStatus) return
-  const reasonField = props.config.statusReasonFields?.[nextStatus]
-  if (reasonField) values[reasonField] = ''
-}, { flush: 'sync' })
-
 function optionsFor(field) {
   if (field.optionsFrom === 'publishers') return props.publishers.map((publisher) => ({ label: publisher[field.optionLabel], value: publisher[field.optionValue] }))
   return (field.options || []).map((option) => typeof option === 'object' ? option : { label: option, value: option })
@@ -78,15 +72,6 @@ function submit() {
               <input v-else v-model="values[field.key]" :disabled="busy" :type="field.type || 'text'" :min="field.min" :max="field.max" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`">
               <small v-if="errors[field.key]" class="field-error">{{ errors[field.key] }}</small>
             </label>
-            <label
-              v-if="config.statusReasonFields?.[values.trangThai]"
-              class="form-field form-field--wide"
-              :for="config.statusReasonFields[values.trangThai]"
-            >
-              <span>{{ values.trangThai === 'Hạn chế' ? 'Lý do hạn chế' : 'Lý do cấm' }}<b aria-hidden="true"> *</b></span>
-              <textarea :id="config.statusReasonFields[values.trangThai]" v-model="values[config.statusReasonFields[values.trangThai]]" rows="3" :placeholder="`Nhập ${values.trangThai === 'Hạn chế' ? 'lý do hạn chế' : 'lý do cấm'}`"></textarea>
-              <small v-if="errors[config.statusReasonFields[values.trangThai]]" class="field-error">{{ errors[config.statusReasonFields[values.trangThai]] }}</small>
-            </label>
           </div>
           <div class="dialog-actions">
             <button class="button button--secondary" type="button" :disabled="busy" @click="emit('close')">Hủy</button>
@@ -100,10 +85,6 @@ function submit() {
             <span>{{ field.label }}</span>
             <StatusBadge v-if="field.key === 'trangThai' && config.statusVariants" :value="record[field.key]" :variants="config.statusVariants" :boolean-status="config.key === 'accounts'" />
             <strong v-else>{{ fieldValue(field) }}</strong>
-          </div>
-          <div v-if="config.statusReasonFields?.[record.trangThai]" class="entity-detail-item entity-detail-item--wide">
-            <span>{{ record.trangThai === 'Hạn chế' ? 'Lý do hạn chế' : 'Lý do cấm' }}</span>
-            <strong>{{ record[config.statusReasonFields[record.trangThai]] || 'Chưa có lý do' }}</strong>
           </div>
           <p class="entity-detail-note">Thay đổi chỉ có hiệu lực trong phiên hiện tại.</p>
           <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Đóng</button></div>

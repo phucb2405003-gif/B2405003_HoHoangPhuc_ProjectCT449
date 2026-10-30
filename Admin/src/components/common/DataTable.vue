@@ -41,10 +41,10 @@ function displayDate(value) {
             <button
               v-if="canManage && config.statusAction"
               class="table-action"
-              :class="row[config.statusAction.key] === config.statusAction.activeValue ? 'table-action--danger' : 'table-action--positive'"
+              :class="config.key === 'readers' ? row.trangThai === 'Bị cấm' ? 'table-action--danger' : 'table-action--positive' : row[config.statusAction.key] === config.statusAction.activeValue ? 'table-action--danger' : 'table-action--positive'"
               type="button"
               @click="emit('toggle-status', row)"
-            >{{ row[config.statusAction.key] === config.statusAction.activeValue ? config.statusAction.activeLabel : config.statusAction.inactiveLabel }}</button>
+            >{{ config.key === 'readers' ? 'Đổi trạng thái' : row[config.statusAction.key] === config.statusAction.activeValue ? config.statusAction.activeLabel : config.statusAction.inactiveLabel }}</button>
             <button v-if="canManage && config.deleteAction" class="table-action table-action--danger" type="button" @click="emit('delete', row)">Xóa</button>
           </td>
         </tr>

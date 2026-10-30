@@ -9,6 +9,7 @@ export class ApiError extends Error {
     this.method = method
     this.path = path
     this.backendMessage = backendMessage
+    this.responseData = null
   }
 }
 
@@ -71,12 +72,14 @@ async function request(method, path, body) {
 
   if (response.status === 401) await redirectAfterUnauthorized()
   if (!response.ok) {
-    throw new ApiError(errorMessage(response.status, method, path), {
+    const error = new ApiError(errorMessage(response.status, method, path), {
       status: response.status,
       method,
       path,
       backendMessage: typeof data?.message === 'string' ? data.message : '',
     })
+    error.responseData = data
+    throw error
   }
 
   return data
