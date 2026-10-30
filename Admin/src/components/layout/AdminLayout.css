@@ -1,0 +1,72 @@
+.admin-shell { min-height: 100vh; }
+.admin-sidebar { position: fixed; z-index: 30; inset: 0 auto 0 0; display: flex; width: var(--sidebar-width); flex-direction: column; padding: 20px 14px 14px; color: #f8fafc; background: var(--admin-navy); transition: width .2s ease, transform .2s ease; }
+.sidebar-brand { display: flex; min-height: 56px; align-items: center; gap: 11px; padding: 0 7px; color: #f8fafc; text-decoration: none; }
+.sidebar-logo { width: 40px; height: 40px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid #93c5fd66; border-radius: 12px; background: #2563eb33; }
+.sidebar-logo img { width: 22px; height: 22px; filter: brightness(0) invert(1); }
+.sidebar-brand-copy, .staff-copy { min-width: 0; display: grid; gap: 3px; overflow: hidden; white-space: nowrap; }
+.sidebar-brand-copy strong { font-size: 16px; letter-spacing: .03em; }
+.sidebar-brand-copy small { color: #94a3b8; font-size: 9px; letter-spacing: .1em; }
+.sidebar-section-label { margin: 34px 10px 12px; color: #8190a7; font-size: 9px; font-weight: 700; letter-spacing: .13em; white-space: nowrap; }
+.sidebar-nav { display: grid; gap: 5px; }
+.sidebar-link, .sidebar-logout { min-height: 44px; display: flex; align-items: center; gap: 13px; padding: 0 12px; border: 0; border-radius: 9px; color: #cbd5e1; background: transparent; font-size: 13px; font-weight: 550; text-align: left; text-decoration: none; transition: color .15s, background .15s; }
+.sidebar-link-icon { width: 19px; height: 19px; flex: 0 0 auto; filter: brightness(0) invert(1); opacity: .8; }
+.sidebar-link:hover, .sidebar-logout:hover { color: #fff; background: #ffffff0d; }
+.sidebar-link.is-active { color: #fff; background: #2563eb42; box-shadow: inset 3px 0 #60a5fa; }
+.sidebar-link.is-active .sidebar-link-icon { opacity: 1; }
+.sidebar-bottom { display: grid; gap: 10px; margin-top: auto; padding-top: 14px; border-top: 1px solid #ffffff1a; }
+.sidebar-staff { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 7px 5px; }
+.staff-avatar { width: 35px; height: 35px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid #93c5fd66; border-radius: 50%; color: #dbeafe; background: #2563eb44; font-size: 13px; font-weight: 700; }
+.staff-copy strong { overflow: hidden; color: #f8fafc; font-size: 12px; text-overflow: ellipsis; }
+.staff-copy small { overflow: hidden; color: #9aa9bf; font-size: 10px; text-overflow: ellipsis; }
+.sidebar-logout { width: 100%; color: #cbd5e1; cursor: pointer; }
+.sidebar-logout:hover { color: #fecaca; background: #7f1d1d40; }
+.admin-main { min-width: 0; min-height: 100vh; margin-left: var(--sidebar-width); transition: margin-left .2s ease; }
+.admin-header { position: sticky; z-index: 10; top: 0; height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 30px; border-bottom: 1px solid var(--admin-line); background: #ffffffed; backdrop-filter: blur(12px); }
+.header-leading { min-width: 0; display: flex; align-items: center; gap: 15px; }
+.header-kicker { margin: 0 0 3px; color: #8090a6; font-size: 9px; font-weight: 700; letter-spacing: .13em; }
+.header-title { margin: 0; color: var(--admin-ink); font-size: 16px; font-weight: 700; }
+.header-account { display: flex; align-items: center; gap: 11px; }
+.header-account-copy { display: grid; gap: 3px; text-align: right; }
+.header-account-copy strong { color: #27364e; font-size: 12px; }
+.header-account-copy small { color: var(--admin-muted); font-size: 10px; }
+.header-avatar { width: 37px; height: 37px; color: #1e40af; border-color: #bfdbfe; background: #eff6ff; }
+.menu-toggle { width: 37px; height: 37px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid var(--admin-line); border-radius: 8px; background: #fff; }
+.menu-toggle:hover { border-color: #bfccdf; background: #f8faff; }
+.menu-toggle img { width: 19px; height: 19px; filter: brightness(0) saturate(100%) invert(28%) sepia(18%) saturate(1064%) hue-rotate(181deg) brightness(93%) contrast(89%); }
+.mobile-toggle { display: none; }
+.admin-content { width: min(100%, 1440px); margin-inline: auto; padding: 32px 30px 48px; }
+.sidebar-backdrop { display: none; }
+
+.admin-shell.is-collapsed .admin-sidebar { width: var(--sidebar-collapsed-width); padding-inline: 11px; }
+.admin-shell.is-collapsed .admin-main { margin-left: var(--sidebar-collapsed-width); }
+.admin-shell.is-collapsed .sidebar-brand { justify-content: center; padding: 0; }
+.admin-shell.is-collapsed .sidebar-brand-copy, .admin-shell.is-collapsed .sidebar-section-label, .admin-shell.is-collapsed .sidebar-link-label, .admin-shell.is-collapsed .staff-copy { display: none; }
+.admin-shell.is-collapsed .sidebar-link, .admin-shell.is-collapsed .sidebar-logout { justify-content: center; padding-inline: 0; }
+.admin-shell.is-collapsed .sidebar-staff { justify-content: center; padding-inline: 0; }
+
+@media (min-width: 761px) and (max-width: 1024px) {
+  .admin-header { padding-inline: 22px; }
+  .admin-content { padding-inline: 22px; }
+}
+
+@media (max-width: 760px) {
+  .admin-sidebar { z-index: 40; width: min(290px, calc(100vw - 58px)); transform: translateX(-105%); box-shadow: 16px 0 40px #0b122026; }
+  .admin-shell.mobile-menu-open .admin-sidebar { transform: translateX(0); }
+  .admin-main, .admin-shell.is-collapsed .admin-main { margin-left: 0; }
+  .admin-shell.is-collapsed .admin-sidebar { width: min(290px, calc(100vw - 58px)); padding: 20px 14px 14px; }
+  .admin-shell.is-collapsed .sidebar-brand { justify-content: flex-start; padding-inline: 7px; }
+  .admin-shell.is-collapsed .sidebar-brand-copy, .admin-shell.is-collapsed .sidebar-section-label, .admin-shell.is-collapsed .sidebar-link-label, .admin-shell.is-collapsed .staff-copy { display: revert; }
+  .admin-shell.is-collapsed .sidebar-section-label { display: block; }
+  .admin-shell.is-collapsed .sidebar-link, .admin-shell.is-collapsed .sidebar-logout { justify-content: flex-start; padding-inline: 12px; }
+  .admin-shell.is-collapsed .sidebar-staff { justify-content: flex-start; padding-inline: 5px; }
+  .mobile-toggle { display: grid; }
+  .desktop-toggle { display: none; }
+  .sidebar-backdrop { position: fixed; z-index: 35; inset: 0; display: block; border: 0; background: #0b122080; }
+  .admin-header { height: 66px; padding-inline: 15px; }
+  .header-leading { gap: 10px; }
+  .header-kicker { font-size: 8px; }
+  .header-title { font-size: 14px; }
+  .header-account { gap: 0; }
+  .header-account-copy { display: none; }
+  .admin-content { padding: 24px 16px 36px; }
+}

@@ -1,3 +1,7 @@
+<script setup>
+import './NotFoundView.css'
+</script>
+
 <template>
   <main class="not-found">
     <p class="eyebrow">QLMS · NHÂN VIÊN</p>

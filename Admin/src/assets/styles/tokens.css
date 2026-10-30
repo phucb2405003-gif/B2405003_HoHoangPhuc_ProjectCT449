@@ -1,0 +1,26 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #17243b;
+  background: #eef2f7;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --admin-navy: #0b1220;
+  --admin-navy-soft: #111c2f;
+  --admin-blue: #2563eb;
+  --admin-blue-hover: #1d4ed8;
+  --admin-blue-pale: #dbeafe;
+  --admin-ink: #17243b;
+  --admin-muted: #65738a;
+  --admin-line: #e1e7ef;
+  --admin-surface: #fff;
+  --admin-canvas: #eef2f7;
+  --admin-success: #15803d;
+  --admin-warning: #b45309;
+  --admin-error: #b42318;
+  --sidebar-width: 256px;
+  --sidebar-collapsed-width: 78px;
+}

@@ -1,0 +1,5 @@
+.not-found { min-height: calc(100vh - 140px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+.not-found .eyebrow { margin-top: 0; color: var(--admin-blue); font-size: 11px; font-weight: 750; letter-spacing: .15em; }
+.not-found h1 { margin: 0; color: var(--admin-ink); font-size: 28px; font-weight: 700; }
+.not-found p:not(.eyebrow) { color: var(--admin-muted); }
+.not-found a { margin-top: 12px; color: var(--admin-blue); font-weight: 650; }
