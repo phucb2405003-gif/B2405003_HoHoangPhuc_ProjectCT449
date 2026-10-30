@@ -180,7 +180,7 @@ const {
                     <span><strong>Tạo phiếu mượn mới</strong><small>Tạo phiếu Đang chọn sách kèm sách đang chọn</small></span>
                   </label>
                   <p v-if="selectedBorrowId && selectedBorrowId !== 'new'" class="book-borrow-error" role="status">
-                    {{ selectedBorrowHasBook ? 'Sách này đã có trong phiếu đang chọn.' : 'Backend hiện chưa có API thêm sách vào phiếu đã tạo. Có thể tạo phiếu mới kèm sách này.' }}
+                    {{ selectedBorrowHasBook ? 'Sách này đã có trong phiếu đang chọn.' : 'Phiếu này hiện chưa hỗ trợ thêm sách. Vui lòng tạo phiếu mượn mới để đăng ký sách này.' }}
                   </p>
                   <p v-else-if="!pendingBorrows.length" class="book-borrow-dialog__empty">Bạn chưa có phiếu Đang chọn sách.</p>
                   <p v-if="activeDuplicate" class="book-borrow-error" role="alert">Bạn đã đăng ký hoặc đang mượn sách này trong một phiếu khác.</p>

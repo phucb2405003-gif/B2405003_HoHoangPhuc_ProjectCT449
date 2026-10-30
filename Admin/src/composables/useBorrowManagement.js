@@ -71,7 +71,7 @@ export default function useBorrowManagement() {
   const confirmation = computed(() => ({
     title: 'Duyệt phiếu mượn?',
     confirmLabel: actionLoading.value ? 'Đang gửi…' : 'Duyệt phiếu',
-    message: `Xác nhận duyệt phiếu ${pendingBorrow.value?.maPhieu || ''}? Backend sẽ cập nhật trạng thái và hạn trả.`,
+    message: `Xác nhận duyệt phiếu ${pendingBorrow.value?.maPhieu || ''}? Hệ thống sẽ cập nhật trạng thái và hạn trả.`,
     tone: 'primary',
   }))
 

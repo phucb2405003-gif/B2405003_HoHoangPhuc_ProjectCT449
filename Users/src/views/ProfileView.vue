@@ -273,7 +273,7 @@ const {
               <p class="reader-borrow-picker__count">Đã chọn {{ selectedBookIds.length }} / 5 cuốn</p>
               <p v-if="isLoadingBorrowableBooks" class="reader-profile-state" role="status">Đang tải danh sách sách…</p>
               <p v-else-if="borrowableBooksError" class="reader-profile-state reader-profile-state--error" role="alert">{{ borrowableBooksError }}</p>
-              <p v-else-if="!borrowableBooks.length" class="reader-profile-state">Backend chưa có sách để chọn.</p>
+              <p v-else-if="!borrowableBooks.length" class="reader-profile-state">Hiện chưa có sách khả dụng để đăng ký mượn.</p>
               <div v-else class="reader-borrow-picker__list">
                 <label v-for="book in borrowableBooks" :key="book.maSach" class="reader-borrow-picker__option" :class="{ 'reader-borrow-picker__option--unavailable': !hasAvailableStock(book) }">
                   <input

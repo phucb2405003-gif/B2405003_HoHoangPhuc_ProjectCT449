@@ -214,7 +214,7 @@ export default function useEntityManagement(config) {
     if (isEmployee && dialogMode.value === 'edit') {
       for (const key of ['diaChi', 'soDienThoai']) {
         if (String(currentRecord.value[key] || '').trim() && !String(record[key] || '').trim()) {
-          errors[key] = 'Backend hiện không hỗ trợ xóa giá trị này; hãy nhập giá trị mới hoặc giữ nguyên.'
+          errors[key] = 'Không thể để trống thông tin này. Vui lòng nhập giá trị mới hoặc giữ nguyên giá trị hiện tại.'
         }
       }
     }

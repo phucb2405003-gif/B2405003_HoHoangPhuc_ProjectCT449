@@ -24,7 +24,7 @@ export default function useStaffProfile() {
     try {
       const profile = await getMyEmployeeProfile()
       if (!code.value || profile.maNhanVien !== code.value) {
-        throw new Error('Backend trả về hồ sơ không khớp với nhân viên đang đăng nhập.')
+        throw new Error('Không thể xác minh thông tin hồ sơ nhân viên. Vui lòng tải lại trang hoặc thử lại sau.')
       }
       Object.assign(form, {
         hoTenNV: profile.hoTenNV || '',
@@ -65,7 +65,7 @@ export default function useStaffProfile() {
         soDienThoai: form.soDienThoai.trim(),
       })
       if (!code.value || profile.maNhanVien !== code.value) {
-        throw new Error('Backend trả về hồ sơ không khớp với nhân viên đang đăng nhập.')
+        throw new Error('Không thể xác minh thông tin hồ sơ nhân viên. Vui lòng tải lại trang hoặc thử lại sau.')
       }
 
       const next = Object.fromEntries(fields.map((key) => [key, profile[key] || '']))
