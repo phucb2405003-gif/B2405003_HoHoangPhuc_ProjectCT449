@@ -32,7 +32,6 @@
 .entity-detail-item { min-width: 0; display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid #edf1f6; }
 .entity-detail-item > span { color: #8995a7; font-size: 10px; }
 .entity-detail-item strong { overflow-wrap: anywhere; color: #2c3d56; font-size: 12px; font-weight: 650; }
-.entity-detail-note { grid-column: 1 / -1; margin: 15px 0 0; color: #8995a7; font-size: 11px; }
 .entity-detail-grid > .dialog-actions { grid-column: 1 / -1; }
 .confirm-dialog { width: min(100%, 400px); padding: 26px; text-align: center; }
 .confirm-dialog > .dialog-close { position: absolute; top: 14px; right: 14px; }
@@ -45,7 +44,7 @@
 
 @media (max-width: 520px) {
   .entity-form__grid, .entity-detail-grid { grid-template-columns: 1fr; }
-  .form-field--wide, .entity-detail-item--wide, .entity-detail-note, .entity-detail-grid > .dialog-actions { grid-column: auto; }
+  .form-field--wide, .entity-detail-item--wide, .entity-detail-grid > .dialog-actions { grid-column: auto; }
   .entity-dialog__header, .entity-form, .entity-detail-grid { padding-inline: 18px; }
   .dialog-actions { flex-wrap: wrap; }
   .dialog-actions .button { flex: 1; }

@@ -7,14 +7,24 @@ const props = defineProps({
   mode: { type: String, default: 'detail' },
   borrow: { type: Object, default: null },
   canManage: { type: Boolean, default: false },
+  readers: { type: Array, default: () => [] },
+  books: { type: Array, default: () => [] },
+  detailLoading: { type: Boolean, default: false },
+  detailError: { type: String, default: '' },
+  actionLoading: { type: Boolean, default: false },
+  actionError: { type: String, default: '' },
+  createLoading: { type: Boolean, default: false },
 })
-const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'return-book'])
+const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'return-book', 'create'])
 const rejectReason = ref('')
 const rejectError = ref('')
-const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn tất': 'success', 'Đã từ chối': 'danger', 'Đã hủy': 'neutral' }
-const bookVariants = { 'Chưa giao': 'neutral', 'Đang mượn': 'info', 'Đã trả': 'success', 'Quá hạn': 'danger' }
+const readerCode = ref('')
+const selectedBookCodes = ref([])
+const createError = ref('')
+const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
+const bookVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Đã trả': 'success', 'Từ chối': 'danger', 'Hủy': 'neutral' }
 
-watch(() => [props.open, props.mode], () => { rejectReason.value = ''; rejectError.value = '' })
+watch(() => [props.open, props.mode], () => { rejectReason.value = ''; rejectError.value = ''; createError.value = ''; readerCode.value = ''; selectedBookCodes.value = [] })
 
 function submitRejection() {
   if (!rejectReason.value.trim()) {
@@ -23,22 +33,50 @@ function submitRejection() {
   }
   emit('reject', rejectReason.value)
 }
+
+function submitCreate() {
+  createError.value = ''
+  if (!readerCode.value) { createError.value = 'Vui lòng chọn độc giả.'; return }
+  if (selectedBookCodes.value.length < 1 || selectedBookCodes.value.length > 5) { createError.value = 'Chọn từ 1 đến 5 cuốn sách.'; return }
+  emit('create', { maDocGia: readerCode.value, maSach: [...selectedBookCodes.value] })
+}
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="open && borrow" class="dialog-backdrop" @click.self="emit('close')" @keydown.esc="emit('close')">
+    <div v-if="open" class="dialog-backdrop" @click.self="!actionLoading && !createLoading && emit('close')" @keydown.esc="!actionLoading && !createLoading && emit('close')">
       <section class="borrow-dialog" role="dialog" aria-modal="true" :aria-labelledby="'borrow-dialog-title'">
         <header class="entity-dialog__header">
-          <div><p class="dialog-kicker">CHI TIẾT PHIẾU MƯỢN</p><h2 id="borrow-dialog-title">{{ borrow.maPhieu }}</h2></div>
-          <button class="dialog-close" type="button" aria-label="Đóng" @click="emit('close')">×</button>
+          <div><p class="dialog-kicker">{{ mode === 'create' ? 'MƯỢN SÁCH TẠI QUẦY' : 'CHI TIẾT PHIẾU MƯỢN' }}</p><h2 id="borrow-dialog-title">{{ mode === 'create' ? 'Tạo phiếu mượn' : borrow?.maPhieu }}</h2></div>
+          <button class="dialog-close" type="button" aria-label="Đóng" :disabled="actionLoading || createLoading" @click="emit('close')">×</button>
         </header>
 
         <div class="borrow-dialog__body">
+          <div v-if="mode === 'create'">
+            <p v-if="detailLoading" class="management-state">Đang tải độc giả và sách…</p>
+            <p v-else-if="detailError" class="dialog-error" role="alert">{{ detailError }}</p>
+            <form v-else class="borrow-create-form" @submit.prevent="submitCreate">
+              <label class="form-field">Độc giả <span aria-hidden="true">*</span>
+                <select v-model="readerCode" :disabled="createLoading">
+                  <option value="" disabled>Chọn độc giả</option>
+                  <option v-for="reader in readers" :key="reader.maDocGia" :value="reader.maDocGia">{{ reader.hoTen }} · {{ reader.maDocGia }}</option>
+                </select>
+              </label>
+              <label class="form-field">Sách (giữ Ctrl hoặc Command để chọn tối đa 5) <span aria-hidden="true">*</span>
+                <select v-model="selectedBookCodes" multiple size="7" :disabled="createLoading">
+                  <option v-for="book in books.filter((item) => item.soQuyenConLai > 0)" :key="book.maSach" :value="book.maSach">{{ book.tenSach }} · {{ book.maSach }} (còn {{ book.soQuyenConLai }})</option>
+                </select>
+              </label>
+              <p v-if="createError" class="field-error" role="alert">{{ createError }}</p>
+              <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
+              <div class="dialog-actions"><button class="button button--secondary" type="button" :disabled="createLoading" @click="emit('close')">Hủy</button><button class="button button--primary" type="submit" :disabled="createLoading || detailLoading">{{ createLoading ? 'Đang tạo…' : 'Tạo phiếu tại quầy' }}</button></div>
+            </form>
+          </div>
+          <template v-else-if="borrow">
           <div class="borrow-summary-grid">
             <div><span>Trạng thái phiếu</span><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></div>
             <div><span>Độc giả</span><strong>{{ borrow.tenDocGia }} · {{ borrow.maDocGia }}</strong></div>
-            <div><span>Ngày yêu cầu</span><strong>{{ borrow.ngayYeuCau }}</strong></div>
+            <div><span>Ngày yêu cầu</span><strong>{{ borrow.ngayYeuCau || '—' }}</strong></div>
             <div><span>Ngày mượn</span><strong>{{ borrow.ngayMuon || 'Chưa ghi nhận' }}</strong></div>
           </div>
 
@@ -46,25 +84,30 @@ function submitRejection() {
             <label for="reject-reason">Lý do từ chối phiếu <b>*</b></label>
             <textarea id="reject-reason" v-model="rejectReason" class="reject-reason" rows="3" placeholder="Nhập lý do từ chối"></textarea>
             <small v-if="rejectError" class="field-error">{{ rejectError }}</small>
-            <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Quay lại</button><button class="button button--danger" type="button" @click="submitRejection">Từ chối phiếu</button></div>
+            <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
+            <div class="dialog-actions"><button class="button button--secondary" type="button" :disabled="actionLoading" @click="emit('close')">Quay lại</button><button class="button button--danger" type="button" :disabled="actionLoading" @click="submitRejection">{{ actionLoading ? 'Đang gửi…' : 'Từ chối phiếu' }}</button></div>
           </div>
 
           <template v-else>
             <p v-if="borrow.lyDoTuChoi" class="borrow-rejection-note"><strong>Lý do từ chối:</strong> {{ borrow.lyDoTuChoi }}</p>
-            <p v-if="borrow.trangThai === 'Đã hủy' && borrow.lyDoHuy" class="borrow-cancellation-note"><strong>Lý do hủy:</strong> {{ borrow.lyDoHuy }}</p>
+            <p v-if="borrow.trangThai === 'Hủy' && borrow.lyDoHuy" class="borrow-cancellation-note"><strong>Lý do hủy:</strong> {{ borrow.lyDoHuy }}</p>
+            <p v-if="detailLoading" class="management-state">Đang tải chi tiết phiếu…</p>
+            <p v-else-if="detailError" class="dialog-error" role="alert">{{ detailError }}</p>
+            <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
             <h3 class="borrow-books-title">Sách trong phiếu <span>{{ borrow.chiTiet.length }}</span></h3>
             <div class="borrow-books-list">
               <article v-for="book in borrow.chiTiet" :key="book.maSach" class="borrow-book-row">
-                <div class="borrow-book-copy"><strong>{{ book.tenSach }}</strong><small>Mã sách {{ book.maSach }}<template v-if="book.ngayTra"> · Trả {{ book.ngayTra }}</template></small></div>
+                <div class="borrow-book-copy"><strong>{{ book.tenSach }}</strong><small>Mã sách {{ book.maSach }}<template v-if="book.hanTra"> · Hạn {{ book.hanTra }}</template><template v-if="book.ngayTra"> · Trả {{ book.ngayTra }}</template></small></div>
                 <StatusBadge :value="book.trangThaiSach" :variants="bookVariants" />
-                <button v-if="canManage && borrow.trangThai === 'Đang mượn' && ['Đang mượn', 'Quá hạn'].includes(book.trangThaiSach)" class="table-action table-action--positive" type="button" @click="emit('return-book', book)">Ghi nhận trả</button>
+                <button v-if="canManage && borrow.trangThai === 'Đã duyệt' && book.trangThaiSach === 'Đang mượn'" class="table-action table-action--positive" type="button" :disabled="actionLoading" @click="emit('return-book', book)">{{ actionLoading ? 'Đang gửi…' : 'Ghi nhận trả' }}</button>
               </article>
             </div>
             <div v-if="canManage && borrow.trangThai === 'Chờ duyệt'" class="dialog-actions borrow-dialog__actions">
-              <button class="button button--danger" type="button" @click="emit('reject-open')">Từ chối</button>
-              <button class="button button--primary" type="button" @click="emit('approve')">Duyệt phiếu</button>
+              <button class="button button--danger" type="button" :disabled="actionLoading" @click="emit('reject-open')">Từ chối</button>
+              <button class="button button--primary" type="button" :disabled="actionLoading" @click="emit('approve')">Duyệt phiếu</button>
             </div>
             <div v-else class="dialog-actions borrow-dialog__actions"><button class="button button--secondary" type="button" @click="emit('close')">Đóng</button></div>
+          </template>
           </template>
         </div>
       </section>

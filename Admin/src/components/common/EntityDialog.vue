@@ -86,7 +86,6 @@ function submit() {
             <StatusBadge v-if="field.key === 'trangThai' && config.statusVariants" :value="record[field.key]" :variants="config.statusVariants" :boolean-status="config.key === 'accounts'" />
             <strong v-else>{{ fieldValue(field) }}</strong>
           </div>
-          <p class="entity-detail-note">Thay đổi chỉ có hiệu lực trong phiên hiện tại.</p>
           <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Đóng</button></div>
         </div>
       </section>

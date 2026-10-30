@@ -6,6 +6,9 @@
 .borrow-table .table-actions-heading { min-width: 130px; }
 .borrow-dialog { position: relative; width: min(100%, 720px); max-height: min(90vh, 820px); overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 80px #0b12203d; }
 .borrow-dialog__body { padding: 19px 24px 23px; }
+.borrow-create-form { display: grid; gap: 16px; }
+.borrow-create-form select[multiple] { min-height: 150px; }
+.borrow-create-form .dialog-actions { margin-top: 2px; }
 .borrow-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 20px; padding-bottom: 18px; border-bottom: 1px solid #edf1f6; }
 .borrow-summary-grid > div { min-width: 0; display: grid; justify-items: start; gap: 5px; }
 .borrow-summary-grid > div > span { color: #8995a7; font-size: 10px; }
