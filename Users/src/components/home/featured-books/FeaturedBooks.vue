@@ -42,9 +42,9 @@ onMounted(async () => {
     <div class="featured-books__topline">
       <div>
         <h2 id="featured-books-title" class="featured-books__heading">Sách nổi bật</h2>
-        <p v-if="isLoading" class="featured-books__sample-note" role="status">Đang tải sách…</p>
-        <p v-else-if="loadError" class="featured-books__sample-note" role="alert">{{ loadError }}</p>
-        <p v-else-if="!featuredBooks.length" class="featured-books__sample-note" role="status">Chưa có sách để hiển thị.</p>
+        <p v-if="isLoading" class="featured-books__status-note" role="status">Đang tải sách…</p>
+        <p v-else-if="loadError" class="featured-books__status-note" role="alert">{{ loadError }}</p>
+        <p v-else-if="!featuredBooks.length" class="featured-books__status-note" role="status">Chưa có sách để hiển thị.</p>
       </div>
       <div v-if="featuredBooks.length" class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
         <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-4)">

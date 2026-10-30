@@ -44,7 +44,7 @@ function submitRejection() {
 
           <div v-if="mode === 'reject'" class="reject-form">
             <label for="reject-reason">Lý do từ chối phiếu <b>*</b></label>
-            <textarea id="reject-reason" v-model="rejectReason" class="reject-reason" rows="3" placeholder="Nhập lý do để hiển thị trong dữ liệu mẫu"></textarea>
+            <textarea id="reject-reason" v-model="rejectReason" class="reject-reason" rows="3" placeholder="Nhập lý do từ chối"></textarea>
             <small v-if="rejectError" class="field-error">{{ rejectError }}</small>
             <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Quay lại</button><button class="button button--danger" type="button" @click="submitRejection">Từ chối phiếu</button></div>
           </div>

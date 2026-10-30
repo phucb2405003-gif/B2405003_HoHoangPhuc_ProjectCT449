@@ -1,3 +1,0 @@
-.mock-notice { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; padding: 10px 13px; border: 1px solid #d8e5fa; border-radius: 9px; color: #455873; background: #f7faff; font-size: 12px; }
-.mock-notice strong { color: #213d70; }
-.mock-notice__mark { width: 19px; height: 19px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid #b8cff4; border-radius: 50%; color: #2455a6; font-size: 12px; font-weight: 700; }

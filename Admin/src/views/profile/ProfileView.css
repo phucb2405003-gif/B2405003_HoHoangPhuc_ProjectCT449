@@ -1,4 +1,4 @@
-.profile-page .mock-data-notice { margin-bottom: 18px; }
+.profile-page .session-data-notice { margin-bottom: 18px; }
 .profile-card { padding: 22px; border: 1px solid var(--admin-line); border-radius: 12px; background: var(--admin-surface); box-shadow: 0 3px 14px #0b12200a; }
 .profile-card__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid #edf1f6; }
 .profile-card__heading h3 { margin: 0; color: var(--admin-ink); font-size: 16px; }

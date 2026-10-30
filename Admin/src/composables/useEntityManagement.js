@@ -1,8 +1,8 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { authState } from '@/services/authService'
-import { mockStore } from '@/data/mock/mockStore'
+import { entityStore } from '@/data/entityStore'
 
-export default function useMockEntity(config) {
+export default function useEntityManagement(config) {
   const search = ref('')
   const page = ref(1)
   const pageSize = 6
@@ -17,7 +17,7 @@ export default function useMockEntity(config) {
   const actionNotice = ref('')
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => mockStore[config.key])
+  const rows = computed(() => entityStore[config.key])
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
     return [filter.key, values.map((value) => filter.boolean ? { label: value ? 'Đang hoạt động' : 'Đã khóa', value } : { label: value, value })]
@@ -32,7 +32,7 @@ export default function useMockEntity(config) {
   })
   const pageCount = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize)))
   const pageRows = computed(() => filteredRows.value.slice((page.value - 1) * pageSize, page.value * pageSize))
-  const publisherOptions = computed(() => mockStore.publishers)
+  const publisherOptions = computed(() => entityStore.publishers)
 
   watch([search, filters], () => { page.value = 1 }, { deep: true })
   watch(pageCount, (count) => { if (page.value > count) page.value = count })
@@ -40,11 +40,11 @@ export default function useMockEntity(config) {
   function openCreate() {
     validationErrors.value = {}
     const values = Object.fromEntries(config.fields.map((field) => {
-      const firstOption = field.options?.[0] ?? (field.optionsFrom === 'publishers' ? mockStore.publishers[0]?.[field.optionValue] : undefined)
+      const firstOption = field.options?.[0] ?? (field.optionsFrom === 'publishers' ? entityStore.publishers[0]?.[field.optionValue] : undefined)
       const defaultValue = typeof firstOption === 'object' ? firstOption.value : firstOption
       return [field.key, field.defaultValue ?? defaultValue ?? '']
     }))
-    for (const key of config.mockFields || []) values[key] = ''
+    for (const key of config.additionalFields || []) values[key] = ''
     values[config.codeField] = generateCode()
     if (config.key === 'books') values.soQuyenConLai = values.soQuyen
     currentRecord.value = values
@@ -95,7 +95,7 @@ export default function useMockEntity(config) {
 
     const code = String(record[config.codeField] || '').trim().toLocaleLowerCase('vi')
     const duplicate = rows.value.some((row) => String(row[config.codeField]).toLocaleLowerCase('vi') === code && row[config.codeField] !== currentRecord.value[config.codeField])
-    if (code && duplicate) errors[config.codeField] = 'Mã này đã tồn tại trong dữ liệu mẫu.'
+    if (code && duplicate) errors[config.codeField] = 'Mã này đã tồn tại.'
     validationErrors.value = errors
     return Object.keys(errors).length === 0
   }
@@ -103,15 +103,15 @@ export default function useMockEntity(config) {
   function saveRecord(record) {
     if (!canManage.value || !validate(record)) return
     const normalized = Object.fromEntries(config.fields.map((field) => [field.key, record[field.key]]))
-    for (const key of config.mockFields || []) normalized[key] = String(record[key] || '').trim()
+    for (const key of config.additionalFields || []) normalized[key] = String(record[key] || '').trim()
     normalized[config.codeField] = currentRecord.value[config.codeField]
     for (const field of config.fields) {
       if (field.type === 'number' && normalized[field.key] !== '') normalized[field.key] = Number(normalized[field.key])
     }
-    if (dialogMode.value === 'create') mockStore[config.key].unshift(normalized)
+    if (dialogMode.value === 'create') entityStore[config.key].unshift(normalized)
     else {
-      const index = mockStore[config.key].findIndex((row) => row[config.codeField] === currentRecord.value[config.codeField])
-      if (index >= 0) Object.assign(mockStore[config.key][index], normalized)
+      const index = entityStore[config.key].findIndex((row) => row[config.codeField] === currentRecord.value[config.codeField])
+      if (index >= 0) Object.assign(entityStore[config.key][index], normalized)
     }
     page.value = 1
     closeDialog()
@@ -125,11 +125,11 @@ export default function useMockEntity(config) {
 
   function generateCode() {
     const existingCodes = rows.value.map((row) => String(row[config.codeField] || ''))
-    const match = existingCodes.find((code) => /\d+$/.test(code))?.match(/^(.*?)(\d+)$/)
-    if (!match) return ''
-    const [, prefix, digits] = match
-    const next = Math.max(...existingCodes.map((code) => Number(code.match(/(\d+)$/)?.[1] || 0))) + 1
-    return `${prefix}${String(next).padStart(digits.length, '0')}`
+    const matchingCodes = existingCodes
+      .map((code) => code.match(new RegExp(`^${config.codePrefix}(\\d+)$`)))
+      .filter(Boolean)
+    const next = Math.max(0, ...matchingCodes.map((match) => Number(match[1]))) + 1
+    return `${config.codePrefix}${String(next).padStart(config.codeDigits, '0')}`
   }
 
   function requestDelete(row) {
@@ -142,9 +142,9 @@ export default function useMockEntity(config) {
   function confirmStatusChange() {
     if (pendingDeletion.value) {
       if (canManage.value) {
-        const index = mockStore[config.key].findIndex((item) => item[config.codeField] === pendingDeletion.value[config.codeField])
-        if (index >= 0) mockStore[config.key].splice(index, 1)
-        actionNotice.value = `Đã xóa sách ${pendingDeletion.value.maSach} khỏi dữ liệu mẫu.`
+        const index = entityStore[config.key].findIndex((item) => item[config.codeField] === pendingDeletion.value[config.codeField])
+        if (index >= 0) entityStore[config.key].splice(index, 1)
+        actionNotice.value = `Đã xóa ${config.singular} ${pendingDeletion.value[config.codeField]}.`
       }
       pendingDeletion.value = null
       confirmOpen.value = false
@@ -164,13 +164,13 @@ export default function useMockEntity(config) {
   }
 
   const confirmTitle = computed(() => {
-    if (pendingDeletion.value) return 'Xóa sách khỏi dữ liệu mẫu?'
+    if (pendingDeletion.value) return `Xóa ${config.singular}?`
     const statusAction = config.statusAction
     return pendingStatusChange.value?.[statusAction?.key] === statusAction?.activeValue ? 'Khóa tài khoản?' : 'Mở khóa tài khoản?'
   })
   const confirmMessage = computed(() => pendingStatusChange.value
-    ? `Thao tác này chỉ thay đổi trạng thái mẫu của tài khoản ${pendingStatusChange.value.tenDangNhap}.`
-    : pendingDeletion.value ? `Xác nhận xóa “${pendingDeletion.value.tenSach}” (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ xóa dữ liệu mẫu; sách đã có lịch sử mượn trả không thể xóa khi kết nối Backend.` : '')
+    ? `Thao tác này chỉ có hiệu lực trong phiên hiện tại đối với tài khoản ${pendingStatusChange.value.tenDangNhap}.`
+    : pendingDeletion.value ? `Xác nhận xóa ${config.singular} (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ có hiệu lực trong phiên hiện tại.` : '')
   const confirmLabel = computed(() => pendingDeletion.value ? 'Xóa sách' : pendingStatusChange.value?.[config.statusAction?.key] === config.statusAction?.activeValue ? 'Khóa tài khoản' : 'Mở khóa')
 
   return {

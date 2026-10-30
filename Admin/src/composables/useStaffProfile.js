@@ -1,14 +1,12 @@
 import { computed, reactive, ref } from 'vue'
 import { authState } from '@/services/authService'
-import { mockStore } from '@/data/mock/mockStore'
+import { entityStore } from '@/data/entityStore'
 
 const fields = ['hoTenNV', 'diaChi', 'soDienThoai']
 
 export default function useStaffProfile() {
   const code = computed(() => authState.user?.maTaiKhoan || '')
   const role = computed(() => authState.user?.chucVu || '')
-  const employee = computed(() => mockStore.employees.find((item) => item.maNhanVien === code.value)
-    || mockStore.employees.find((item) => item.chucVu === authState.user?.chucVu))
   const form = reactive({ hoTenNV: '', diaChi: '', soDienThoai: '' })
   const errors = reactive({})
   const message = ref('')
@@ -16,7 +14,7 @@ export default function useStaffProfile() {
   const savedSnapshot = ref(null)
 
   function loadProfile() {
-    const source = employee.value || mockStore.employees.find((item) => item.chucVu === authState.user?.chucVu)
+    const source = Object.keys(entityStore.staffProfile).length ? entityStore.staffProfile : authState.user
     form.hoTenNV = source?.hoTen || ''
     form.diaChi = source?.diaChi || ''
     form.soDienThoai = source?.soDienThoai || ''
@@ -42,11 +40,11 @@ export default function useStaffProfile() {
     }
 
     const next = Object.fromEntries(fields.map((key) => [key, form[key].trim()]))
-    if (employee.value) Object.assign(employee.value, { hoTen: next.hoTenNV, diaChi: next.diaChi, soDienThoai: next.soDienThoai })
+    Object.assign(entityStore.staffProfile, next)
     Object.assign(form, next)
     savedSnapshot.value = { ...next }
     messageType.value = 'success'
-    message.value = 'Thông tin cá nhân đã được cập nhật trong dữ liệu mẫu.'
+    message.value = 'Thông tin cá nhân đã được cập nhật trong phiên hiện tại.'
   }
 
   loadProfile()

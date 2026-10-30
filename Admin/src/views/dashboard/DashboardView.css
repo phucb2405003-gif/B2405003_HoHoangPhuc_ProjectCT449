@@ -20,6 +20,7 @@
 .chart-legend { display: inline-flex; align-items: center; gap: 6px; color: #7b899e; font-size: 9px; white-space: nowrap; }
 .chart-legend i { width: 8px; height: 8px; border-radius: 3px; background: #3977d5; }
 .trend-chart { height: 206px; display: grid; grid-template-columns: repeat(6, 1fr); align-items: end; gap: 13px; padding: 15px 18px 13px; }
+.trend-empty, .activity-empty { margin: 0; padding: 24px 16px; color: var(--admin-muted); font-size: 12px; text-align: center; }
 .trend-column { height: 100%; display: grid; grid-template-rows: 16px 1fr 17px; justify-items: center; gap: 4px; }
 .trend-column > strong { color: #7a8aa2; font-size: 9px; font-weight: 600; }
 .trend-column__track { width: min(100%, 34px); height: 100%; display: flex; align-items: flex-end; overflow: hidden; border-radius: 5px 5px 2px 2px; background: #f0f4fa; }

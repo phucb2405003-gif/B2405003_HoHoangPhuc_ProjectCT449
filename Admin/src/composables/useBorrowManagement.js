@@ -1,9 +1,9 @@
 import { computed, ref, watch } from 'vue'
 import { authState } from '@/services/authService'
 import { ROLE_LIBRARIAN, ROLE_MANAGER } from '@/data/permissions'
-import { mockStore } from '@/data/mock/mockStore'
+import { entityStore } from '@/data/entityStore'
 
-export default function useMockBorrows() {
+export default function useBorrowManagement() {
   const search = ref('')
   const statusFilter = ref('')
   const page = ref(1)
@@ -19,7 +19,7 @@ export default function useMockBorrows() {
 
   const filteredBorrows = computed(() => {
     const needle = search.value.trim().toLocaleLowerCase('vi')
-    return mockStore.borrows.filter((borrow) => {
+    return entityStore.borrows.filter((borrow) => {
       const matchesSearch = !needle || [borrow.maPhieu, borrow.maDocGia, borrow.tenDocGia].some((value) => value.toLocaleLowerCase('vi').includes(needle))
       return matchesSearch && (!statusFilter.value || borrow.trangThai === statusFilter.value)
     })
@@ -88,7 +88,7 @@ export default function useMockBorrows() {
     return {
       title: 'Duyệt phiếu mượn?',
       confirmLabel: 'Duyệt phiếu',
-      message: `Duyệt ${pendingBorrow.value?.maPhieu || 'phiếu'} trong bộ dữ liệu mẫu. Không gửi thao tác đến Backend.`,
+      message: `Duyệt ${pendingBorrow.value?.maPhieu || 'phiếu'}? Thay đổi chỉ có hiệu lực trong phiên hiện tại.`,
       tone: 'primary',
     }
   })

@@ -1,11 +1,11 @@
 <script setup>
 import { entityConfigs } from '@/data/entityConfig'
-import useMockEntity from '@/composables/useMockEntity'
+import useEntityManagement from '@/composables/useEntityManagement'
 import searchIcon from '@/assets/icons/search.svg'
 import plusIcon from '@/assets/icons/plus.svg'
 import DataTable from './DataTable.vue'
 import EntityDialog from './EntityDialog.vue'
-import MockDataNotice from './MockDataNotice.vue'
+import SessionDataNotice from './SessionDataNotice.vue'
 import PaginationControl from './PaginationControl.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import './ManagementView.css'
@@ -18,14 +18,14 @@ const {
   confirmOpen, confirmTitle, confirmMessage, confirmLabel,
   actionNotice,
   openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestDelete, confirmStatusChange, closeConfirmation,
-} = useMockEntity(config)
+} = useEntityManagement(config)
 </script>
 
 <template>
   <section class="management-page" :aria-labelledby="'management-title-' + moduleKey">
     <header class="management-heading">
       <div>
-        <div class="management-heading__eyebrow"><span class="heading-indicator"></span> DỮ LIỆU MẪU · {{ config.title.toLocaleUpperCase('vi') }}</div>
+        <div class="management-heading__eyebrow"><span class="heading-indicator"></span> QUẢN LÝ DỮ LIỆU · {{ config.title.toLocaleUpperCase('vi') }}</div>
         <h2 :id="'management-title-' + moduleKey">{{ config.title }}</h2>
         <p>{{ config.description }}</p>
       </div>
@@ -34,7 +34,7 @@ const {
       </button>
     </header>
 
-    <MockDataNotice />
+    <SessionDataNotice />
     <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">

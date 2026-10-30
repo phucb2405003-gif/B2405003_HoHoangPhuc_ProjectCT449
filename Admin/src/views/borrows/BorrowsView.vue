@@ -1,10 +1,10 @@
 <script setup>
-import MockDataNotice from '@/components/common/MockDataNotice.vue'
+import SessionDataNotice from '@/components/common/SessionDataNotice.vue'
 import PaginationControl from '@/components/common/PaginationControl.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import BorrowDialog from '@/components/borrows/BorrowDialog.vue'
-import useMockBorrows from '@/composables/useMockBorrows'
+import useBorrowManagement from '@/composables/useBorrowManagement'
 import './BorrowsView.css'
 import searchIcon from '@/assets/icons/search.svg'
 
@@ -12,16 +12,16 @@ const {
   search, statusFilter, page, pageSize, statusOptions, filteredBorrows, pageRows, pageCount, canManage,
   dialogOpen, dialogMode, selectedBorrow, confirmOpen, confirmation,
   openDetails, openReject, closeDialog, askConfirmation, confirmBorrowAction, rejectBorrow, returnBook,
-} = useMockBorrows()
+} = useBorrowManagement()
 const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn tất': 'success', 'Đã từ chối': 'danger', 'Đã hủy': 'neutral' }
 </script>
 
 <template>
   <section class="borrow-management" aria-labelledby="borrow-page-title">
     <header class="management-heading">
-      <div><div class="management-heading__eyebrow"><span class="heading-indicator"></span> DỮ LIỆU MẪU · NGHIỆP VỤ THƯ VIỆN</div><h2 id="borrow-page-title">Quản lý mượn sách</h2><p>Theo dõi phiếu mượn và tình trạng từng cuốn sách riêng biệt.</p></div>
+      <div><div class="management-heading__eyebrow"><span class="heading-indicator"></span> NGHIỆP VỤ THƯ VIỆN</div><h2 id="borrow-page-title">Quản lý mượn sách</h2><p>Theo dõi phiếu mượn và tình trạng từng cuốn sách riêng biệt.</p></div>
     </header>
-    <MockDataNotice />
+    <SessionDataNotice />
 
     <section class="management-card">
       <div class="table-toolbar">
@@ -40,7 +40,7 @@ const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'H
               <td><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></td>
               <td class="table-actions"><button class="table-action" type="button" @click="openDetails(borrow)">Chi tiết / xử lý</button></td>
             </tr>
-            <tr v-if="!pageRows.length"><td class="table-empty" colspan="6"><strong>Không tìm thấy phiếu mượn</strong><span>Thử từ khóa hoặc trạng thái khác.</span></td></tr>
+            <tr v-if="!pageRows.length"><td class="table-empty" colspan="6"><strong>Chưa có phiếu mượn</strong><span>Các phiếu sẽ xuất hiện tại đây khi có dữ liệu.</span></td></tr>
           </tbody>
         </table>
       </div>

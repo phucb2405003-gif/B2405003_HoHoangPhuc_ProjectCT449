@@ -1,5 +1,5 @@
 <script setup>
-import MockDataNotice from '@/components/common/MockDataNotice.vue'
+import SessionDataNotice from '@/components/common/SessionDataNotice.vue'
 import useStaffProfile from '@/composables/useStaffProfile'
 import './ProfileView.css'
 
@@ -11,7 +11,7 @@ const { code, role, form, errors, message, messageType, cancelChanges, saveChang
     <header class="management-heading">
       <div><div class="management-heading__eyebrow"><span class="heading-indicator"></span> TÀI KHOẢN NHÂN VIÊN</div><h2 id="profile-title">Thông tin cá nhân</h2><p>Xem và cập nhật thông tin hồ sơ của nhân viên đang đăng nhập.</p></div>
     </header>
-    <MockDataNotice />
+    <SessionDataNotice />
 
     <form class="profile-card" novalidate @submit.prevent="saveChanges">
       <div class="profile-card__heading"><div><h3>Hồ sơ nhân viên</h3><p>Mã nhân viên, tài khoản và chức vụ được giữ chỉ đọc.</p></div><span class="profile-role">{{ role || 'Nhân viên' }}</span></div>

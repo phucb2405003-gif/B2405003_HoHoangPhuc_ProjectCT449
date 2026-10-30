@@ -8,10 +8,11 @@ const maxValue = computed(() => Math.max(...props.data.map((item) => item.count)
 <template>
   <section class="dashboard-panel trend-panel" aria-labelledby="trend-title">
     <header class="dashboard-panel__header">
-      <div><h3 id="trend-title">Tình hình mượn sách</h3><p>Số phiếu theo tháng · dữ liệu minh họa</p></div>
+      <div><h3 id="trend-title">Tình hình mượn sách</h3><p>Số phiếu theo tháng</p></div>
       <span class="chart-legend"><i></i> Phiếu mượn</span>
     </header>
-    <div class="trend-chart" role="img" aria-label="Biểu đồ cột số phiếu mượn trong sáu tháng gần đây">
+    <p v-if="!data.length" class="trend-empty" role="status">Chưa có dữ liệu mượn sách.</p>
+    <div v-else class="trend-chart" role="img" aria-label="Biểu đồ cột số phiếu mượn trong sáu tháng gần đây">
       <div v-for="item in data" :key="item.month" class="trend-column" :aria-label="`${item.month}: ${item.count} phiếu`">
         <strong>{{ item.count }}</strong>
         <div class="trend-column__track"><span :style="{ height: `${Math.max(12, item.count / maxValue * 100)}%` }"></span></div>

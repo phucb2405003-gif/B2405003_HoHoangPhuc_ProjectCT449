@@ -52,7 +52,7 @@ function submit() {
     <div v-if="open" class="dialog-backdrop" @click.self="emit('close')" @keydown.esc="emit('close')">
       <section class="entity-dialog" role="dialog" aria-modal="true" :aria-labelledby="'entity-dialog-title'">
         <header class="entity-dialog__header">
-          <div><p class="dialog-kicker">{{ mode === 'detail' ? 'THÔNG TIN CHI TIẾT' : 'DỮ LIỆU MẪU' }}</p><h2 id="entity-dialog-title">{{ mode === 'create' ? `Thêm ${config.singular}` : mode === 'edit' ? `Chỉnh sửa ${config.singular}` : `Chi tiết ${config.singular}` }}</h2></div>
+          <div><p class="dialog-kicker">{{ mode === 'detail' ? 'THÔNG TIN CHI TIẾT' : 'HỒ SƠ' }}</p><h2 id="entity-dialog-title">{{ mode === 'create' ? `Thêm ${config.singular}` : mode === 'edit' ? `Chỉnh sửa ${config.singular}` : `Chi tiết ${config.singular}` }}</h2></div>
           <button class="dialog-close" type="button" aria-label="Đóng" @click="emit('close')">×</button>
         </header>
 
@@ -83,7 +83,7 @@ function submit() {
           </div>
           <div class="dialog-actions">
             <button class="button button--secondary" type="button" @click="emit('close')">Hủy</button>
-            <button class="button button--primary" type="submit">{{ mode === 'create' ? 'Thêm vào dữ liệu mẫu' : 'Lưu thay đổi mẫu' }}</button>
+            <button class="button button--primary" type="submit">{{ mode === 'create' ? `Thêm ${config.singular}` : 'Lưu thay đổi' }}</button>
           </div>
         </form>
 
@@ -96,9 +96,9 @@ function submit() {
           </div>
           <div v-if="config.statusReasonFields?.[record.trangThai]" class="entity-detail-item entity-detail-item--wide">
             <span>{{ record.trangThai === 'Hạn chế' ? 'Lý do hạn chế' : 'Lý do cấm' }}</span>
-            <strong>{{ record[config.statusReasonFields[record.trangThai]] || 'Chưa có lý do trong dữ liệu mẫu' }}</strong>
+            <strong>{{ record[config.statusReasonFields[record.trangThai]] || 'Chưa có lý do' }}</strong>
           </div>
-          <p class="entity-detail-note">Thông tin này thuộc dữ liệu minh họa trên giao diện.</p>
+          <p class="entity-detail-note">Thay đổi chỉ có hiệu lực trong phiên hiện tại.</p>
           <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Đóng</button></div>
         </div>
       </section>

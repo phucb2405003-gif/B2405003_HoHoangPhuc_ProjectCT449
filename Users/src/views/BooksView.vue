@@ -122,7 +122,7 @@ const {
             <div class="books-results__heading">
               <div>
                 <h2 id="books-results-title">Tất cả sách</h2>
-                <p>{{ filteredBooks.length }} cuốn từ bộ dữ liệu sách mẫu.</p>
+                <p>{{ filteredBooks.length }} sách phù hợp.</p>
               </div>
               <span class="books-results__page-count">Trang {{ currentPage }} / {{ pageCount }}</span>
             </div>

@@ -9,6 +9,7 @@ export default function useBookDetail() {
 const route = useRoute()
 const router = useRouter()
 const book = ref(null)
+const isCatalogEmpty = ref(false)
 const isLoading = ref(true)
 const loadError = ref('')
 const isBorrowDialogOpen = ref(false)
@@ -45,20 +46,24 @@ async function loadBook() {
   const requestVersion = ++bookLoadVersion
   isLoading.value = true
   loadError.value = ''
+  isCatalogEmpty.value = false
   book.value = null
 
   try {
     const catalog = await getBookCatalog()
     if (requestVersion !== bookLoadVersion) return
+    if (!catalog.length) {
+      isCatalogEmpty.value = true
+      return
+    }
     book.value = catalog.find((item) => item.id === route.params.maSach) || null
     if (!book.value) throw new Error('Không tìm thấy dữ liệu sách hợp lệ.')
   } catch (error) {
     if (requestVersion !== bookLoadVersion) return
     loadError.value = error.message || 'Không thể tải thông tin sách.'
+  } finally {
+    if (requestVersion === bookLoadVersion) isLoading.value = false
   }
-
-  if (requestVersion !== bookLoadVersion) return
-  isLoading.value = false
 }
 
 async function goBackToBooks() {
@@ -148,6 +153,7 @@ onMounted(loadBook)
     goBackToBooks,
     isBorrowDialogOpen,
     isCreatingBorrow,
+    isCatalogEmpty,
     isLoading,
     isLoadingBorrows,
     loadError,

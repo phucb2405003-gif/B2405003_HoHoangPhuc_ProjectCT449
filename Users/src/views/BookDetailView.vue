@@ -27,6 +27,7 @@ const {
   goBackToBooks,
   isBorrowDialogOpen,
   isCreatingBorrow,
+  isCatalogEmpty,
   isLoading,
   isLoadingBorrows,
   loadError,
@@ -60,6 +61,10 @@ const {
         <p v-if="borrowNotice" class="book-detail-notice" role="status" aria-live="polite">{{ borrowNotice }}</p>
 
         <div v-if="isLoading" class="book-detail-message" role="status">Đang tải thông tin sách…</div>
+        <div v-else-if="isCatalogEmpty" class="book-detail-message" role="status">
+          <p>Chưa có dữ liệu sách để hiển thị.</p>
+          <RouterLink :to="{ name: 'books' }">Quay lại danh sách sách</RouterLink>
+        </div>
         <div v-else-if="loadError" class="book-detail-message" role="alert">
           <p>{{ loadError }}</p>
           <RouterLink v-if="!authState.isAuthenticated" :to="{ name: 'login' }">Đăng nhập</RouterLink>
@@ -164,10 +169,6 @@ const {
               <p v-if="isLoadingBorrows" class="book-detail-message" role="status">Đang tải phiếu mượn…</p>
               <p v-else-if="borrowError" class="book-borrow-error" role="alert">{{ borrowError }}</p>
               <template v-else>
-                <p v-if="!book.maSach" class="book-borrow-error" role="status">
-                  Dữ liệu sách này đang là minh họa, chưa có mã sách từ Backend nên chưa thể tạo phiếu mượn.
-                </p>
-                <template v-else>
                   <p v-if="pendingBorrows.length" class="book-borrow-dialog__label">Chọn một phiếu đang chờ duyệt hoặc tạo phiếu mới</p>
                   <label v-for="borrow in pendingBorrows" :key="borrow.maPhieu" class="book-borrow-option">
                     <input v-model="selectedBorrowId" type="radio" :value="borrow.maPhieu" />
@@ -188,7 +189,6 @@ const {
                     :disabled="isCreatingBorrow || selectedBorrowId !== 'new' || activeDuplicate || availableCopies === 0"
                     @click="createNewBorrow"
                   >{{ isCreatingBorrow ? 'Đang tạo phiếu…' : selectedBorrowId === 'new' ? 'Tạo phiếu mới và thêm sách' : 'Thêm sách vào phiếu đã chọn' }}</button>
-                </template>
               </template>
             </section>
           </div>
