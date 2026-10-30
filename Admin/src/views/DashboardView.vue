@@ -1,30 +1,22 @@
-<script setup>
-import { useRouter } from 'vue-router'
-import { authState, logoutStaff } from '@/services/authService'
-
-const router = useRouter()
-
-function logout() {
-  logoutStaff()
-  router.replace({ name: 'login' })
-}
-</script>
-
 <template>
-  <main class="dashboard-page">
-    <header class="dashboard-header">
-      <a class="dashboard-brand" href="/dashboard"><span class="brand-mark small">Q</span><span>QLMS <small>NHÂN VIÊN</small></span></a>
-      <button class="logout-button" type="button" @click="logout">Đăng xuất</button>
-    </header>
-    <section class="welcome-card">
-      <p class="eyebrow">KHU VỰC NHÂN VIÊN</p>
-      <h1>Đăng nhập thành công</h1>
-      <p>Chào <strong>{{ authState.user?.tenDangNhap }}</strong>, phiên làm việc của bạn đã được xác minh.</p>
-      <div class="staff-details">
-        <div><span>Tài khoản</span><strong>{{ authState.user?.maTaiKhoan }}</strong></div>
-        <div><span>Chức vụ</span><strong>{{ authState.user?.chucVu || 'Chưa cập nhật' }}</strong></div>
+  <section class="dashboard-view" aria-labelledby="dashboard-title">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">TỔNG QUAN</p>
+        <h2 id="dashboard-title">Chào mừng đến với QLMS</h2>
+        <p>Phiên đăng nhập nhân viên đã được Backend xác minh.</p>
       </div>
-      <p class="coming-soon">Các chức năng quản lý thư viện sẽ được bổ sung trong giai đoạn tiếp theo.</p>
-    </section>
-  </main>
+      <span class="verified-badge"><span aria-hidden="true"></span> Đã xác thực</span>
+    </div>
+
+    <article class="welcome-card">
+      <div class="welcome-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21zm0 0V21m4-14h8m-8 4h8" /></svg>
+      </div>
+      <div>
+        <h3>Khu vực quản trị thư viện</h3>
+        <p>Các chức năng quản lý sẽ được bổ sung trong những giai đoạn tiếp theo.</p>
+      </div>
+    </article>
+  </section>
 </template>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { loginStaff } from '@/services/authService'
+import { authState, initializeAuth, loginStaff } from '@/services/authService'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,6 +10,17 @@ const password = ref('')
 const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const isRetryingVerification = ref(false)
+
+async function retryVerification() {
+  isRetryingVerification.value = true
+  try {
+    await initializeAuth({ retry: true })
+    if (authState.isAuthenticated) await router.replace({ name: 'dashboard' })
+  } finally {
+    isRetryingVerification.value = false
+  }
+}
 
 async function submitLogin() {
   errorMessage.value = ''
@@ -42,6 +53,13 @@ async function submitLogin() {
       <p class="eyebrow">QUẢN LÝ THƯ VIỆN</p>
       <h1 id="login-title">Cổng nhân viên</h1>
       <p class="intro">Đăng nhập bằng tài khoản nhân viên để tiếp tục.</p>
+
+      <div v-if="authState.verificationError" class="verification-error" role="alert">
+        <p>{{ authState.verificationError }}</p>
+        <button v-if="authState.canRetryVerification" type="button" :disabled="isRetryingVerification || authState.isChecking" @click="retryVerification">
+          {{ isRetryingVerification ? 'Đang thử lại…' : 'Thử xác minh lại' }}
+        </button>
+      </div>
 
       <form class="login-form" @submit.prevent="submitLogin">
         <label for="username">Tên đăng nhập</label>

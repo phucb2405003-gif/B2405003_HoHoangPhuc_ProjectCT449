@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { authState, initializeAuth } from '@/services/authService'
 import LoginView from '@/views/LoginView.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
@@ -9,7 +10,12 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/dashboard' },
     { path: '/dang-nhap', name: 'login', component: LoginView, meta: { guestOnly: true } },
-    { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
+    {
+      path: '/dashboard',
+      component: AdminLayout,
+      meta: { requiresAuth: true },
+      children: [{ path: '', name: 'dashboard', component: DashboardView }],
+    },
     { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView },
   ],
 })
