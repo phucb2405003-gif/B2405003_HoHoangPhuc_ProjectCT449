@@ -3,7 +3,7 @@
 .borrow-management .management-heading h2 { margin: 6px 0 0; color: var(--admin-ink); font-size: 26px; font-weight: 700; letter-spacing: -.035em; }
 .borrow-management .management-heading p { margin: 6px 0 0; color: var(--admin-muted); }
 .borrow-table { min-width: 820px; }
-.borrow-table .table-actions-heading { min-width: 130px; }
+.borrow-table .table-actions-heading { min-width: 100px; }
 .borrow-dialog { position: relative; width: min(100%, 720px); max-height: min(90vh, 820px); overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 80px #0b12203d; }
 .borrow-dialog__body { padding: 19px 24px 23px; }
 .borrow-create-form { display: grid; gap: 16px; }
@@ -34,6 +34,6 @@
   .borrow-summary-grid { grid-template-columns: 1fr; gap: 10px; }
   .borrow-dialog__body { padding: 16px 18px 19px; }
   .borrow-book-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .borrow-book-row .table-action { grid-column: 1 / -1; justify-self: end; }
+  .borrow-book-row > .row-action-menu__trigger { grid-column: 1 / -1; justify-self: end; }
   .borrow-dialog__actions .button { flex: 1; }
 }

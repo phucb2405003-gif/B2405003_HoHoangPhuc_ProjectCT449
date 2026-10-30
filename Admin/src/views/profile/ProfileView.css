@@ -9,7 +9,7 @@
 .profile-field b { color: var(--admin-error); }
 .profile-field input, .profile-field textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--admin-line); border-radius: 8px; outline: none; color: var(--admin-ink); background: #fff; font: inherit; font-weight: 400; }
 .profile-field input { min-height: 39px; }
-.profile-field input[readonly] { color: #718097; background: #f8fafd; }
+.profile-field input[readonly], .profile-field textarea[readonly] { color: #718097; background: #f8fafd; }
 .profile-field textarea { resize: vertical; }
 .profile-field input:focus, .profile-field textarea:focus { border-color: #8aaeea; box-shadow: 0 0 0 3px #2563eb16; }
 .profile-message { margin: 18px 0 0; padding: 10px 12px; border-radius: 8px; font-size: 12px; }

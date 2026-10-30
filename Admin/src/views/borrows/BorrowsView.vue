@@ -43,7 +43,7 @@ const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warn
               <td><div class="table-primary-secondary"><strong>{{ borrow.tenDocGia }}</strong><small>{{ borrow.maDocGia }}</small></div></td>
               <td>{{ borrow.ngayYeuCau }}</td><td>{{ borrow.ngayMuon || '—' }}</td>
               <td><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></td>
-              <td class="table-actions"><button class="table-action" type="button" @click="openDetails(borrow)">Chi tiết / xử lý</button></td>
+              <td class="table-actions"><button class="table-action" type="button" @click="openDetails(borrow)">Chi tiết</button></td>
             </tr>
             <tr v-if="!pageRows.length"><td class="table-empty" colspan="6"><strong>{{ filteredBorrows.length ? 'Không có phiếu phù hợp' : 'Chưa có phiếu mượn' }}</strong><span>{{ filteredBorrows.length ? 'Thử điều chỉnh từ khóa hoặc bộ lọc.' : 'Các phiếu sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>
           </tbody>

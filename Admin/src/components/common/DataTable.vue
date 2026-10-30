@@ -1,6 +1,6 @@
 <script setup>
 import StatusBadge from './StatusBadge.vue'
-import editIcon from '@/assets/icons/notebook-pen.svg'
+import RowActionMenu from './RowActionMenu.vue'
 
 defineProps({
   config: { type: Object, required: true },
@@ -14,6 +14,35 @@ function displayDate(value) {
   if (!value) return '—'
   const date = new Date(`${value}T00:00:00`)
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN')
+}
+
+function actionsFor(row, config, canManage) {
+  if (!canManage) return []
+  const actions = []
+  if (!config.hideEdit) actions.push({ event: 'edit', label: 'Sửa' })
+  if (config.key === 'accounts') actions.push({ event: 'reset-password', label: 'Đặt lại mật khẩu', ariaLabel: `Đặt lại mật khẩu cho ${row.tenDangNhap}` })
+  if (config.stockActions) {
+    actions.push({ event: 'add-stock', label: 'Bổ sung', tone: 'positive' })
+    actions.push({ event: 'destroy-stock', label: 'Tiêu hủy', tone: 'danger' })
+  }
+  if (config.statusAction) {
+    const isDanger = config.key === 'readers'
+      ? row.trangThai === 'Bị cấm'
+      : row[config.statusAction.key] === config.statusAction.activeValue
+    actions.push({
+      event: 'toggle-status',
+      label: config.key === 'readers'
+        ? 'Đổi trạng thái'
+        : isDanger ? config.statusAction.activeLabel : config.statusAction.inactiveLabel,
+      tone: isDanger ? 'danger' : 'positive',
+    })
+  }
+  if (config.deleteAction) actions.push({ event: 'delete', label: 'Xóa', tone: 'danger' })
+  return actions
+}
+
+function selectAction(action, row) {
+  emit(action.event, row)
 }
 </script>
 
@@ -35,18 +64,7 @@ function displayDate(value) {
           </td>
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
-            <button v-if="canManage && !config.hideEdit" class="table-action" type="button" @click="emit('edit', row)"><img class="table-action__icon" :src="editIcon" alt="" aria-hidden="true">Sửa</button>
-            <button v-if="canManage && config.key === 'accounts'" class="table-action" type="button" :aria-label="`Đặt lại mật khẩu cho ${row.tenDangNhap}`" @click="emit('reset-password', row)">Đặt lại mật khẩu</button>
-            <button v-if="canManage && config.stockActions" class="table-action table-action--positive" type="button" @click="emit('add-stock', row)">Bổ sung</button>
-            <button v-if="canManage && config.stockActions" class="table-action table-action--danger" type="button" @click="emit('destroy-stock', row)">Tiêu hủy</button>
-            <button
-              v-if="canManage && config.statusAction"
-              class="table-action"
-              :class="config.key === 'readers' ? row.trangThai === 'Bị cấm' ? 'table-action--danger' : 'table-action--positive' : row[config.statusAction.key] === config.statusAction.activeValue ? 'table-action--danger' : 'table-action--positive'"
-              type="button"
-              @click="emit('toggle-status', row)"
-            >{{ config.key === 'readers' ? 'Đổi trạng thái' : row[config.statusAction.key] === config.statusAction.activeValue ? config.statusAction.activeLabel : config.statusAction.inactiveLabel }}</button>
-            <button v-if="canManage && config.deleteAction" class="table-action table-action--danger" type="button" @click="emit('delete', row)">Xóa</button>
+            <RowActionMenu v-if="actionsFor(row, config, canManage).length" :actions="actionsFor(row, config, canManage)" @select="selectAction($event, row)" />
           </td>
         </tr>
         <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>{{ config.key === 'publishers' ? 'Chưa có nhà xuất bản' : config.key === 'books' ? 'Chưa có sách' : 'Chưa có dữ liệu' }}</strong><span>{{ config.key === 'publishers' ? 'Danh sách nhà xuất bản hiện chưa có dữ liệu.' : config.key === 'books' ? 'Danh sách sách hiện chưa có dữ liệu.' : 'Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>

@@ -1,6 +1,7 @@
 <script setup>
 import { toRef } from 'vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import RowActionMenu from '@/components/common/RowActionMenu.vue'
 import useBorrowDialog from '@/composables/useBorrowDialog'
 
 const props = defineProps({
@@ -92,7 +93,13 @@ const {
               <article v-for="book in borrow.chiTiet" :key="book.maSach" class="borrow-book-row">
                 <div class="borrow-book-copy"><strong>{{ book.tenSach }}</strong><small>Mã sách {{ book.maSach }}<template v-if="book.hanTra"> · Hạn {{ book.hanTra }}</template><template v-if="book.ngayTra"> · Trả {{ book.ngayTra }}</template></small></div>
                 <StatusBadge :value="book.trangThaiSach" :variants="bookVariants" />
-                <button v-if="canManage && borrow.trangThai === 'Đã duyệt' && book.trangThaiSach === 'Đang mượn'" class="table-action table-action--positive" type="button" :disabled="actionLoading" @click="emit('return-book', book)">{{ actionLoading ? 'Đang gửi…' : 'Ghi nhận trả' }}</button>
+                <RowActionMenu
+                  v-if="canManage && borrow.trangThai === 'Đã duyệt' && book.trangThaiSach === 'Đang mượn'"
+                  :actions="[{ event: 'return-book', label: actionLoading ? 'Đang gửi…' : 'Ghi nhận trả', tone: 'positive' }]"
+                  :disabled="actionLoading"
+                  :trigger-label="actionLoading ? 'Đang gửi…' : 'Thao tác'"
+                  @select="emit('return-book', book)"
+                />
               </article>
             </div>
             <div v-if="canManage && borrow.trangThai === 'Chờ duyệt'" class="dialog-actions borrow-dialog__actions">
