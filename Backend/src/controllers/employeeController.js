@@ -126,9 +126,63 @@ async function update(req, res) {
     }
 }
 
+function publicEmployeeProfile(employee) {
+    return {
+        maNhanVien: employee.maNhanVien,
+        hoTenNV: employee.hoTenNV,
+        chucVu: employee.chucVu,
+        diaChi: employee.diaChi,
+        soDienThoai: employee.soDienThoai,
+    };
+}
+
+function authenticatedEmployeeCode(req, res) {
+    if (req.user?.loaiTaiKhoan !== "NHANVIEN" || typeof req.user.maTaiKhoan !== "string") {
+        res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+        return null;
+    }
+    return req.user.maTaiKhoan;
+}
+
+async function getMe(req, res) {
+    const maNhanVien = authenticatedEmployeeCode(req, res);
+    if (!maNhanVien) return;
+
+    try {
+        const employee = await employeeService.findOne(maNhanVien);
+        if (!employee) return res.status(404).json({ message: "Khong tim thay nhan vien" });
+        return res.json(publicEmployeeProfile(employee));
+    } catch (error) {
+        console.error("Loi lay ho so nhan vien dang dang nhap:", error);
+        return res.status(500).json({ message: "Khong the lay ho so nhan vien" });
+    }
+}
+
+async function updateMe(req, res) {
+    const maNhanVien = authenticatedEmployeeCode(req, res);
+    if (!maNhanVien) return;
+
+    try {
+        const employee = await employeeService.update(maNhanVien, req.body);
+        return res.json(publicEmployeeProfile(employee));
+    } catch (error) {
+        if (error.code === "INVALID_UPDATE") {
+            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+        }
+        if (error.code === "NOT_FOUND") {
+            return res.status(404).json({ message: "Khong tim thay nhan vien" });
+        }
+
+        console.error("Loi cap nhat ho so nhan vien dang dang nhap:", error);
+        return res.status(500).json({ message: "Khong the cap nhat ho so nhan vien" });
+    }
+}
+
 module.exports = {
     findAll,
     findOne,
     create,
-    update
+    update,
+    getMe,
+    updateMe
 };

@@ -5,6 +5,27 @@ const { allowRoles } = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
+function allowEmployeeSelf(req, res, next) {
+    if (req.user?.loaiTaiKhoan !== "NHANVIEN") {
+        return res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+    }
+    return next();
+}
+
+router.get(
+    "/me",
+    authenticateToken,
+    allowEmployeeSelf,
+    employeeController.getMe
+);
+
+router.put(
+    "/me",
+    authenticateToken,
+    allowEmployeeSelf,
+    employeeController.updateMe
+);
+
 router.get(
     "/",
     authenticateToken,

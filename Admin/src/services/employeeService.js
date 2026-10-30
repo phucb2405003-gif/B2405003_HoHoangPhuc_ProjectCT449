@@ -37,6 +37,10 @@ export async function getEmployee(maNhanVien) {
   return normalizeEmployee(await apiClient.get(`${EMPLOYEES_PATH}/${encodeURIComponent(maNhanVien)}`))
 }
 
+export async function getMyEmployeeProfile() {
+  return normalizeEmployee(await apiClient.get(`${EMPLOYEES_PATH}/me`))
+}
+
 export async function createEmployee(record) {
   const employee = await apiClient.post(EMPLOYEES_PATH, toPayload(record, CREATE_FIELDS))
   return {
@@ -47,4 +51,13 @@ export async function createEmployee(record) {
 
 export async function updateEmployee(maNhanVien, record) {
   return normalizeEmployee(await apiClient.put(`${EMPLOYEES_PATH}/${encodeURIComponent(maNhanVien)}`, toPayload(record, UPDATE_FIELDS)))
+}
+
+export async function updateMyEmployeeProfile(record) {
+  const payload = { hoTenNV: String(record.hoTenNV || '').trim() }
+  for (const field of ['diaChi', 'soDienThoai']) {
+    const value = String(record[field] || '').trim()
+    if (value) payload[field] = value
+  }
+  return normalizeEmployee(await apiClient.put(`${EMPLOYEES_PATH}/me`, payload))
 }
