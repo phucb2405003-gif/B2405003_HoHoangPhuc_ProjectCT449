@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authState, getReaderAccessToken, logoutReader } from '@/services/authService'
 import useReaderProfile from '@/composables/useReaderProfile'
@@ -10,6 +10,7 @@ export default function useProfile() {
   const router = useRouter()
   const activeTab = computed(() => route.query.tab === 'muon' ? 'muon' : 'thong-tin')
   const readerId = computed(() => authState.user?.maTaiKhoan || '')
+  const isReaderAccount = () => authState.user?.loaiTaiKhoan === 'DOCGIA'
 
   let isRedirectingToLogin = false
 
@@ -23,7 +24,7 @@ export default function useProfile() {
 
     isRedirectingToLogin = true
     logoutReader()
-    await router.replace({ name: 'login', query: { redirect: route.fullPath } })
+    await redirectToLogin()
     return true
   }
 
@@ -34,7 +35,7 @@ export default function useProfile() {
   const readerProfile = useReaderProfile({
     readerId,
     getAccessToken: getReaderAccessToken,
-    isReaderAccount: () => authState.user?.loaiTaiKhoan === 'DOCGIA',
+    isReaderAccount,
     handleUnauthorized,
     redirectToLogin,
   })
@@ -45,7 +46,7 @@ export default function useProfile() {
   })
   const borrowHistory = useBorrowHistory({
     getAccessToken: getReaderAccessToken,
-    isReaderAccount: () => authState.user?.loaiTaiKhoan === 'DOCGIA',
+    isReaderAccount,
     handleUnauthorized,
     redirectToLogin,
   })
