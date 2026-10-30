@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { toRef } from 'vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import useBorrowDialog from '@/composables/useBorrowDialog'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -16,30 +17,22 @@ const props = defineProps({
   createLoading: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'return-book', 'create'])
-const rejectReason = ref('')
-const rejectError = ref('')
-const readerCode = ref('')
-const selectedBookCodes = ref([])
-const createError = ref('')
-const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
-const bookVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Đã trả': 'success', 'Từ chối': 'danger', 'Hủy': 'neutral' }
-
-watch(() => [props.open, props.mode], () => { rejectReason.value = ''; rejectError.value = ''; createError.value = ''; readerCode.value = ''; selectedBookCodes.value = [] })
-
-function submitRejection() {
-  if (!rejectReason.value.trim()) {
-    rejectError.value = 'Vui lòng nhập lý do từ chối.'
-    return
-  }
-  emit('reject', rejectReason.value)
-}
-
-function submitCreate() {
-  createError.value = ''
-  if (!readerCode.value) { createError.value = 'Vui lòng chọn độc giả.'; return }
-  if (selectedBookCodes.value.length < 1 || selectedBookCodes.value.length > 5) { createError.value = 'Chọn từ 1 đến 5 cuốn sách.'; return }
-  emit('create', { maDocGia: readerCode.value, maSach: [...selectedBookCodes.value] })
-}
+const {
+  rejectReason,
+  rejectError,
+  readerCode,
+  selectedBookCodes,
+  createError,
+  borrowVariants,
+  bookVariants,
+  submitRejection,
+  submitCreate,
+} = useBorrowDialog({
+  open: toRef(props, 'open'),
+  mode: toRef(props, 'mode'),
+  onReject: (reason) => emit('reject', reason),
+  onCreate: (payload) => emit('create', payload),
+})
 </script>
 
 <template>
