@@ -1,12 +1,14 @@
 <script setup>
+import { computed, toRefs } from 'vue'
 import StatusBadge from './StatusBadge.vue'
 import RowActionMenu from './RowActionMenu.vue'
 
-defineProps({
+const props = defineProps({
   config: { type: Object, required: true },
   rows: { type: Array, default: () => [] },
   canManage: { type: Boolean, default: false },
 })
+const { config, rows, canManage } = toRefs(props)
 
 const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete', 'add-stock', 'destroy-stock', 'reset-password'])
 
@@ -44,6 +46,11 @@ function actionsFor(row, config, canManage) {
 function selectAction(action, row) {
   emit(action.event, row)
 }
+
+const actionsByRow = computed(() => new Map(rows.value.map((row) => [
+  row,
+  actionsFor(row, config.value, canManage.value),
+])))
 </script>
 
 <template>
@@ -64,7 +71,7 @@ function selectAction(action, row) {
           </td>
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
-            <RowActionMenu v-if="actionsFor(row, config, canManage).length" :actions="actionsFor(row, config, canManage)" @select="selectAction($event, row)" />
+            <RowActionMenu v-if="actionsByRow.get(row).length" :actions="actionsByRow.get(row)" @select="selectAction($event, row)" />
           </td>
         </tr>
         <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>{{ config.key === 'publishers' ? 'Chưa có nhà xuất bản' : config.key === 'books' ? 'Chưa có sách' : 'Chưa có dữ liệu' }}</strong><span>{{ config.key === 'publishers' ? 'Danh sách nhà xuất bản hiện chưa có dữ liệu.' : config.key === 'books' ? 'Danh sách sách hiện chưa có dữ liệu.' : 'Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>

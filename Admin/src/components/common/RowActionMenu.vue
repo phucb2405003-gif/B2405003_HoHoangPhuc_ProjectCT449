@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, ref } from 'vue'
 import chevronDownIcon from '@/assets/icons/chevron-down.svg'
 import './RowActionMenu.css'
 
@@ -14,9 +14,29 @@ const trigger = ref(null)
 const menu = ref(null)
 const isOpen = ref(false)
 const menuStyle = ref({})
+let listenersAttached = false
+
+function addGlobalListeners() {
+  if (listenersAttached) return
+  document.addEventListener('pointerdown', handleOutsidePointer)
+  document.addEventListener('keydown', handleEscape)
+  window.addEventListener('scroll', handleViewportChange, true)
+  window.addEventListener('resize', handleViewportChange)
+  listenersAttached = true
+}
+
+function removeGlobalListeners() {
+  if (!listenersAttached) return
+  document.removeEventListener('pointerdown', handleOutsidePointer)
+  document.removeEventListener('keydown', handleEscape)
+  window.removeEventListener('scroll', handleViewportChange, true)
+  window.removeEventListener('resize', handleViewportChange)
+  listenersAttached = false
+}
 
 function closeMenu() {
   isOpen.value = false
+  removeGlobalListeners()
 }
 
 async function positionMenu() {
@@ -41,6 +61,7 @@ async function toggleMenu() {
     return
   }
   isOpen.value = true
+  addGlobalListeners()
   await positionMenu()
 }
 
@@ -65,19 +86,7 @@ function handleViewportChange() {
   if (isOpen.value) closeMenu()
 }
 
-onMounted(() => {
-  document.addEventListener('pointerdown', handleOutsidePointer)
-  document.addEventListener('keydown', handleEscape)
-  window.addEventListener('scroll', handleViewportChange, true)
-  window.addEventListener('resize', handleViewportChange)
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('pointerdown', handleOutsidePointer)
-  document.removeEventListener('keydown', handleEscape)
-  window.removeEventListener('scroll', handleViewportChange, true)
-  window.removeEventListener('resize', handleViewportChange)
-})
+onBeforeUnmount(removeGlobalListeners)
 </script>
 
 <template>
@@ -102,7 +111,6 @@ onBeforeUnmount(() => {
         :aria-label="action.ariaLabel"
         @click="selectAction(action)"
       >
-        <img v-if="action.icon" :src="action.icon" alt="" aria-hidden="true">
         {{ action.label }}
       </button>
     </div>
