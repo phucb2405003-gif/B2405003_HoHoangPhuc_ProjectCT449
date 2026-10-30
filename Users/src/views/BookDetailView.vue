@@ -139,7 +139,6 @@ const {
                 <strong v-if="availableCopies === null">Chưa cập nhật</strong>
                 <strong v-else>{{ availableCopies > 0 ? `Còn ${availableCopies} quyển` : 'Tạm hết sách' }}</strong>
               </div>
-              <p class="book-borrow-card__hint">Chọn phiếu đang chờ duyệt hoặc xác nhận tạo phiếu mới. API hiện chuyển phiếu mới sang Chờ duyệt ngay khi tạo.</p>
               <button class="book-borrow-button" type="button" :disabled="availableCopies === 0" @click="openBorrowDialog">
                 Chọn phiếu mượn
               </button>
@@ -171,19 +170,19 @@ const {
               <p v-if="isLoadingBorrows" class="book-detail-message" role="status">Đang tải phiếu mượn…</p>
               <p v-else-if="borrowError" class="book-borrow-error" role="alert">{{ borrowError }}</p>
               <template v-else>
-                  <p v-if="pendingBorrows.length" class="book-borrow-dialog__label">Chọn một phiếu đang chờ duyệt hoặc tạo phiếu mới</p>
+                  <p v-if="pendingBorrows.length" class="book-borrow-dialog__label">Chọn một phiếu Đang chọn sách hoặc tạo phiếu mới</p>
                   <label v-for="borrow in pendingBorrows" :key="borrow.maPhieu" class="book-borrow-option">
                     <input v-model="selectedBorrowId" type="radio" :value="borrow.maPhieu" />
-                    <span><strong>{{ borrow.maPhieu }}</strong><small>{{ borrowDetailsById[borrow.maPhieu]?.length || 0 }} sách · Chờ duyệt</small></span>
+                    <span><strong>{{ borrow.maPhieu }}</strong><small>{{ borrowDetailsById[borrow.maPhieu]?.length || 0 }} sách · Đang chọn sách</small></span>
                   </label>
                   <label class="book-borrow-option book-borrow-option--new">
                     <input v-model="selectedBorrowId" type="radio" value="new" />
-                    <span><strong>Tạo phiếu mượn mới</strong><small>Tạo phiếu Chờ duyệt kèm sách đang chọn</small></span>
+                    <span><strong>Tạo phiếu mượn mới</strong><small>Tạo phiếu Đang chọn sách kèm sách đang chọn</small></span>
                   </label>
                   <p v-if="selectedBorrowId && selectedBorrowId !== 'new'" class="book-borrow-error" role="status">
                     {{ selectedBorrowHasBook ? 'Sách này đã có trong phiếu đang chọn.' : 'Backend hiện chưa có API thêm sách vào phiếu đã tạo. Có thể tạo phiếu mới kèm sách này.' }}
                   </p>
-                  <p v-else-if="!pendingBorrows.length" class="book-borrow-dialog__empty">Bạn chưa có phiếu đang chờ duyệt.</p>
+                  <p v-else-if="!pendingBorrows.length" class="book-borrow-dialog__empty">Bạn chưa có phiếu Đang chọn sách.</p>
                   <p v-if="activeDuplicate" class="book-borrow-error" role="alert">Bạn đã đăng ký hoặc đang mượn sách này trong một phiếu khác.</p>
                   <button
                     class="book-borrow-button"
