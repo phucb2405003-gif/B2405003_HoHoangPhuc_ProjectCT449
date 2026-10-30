@@ -43,7 +43,7 @@ function duplicateNameError() {
 async function create(publisher) {
     const publisherToCreate = validateCreateFields(
         publisher,
-        { tenNXB: "string" },
+        { tenNXB: "string", diaChi: "string", soDienThoai: "string" },
         ["tenNXB"]
     );
     const collection = await getCollection();
@@ -90,7 +90,11 @@ async function create(publisher) {
 
 // Cập nhật nhà xuất bản
 async function update(maNXB, publisher) {
-    const publisherToUpdate = getUpdateFields(publisher, { tenNXB: "string" });
+    const publisherToUpdate = getUpdateFields(publisher, {
+        tenNXB: "string",
+        diaChi: "string",
+        soDienThoai: "string",
+    });
     const collection = await getCollection();
 
     if (!(await collection.findOne({ maNXB }))) {

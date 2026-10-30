@@ -90,6 +90,12 @@ function setVerificationFailure(message, canRetry) {
   authState.canRetryVerification = canRetry
 }
 
+export function expireStaffSession() {
+  removeStoredSession()
+  setVerificationFailure('Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.', false)
+  authState.initialized = true
+}
+
 function loginError(response, result) {
   const message = String(result?.message || '').toLocaleLowerCase('vi')
   if (response.status === 429) return 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ rồi thử lại.'
@@ -148,8 +154,7 @@ export function initializeAuth({ retry = false } = {}) {
     }
 
     if (response.status === 401) {
-      removeStoredSession()
-      setVerificationFailure('Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.', false)
+      expireStaffSession()
       return
     }
 

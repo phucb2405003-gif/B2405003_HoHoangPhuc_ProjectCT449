@@ -46,7 +46,7 @@ function displayDate(value) {
             <button v-if="canManage && config.deleteAction" class="table-action table-action--danger" type="button" @click="emit('delete', row)">Xóa</button>
           </td>
         </tr>
-        <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>Chưa có dữ liệu</strong><span>Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.</span></td></tr>
+        <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>{{ config.key === 'publishers' ? 'Chưa có nhà xuất bản' : 'Chưa có dữ liệu' }}</strong><span>{{ config.key === 'publishers' ? 'Danh sách nhà xuất bản hiện chưa có dữ liệu.' : 'Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>
       </tbody>
     </table>
   </div>

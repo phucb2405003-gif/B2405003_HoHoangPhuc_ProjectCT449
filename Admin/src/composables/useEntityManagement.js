@@ -1,6 +1,7 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authState } from '@/services/authService'
 import { entityStore } from '@/data/entityStore'
+import { createPublisher, deletePublisher, getPublishers, updatePublisher } from '@/services/publisherService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -15,9 +16,16 @@ export default function useEntityManagement(config) {
   const pendingStatusChange = ref(null)
   const pendingDeletion = ref(null)
   const actionNotice = ref('')
+  const isPublisher = config.key === 'publishers'
+  const publisherRows = ref([])
+  const loading = ref(false)
+  const loadError = ref('')
+  const operationError = ref('')
+  const isSaving = ref(false)
+  const isDeleting = ref(false)
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => entityStore[config.key])
+  const rows = computed(() => isPublisher ? publisherRows.value : entityStore[config.key])
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
     return [filter.key, values.map((value) => filter.boolean ? { label: value ? 'Đang hoạt động' : 'Đã khóa', value } : { label: value, value })]
@@ -37,15 +45,33 @@ export default function useEntityManagement(config) {
   watch([search, filters], () => { page.value = 1 }, { deep: true })
   watch(pageCount, (count) => { if (page.value > count) page.value = count })
 
+  async function loadPublishers() {
+    loading.value = true
+    loadError.value = ''
+    operationError.value = ''
+    try {
+      publisherRows.value = await getPublishers()
+    } catch (error) {
+      publisherRows.value = []
+      loadError.value = error.message || 'Không thể tải danh sách nhà xuất bản.'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  if (isPublisher) onMounted(loadPublishers)
+
   function openCreate() {
     validationErrors.value = {}
+    operationError.value = ''
+    actionNotice.value = ''
     const values = Object.fromEntries(config.fields.map((field) => {
       const firstOption = field.options?.[0] ?? (field.optionsFrom === 'publishers' ? entityStore.publishers[0]?.[field.optionValue] : undefined)
       const defaultValue = typeof firstOption === 'object' ? firstOption.value : firstOption
       return [field.key, field.defaultValue ?? defaultValue ?? '']
     }))
     for (const key of config.additionalFields || []) values[key] = ''
-    values[config.codeField] = generateCode()
+    if (!isPublisher) values[config.codeField] = generateCode()
     if (config.key === 'books') values.soQuyenConLai = values.soQuyen
     currentRecord.value = values
     dialogMode.value = 'create'
@@ -54,6 +80,8 @@ export default function useEntityManagement(config) {
 
   function openEdit(row) {
     validationErrors.value = {}
+    operationError.value = ''
+    actionNotice.value = ''
     currentRecord.value = { ...row }
     dialogMode.value = 'edit'
     dialogOpen.value = true
@@ -100,14 +128,39 @@ export default function useEntityManagement(config) {
     return Object.keys(errors).length === 0
   }
 
-  function saveRecord(record) {
+  async function saveRecord(record) {
     if (!canManage.value || !validate(record)) return
+    if (isPublisher && isSaving.value) return
     const normalized = Object.fromEntries(config.fields.map((field) => [field.key, record[field.key]]))
     for (const key of config.additionalFields || []) normalized[key] = String(record[key] || '').trim()
-    normalized[config.codeField] = currentRecord.value[config.codeField]
+    if (!isPublisher) normalized[config.codeField] = currentRecord.value[config.codeField]
     for (const field of config.fields) {
       if (field.type === 'number' && normalized[field.key] !== '') normalized[field.key] = Number(normalized[field.key])
+      else if (isPublisher && typeof normalized[field.key] === 'string') normalized[field.key] = normalized[field.key].trim()
     }
+
+    if (isPublisher) {
+      isSaving.value = true
+      operationError.value = ''
+      try {
+        const creating = dialogMode.value === 'create'
+        const publisher = creating
+          ? await createPublisher(normalized)
+          : await updatePublisher(currentRecord.value[config.codeField], normalized)
+        const index = publisherRows.value.findIndex((row) => row[config.codeField] === publisher[config.codeField])
+        if (index < 0) publisherRows.value.unshift(publisher)
+        else publisherRows.value.splice(index, 1, publisher)
+        page.value = 1
+        actionNotice.value = creating ? 'Đã thêm nhà xuất bản.' : 'Đã cập nhật nhà xuất bản.'
+        closeDialog()
+      } catch (error) {
+        operationError.value = error.message || 'Không thể lưu nhà xuất bản.'
+      } finally {
+        isSaving.value = false
+      }
+      return
+    }
+
     if (dialogMode.value === 'create') entityStore[config.key].unshift(normalized)
     else {
       const index = entityStore[config.key].findIndex((row) => row[config.codeField] === currentRecord.value[config.codeField])
@@ -134,13 +187,33 @@ export default function useEntityManagement(config) {
 
   function requestDelete(row) {
     actionNotice.value = ''
+    operationError.value = ''
     pendingStatusChange.value = null
     pendingDeletion.value = row
     confirmOpen.value = true
   }
 
-  function confirmStatusChange() {
+  async function confirmStatusChange() {
     if (pendingDeletion.value) {
+      if (isPublisher) {
+        if (!canManage.value || isDeleting.value) return
+        isDeleting.value = true
+        operationError.value = ''
+        try {
+          const maNXB = pendingDeletion.value[config.codeField]
+          await deletePublisher(maNXB)
+          const index = publisherRows.value.findIndex((item) => item[config.codeField] === maNXB)
+          if (index >= 0) publisherRows.value.splice(index, 1)
+          actionNotice.value = `Đã xóa nhà xuất bản ${maNXB}.`
+          pendingDeletion.value = null
+          confirmOpen.value = false
+        } catch (error) {
+          operationError.value = error.message || 'Không thể xóa nhà xuất bản.'
+        } finally {
+          isDeleting.value = false
+        }
+        return
+      }
       if (canManage.value) {
         const index = entityStore[config.key].findIndex((item) => item[config.codeField] === pendingDeletion.value[config.codeField])
         if (index >= 0) entityStore[config.key].splice(index, 1)
@@ -159,6 +232,7 @@ export default function useEntityManagement(config) {
 
   function closeConfirmation() {
     confirmOpen.value = false
+    operationError.value = ''
     pendingDeletion.value = null
     pendingStatusChange.value = null
   }
@@ -170,11 +244,14 @@ export default function useEntityManagement(config) {
   })
   const confirmMessage = computed(() => pendingStatusChange.value
     ? `Thao tác này chỉ có hiệu lực trong phiên hiện tại đối với tài khoản ${pendingStatusChange.value.tenDangNhap}.`
-    : pendingDeletion.value ? `Xác nhận xóa ${config.singular} (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ có hiệu lực trong phiên hiện tại.` : '')
-  const confirmLabel = computed(() => pendingDeletion.value ? 'Xóa sách' : pendingStatusChange.value?.[config.statusAction?.key] === config.statusAction?.activeValue ? 'Khóa tài khoản' : 'Mở khóa')
+    : pendingDeletion.value ? isPublisher
+      ? `Xác nhận xóa nhà xuất bản (${pendingDeletion.value[config.codeField]})? Nhà xuất bản đang được sách sử dụng sẽ không thể xóa.`
+      : `Xác nhận xóa ${config.singular} (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ có hiệu lực trong phiên hiện tại.` : '')
+  const confirmLabel = computed(() => pendingDeletion.value ? isPublisher ? 'Xóa nhà xuất bản' : 'Xóa sách' : pendingStatusChange.value?.[config.statusAction?.key] === config.statusAction?.activeValue ? 'Khóa tài khoản' : 'Mở khóa')
 
   return {
     search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
+    isPublisher, loading, loadError, operationError, isSaving, isDeleting, loadPublishers,
     dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,
     openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestDelete, confirmStatusChange, closeConfirmation,

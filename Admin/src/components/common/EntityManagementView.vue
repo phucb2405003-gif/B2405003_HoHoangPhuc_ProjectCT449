@@ -13,6 +13,7 @@ const props = defineProps({ moduleKey: { type: String, required: true } })
 const config = entityConfigs[props.moduleKey]
 const {
   search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
+  isPublisher, loading, loadError, operationError, isSaving, isDeleting, loadPublishers,
   dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
   confirmOpen, confirmTitle, confirmMessage, confirmLabel,
   actionNotice,
@@ -33,9 +34,16 @@ const {
       </button>
     </header>
 
+    <p v-if="operationError" class="management-feedback management-feedback--error" role="alert">{{ operationError }}</p>
     <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">
+      <div v-if="isPublisher && loading" class="management-state" role="status" aria-live="polite">Đang tải danh sách nhà xuất bản…</div>
+      <div v-else-if="isPublisher && loadError" class="management-state management-state--error" role="alert">
+        <span>{{ loadError }}</span>
+        <button class="button button--secondary" type="button" @click="loadPublishers">Thử tải lại</button>
+      </div>
+      <template v-else>
       <div class="table-toolbar">
         <label class="search-box">
           <img class="search-box__icon" :src="searchIcon" alt="" aria-hidden="true">
@@ -55,6 +63,7 @@ const {
 
       <DataTable :config="config" :rows="pageRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" />
       <PaginationControl :page="page" :page-count="pageCount" :total="filteredRows.length" :page-size="pageSize" @change="page = $event" />
+      </template>
     </section>
 
     <EntityDialog
@@ -64,6 +73,8 @@ const {
       :record="currentRecord"
       :errors="validationErrors"
       :publishers="publisherOptions"
+      :busy="isPublisher && isSaving"
+      :error="isPublisher ? operationError : ''"
       @close="closeDialog"
       @save="saveRecord"
     />
@@ -73,6 +84,8 @@ const {
       :message="confirmMessage"
       :confirm-label="confirmLabel"
       tone="danger"
+      :busy="isPublisher && isDeleting"
+      :error="isPublisher ? operationError : ''"
       @confirm="confirmStatusChange"
       @close="closeConfirmation"
     />

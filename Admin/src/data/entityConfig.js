@@ -128,6 +128,7 @@ export const entityConfigs = {
     codePrefix: 'NXB',
     codeDigits: 3,
     writeRoles: [ROLE_MANAGER],
+    deleteAction: true,
     searchKeys: ['maNXB', 'tenNXB', 'diaChi'],
     searchPlaceholder: 'Tìm theo mã, tên hoặc địa chỉ',
     columns: [

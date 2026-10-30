@@ -10,6 +10,8 @@ const props = defineProps({
   record: { type: Object, default: () => ({}) },
   errors: { type: Object, default: () => ({}) },
   publishers: { type: Array, default: () => [] },
+  busy: { type: Boolean, default: false },
+  error: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -43,20 +45,21 @@ function fieldValue(field) {
 }
 
 function submit() {
-  emit('save', { ...values })
+  if (!props.busy) emit('save', { ...values })
 }
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="dialog-backdrop" @click.self="emit('close')" @keydown.esc="emit('close')">
+    <div v-if="open" class="dialog-backdrop" @click.self="!busy && emit('close')" @keydown.esc="!busy && emit('close')">
       <section class="entity-dialog" role="dialog" aria-modal="true" :aria-labelledby="'entity-dialog-title'">
         <header class="entity-dialog__header">
           <div><p class="dialog-kicker">{{ mode === 'detail' ? 'THÔNG TIN CHI TIẾT' : 'HỒ SƠ' }}</p><h2 id="entity-dialog-title">{{ mode === 'create' ? `Thêm ${config.singular}` : mode === 'edit' ? `Chỉnh sửa ${config.singular}` : `Chi tiết ${config.singular}` }}</h2></div>
-          <button class="dialog-close" type="button" aria-label="Đóng" @click="emit('close')">×</button>
+          <button class="dialog-close" type="button" aria-label="Đóng" :disabled="busy" @click="emit('close')">×</button>
         </header>
 
         <form v-if="mode !== 'detail'" class="entity-form" novalidate @submit.prevent="submit">
+          <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
           <div class="entity-form__grid">
             <div class="form-field form-field--readonly">
               <span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span>
@@ -64,11 +67,11 @@ function submit() {
             </div>
             <label v-for="field in config.fields" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
               <span>{{ field.label }}<b v-if="field.required" aria-hidden="true"> *</b></span>
-              <select v-if="field.type === 'select'" v-model="values[field.key]">
+              <select v-if="field.type === 'select'" v-model="values[field.key]" :disabled="busy">
                 <option v-for="option in optionsFor(field)" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
               </select>
-              <textarea v-else-if="field.type === 'textarea'" v-model="values[field.key]" rows="3" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`"></textarea>
-              <input v-else v-model="values[field.key]" :type="field.type || 'text'" :min="field.min" :max="field.max" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`">
+              <textarea v-else-if="field.type === 'textarea'" v-model="values[field.key]" :disabled="busy" rows="3" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`"></textarea>
+              <input v-else v-model="values[field.key]" :disabled="busy" :type="field.type || 'text'" :min="field.min" :max="field.max" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`">
               <small v-if="errors[field.key]" class="field-error">{{ errors[field.key] }}</small>
             </label>
             <label
@@ -82,8 +85,8 @@ function submit() {
             </label>
           </div>
           <div class="dialog-actions">
-            <button class="button button--secondary" type="button" @click="emit('close')">Hủy</button>
-            <button class="button button--primary" type="submit">{{ mode === 'create' ? `Thêm ${config.singular}` : 'Lưu thay đổi' }}</button>
+            <button class="button button--secondary" type="button" :disabled="busy" @click="emit('close')">Hủy</button>
+            <button class="button button--primary" type="submit" :disabled="busy">{{ mode === 'create' ? `Thêm ${config.singular}` : 'Lưu thay đổi' }}</button>
           </div>
         </form>
 
