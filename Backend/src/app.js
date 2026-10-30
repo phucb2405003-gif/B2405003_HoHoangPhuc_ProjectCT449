@@ -11,7 +11,6 @@ const accountRoutes = require("./routes/accountRoutes");
 const authRoutes = require("./routes/authRoutes");
 
 const { authenticateToken } = require("./middlewares/authMiddleware");
-const { allowRoles } = require("./middlewares/roleMiddleware");
 
 const app = express();
 
@@ -53,17 +52,5 @@ app.get("/api/auth/me", authenticateToken, (req, res) => {
         user: req.user
     });
 });
-
-app.get(
-    "/api/auth/test-manager",
-    authenticateToken,
-    allowRoles("Quản lý"),
-    (req, res) => {
-        res.json({
-            message: "Ban co quyen Quan ly",
-            user: req.user
-        });
-    }
-);
 
 module.exports = app;
