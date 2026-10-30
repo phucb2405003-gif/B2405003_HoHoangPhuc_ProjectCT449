@@ -6,8 +6,10 @@
 .sidebar-brand-copy, .staff-copy { min-width: 0; display: grid; gap: 3px; overflow: hidden; white-space: nowrap; }
 .sidebar-brand-copy strong { font-size: 16px; letter-spacing: .03em; }
 .sidebar-brand-copy small { color: #94a3b8; font-size: 9px; letter-spacing: .1em; }
-.sidebar-section-label { margin: 34px 10px 12px; color: #8190a7; font-size: 9px; font-weight: 700; letter-spacing: .13em; white-space: nowrap; }
-.sidebar-nav { display: grid; gap: 5px; }
+.sidebar-section-label { overflow: hidden; margin: 13px 10px 6px; color: #8190a7; font-size: 9px; font-weight: 700; letter-spacing: .13em; white-space: nowrap; }
+.sidebar-nav { min-height: 0; display: grid; flex: 1; align-content: start; gap: 10px; overflow-y: auto; padding-bottom: 12px; }
+.sidebar-nav-section { display: grid; align-content: start; gap: 4px; }
+.sidebar-nav-section:first-child .sidebar-section-label { margin-top: 24px; }
 .sidebar-link, .sidebar-logout { min-height: 44px; display: flex; align-items: center; gap: 13px; padding: 0 12px; border: 0; border-radius: 9px; color: #cbd5e1; background: transparent; font-size: 13px; font-weight: 550; text-align: left; text-decoration: none; transition: color .15s, background .15s; }
 .sidebar-link-icon { width: 19px; height: 19px; flex: 0 0 auto; filter: brightness(0) invert(1); opacity: .8; }
 .sidebar-link:hover, .sidebar-logout:hover { color: #fff; background: #ffffff0d; }

@@ -1,12 +1,23 @@
 <script setup>
+import { computed } from 'vue'
+import { adminNavigation, canOpenModule, navigationSections } from '@/data/permissions'
 import libraryIcon from '@/assets/icons/square-library.svg'
+import bookIcon from '@/assets/icons/book-open-text.svg'
+import readerIcon from '@/assets/icons/user.svg'
+import borrowIcon from '@/assets/icons/book-lock.svg'
+import publisherIcon from '@/assets/icons/publisher.svg'
 
-defineProps({
+const props = defineProps({
   user: { type: Object, default: null },
   staffInitial: { type: String, default: 'N' },
 })
 
 const emit = defineEmits(['close-mobile', 'logout'])
+const visibleSections = computed(() => navigationSections.map((section) => ({
+  ...section,
+  items: adminNavigation.filter((item) => item.section === section.key && canOpenModule(props.user?.chucVu, item.key)),
+})).filter((section) => section.items.length))
+const iconByName = { 'square-library': libraryIcon, 'book-open-text': bookIcon, user: readerIcon, 'book-lock': borrowIcon, publisher: publisherIcon }
 </script>
 
 <template>
@@ -16,12 +27,14 @@ const emit = defineEmits(['close-mobile', 'logout'])
       <span class="sidebar-brand-copy"><strong>QLMS</strong><small>QUẢN LÝ THƯ VIỆN</small></span>
     </RouterLink>
 
-    <p class="sidebar-section-label">KHÔNG GIAN LÀM VIỆC</p>
     <nav class="sidebar-nav" aria-label="Chức năng chính">
-      <RouterLink class="sidebar-link" active-class="is-active" to="/dashboard" @click="emit('close-mobile')">
-        <img class="sidebar-link-icon" :src="libraryIcon" alt="" aria-hidden="true">
-        <span class="sidebar-link-label">Tổng quan</span>
-      </RouterLink>
+      <section v-for="section in visibleSections" :key="section.key" class="sidebar-nav-section">
+        <p class="sidebar-section-label">{{ section.label }}</p>
+        <RouterLink v-for="item in section.items" :key="item.key" class="sidebar-link" active-class="is-active" exact-active-class="is-exact-active" :to="item.to" @click="emit('close-mobile')">
+          <img class="sidebar-link-icon" :src="iconByName[item.icon]" alt="" aria-hidden="true">
+          <span class="sidebar-link-label">{{ item.label }}</span>
+        </RouterLink>
+      </section>
     </nav>
 
     <div class="sidebar-bottom">

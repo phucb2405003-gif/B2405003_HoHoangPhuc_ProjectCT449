@@ -1,0 +1,34 @@
+.borrow-management { max-width: 1300px; margin: 0 auto; }
+.borrow-management .management-heading { margin-bottom: 21px; }
+.borrow-management .management-heading h2 { margin: 6px 0 0; color: var(--admin-ink); font-size: 26px; font-weight: 700; letter-spacing: -.035em; }
+.borrow-management .management-heading p { margin: 6px 0 0; color: var(--admin-muted); }
+.borrow-table { min-width: 820px; }
+.borrow-table .table-actions-heading { min-width: 130px; }
+.borrow-dialog { position: relative; width: min(100%, 720px); max-height: min(90vh, 820px); overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 24px 80px #0b12203d; }
+.borrow-dialog__body { padding: 19px 24px 23px; }
+.borrow-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 13px 20px; padding-bottom: 18px; border-bottom: 1px solid #edf1f6; }
+.borrow-summary-grid > div { min-width: 0; display: grid; justify-items: start; gap: 5px; }
+.borrow-summary-grid > div > span { color: #8995a7; font-size: 10px; }
+.borrow-summary-grid strong { overflow-wrap: anywhere; color: #30415a; font-size: 12px; font-weight: 650; }
+.borrow-books-title { display: flex; align-items: center; gap: 8px; margin: 17px 0 9px; color: #263750; font-size: 12px; font-weight: 700; }
+.borrow-books-title span { min-width: 19px; padding: 1px 5px; border-radius: 999px; color: #4c6384; background: #edf2f8; font-size: 9px; text-align: center; }
+.borrow-books-list { display: grid; border-top: 1px solid #edf1f6; }
+.borrow-book-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 12px 2px; border-bottom: 1px solid #edf1f6; }
+.borrow-book-copy { min-width: 0; display: grid; gap: 3px; }
+.borrow-book-copy strong { overflow: hidden; color: #34445d; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.borrow-book-copy small { color: #8995a7; font-size: 9px; }
+.borrow-rejection-note { margin: 14px 0; padding: 10px 12px; border: 1px solid #fecaca; border-radius: 8px; color: #8f2821; background: #fef2f2; font-size: 11px; }
+.borrow-rejection-note strong { font-weight: 700; }
+.reject-form { display: grid; gap: 7px; margin-top: 17px; }
+.reject-form label { color: #3e4f67; font-size: 11px; font-weight: 650; }
+.reject-form label b { color: var(--admin-error); }
+.borrow-dialog__actions { flex-wrap: wrap; }
+
+@media (max-width: 600px) {
+  .borrow-management .management-heading h2 { font-size: 23px; }
+  .borrow-summary-grid { grid-template-columns: 1fr; gap: 10px; }
+  .borrow-dialog__body { padding: 16px 18px 19px; }
+  .borrow-book-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .borrow-book-row .table-action { grid-column: 1 / -1; justify-self: end; }
+  .borrow-dialog__actions .button { flex: 1; }
+}
