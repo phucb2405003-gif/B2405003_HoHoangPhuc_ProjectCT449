@@ -1,12 +1,12 @@
 import { API_BASE_URL } from './apiConfig'
 
-async function request(path, token, options = {}) {
+async function request(path, token, options = {}, fallbackMessage = 'Không thể hoàn tất yêu cầu mượn sách.') {
   let response
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         ...options.headers,
       },
@@ -23,7 +23,7 @@ async function request(path, token, options = {}) {
   }
 
   if (!response.ok) {
-    const error = new Error(payload?.message || 'Không thể hoàn tất yêu cầu mượn sách.')
+    const error = new Error(payload?.message || fallbackMessage)
     error.status = response.status
     throw error
   }
@@ -31,12 +31,12 @@ async function request(path, token, options = {}) {
   return payload
 }
 
-export function getBook(maSach, token) {
-  return request(`/api/books/${encodeURIComponent(maSach)}`, token)
+export function getBook(maSach, token = null) {
+  return request(`/api/books/${encodeURIComponent(maSach)}`, token, {}, 'Không thể tải thông tin sách.')
 }
 
-export function getBooks(token) {
-  return request('/api/books', token)
+export function getBooks(token = null) {
+  return request('/api/books', token, {}, 'Không thể tải danh sách sách.')
 }
 
 export function getMyBorrows(token) {

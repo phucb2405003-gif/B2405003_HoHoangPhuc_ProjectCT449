@@ -1,4 +1,3 @@
-import { getReaderAccessToken, initializeAuth, logoutReader } from './authService'
 import { getBook, getBooks } from './borrowingService'
 
 function invalidBookResponse() {
@@ -32,32 +31,13 @@ function normalizeBook(book) {
   }
 }
 
-async function withReaderToken(request) {
-  await initializeAuth()
-  const token = getReaderAccessToken()
-  if (!token) {
-    const error = new Error('Vui lòng đăng nhập để xem danh mục sách.')
-    error.status = 401
-    throw error
-  }
-
-  try {
-    return await request(token)
-  } catch (error) {
-    if (error?.status === 401) logoutReader()
-    throw error
-  }
-}
-
 export async function getBookCatalog() {
-  return withReaderToken(async (token) => {
-    const books = await getBooks(token)
-    if (!Array.isArray(books)) throw invalidBookResponse()
-    return books.map(normalizeBook)
-  })
+  const books = await getBooks()
+  if (!Array.isArray(books)) throw invalidBookResponse()
+  return books.map(normalizeBook)
 }
 
 export async function getBookByCode(maSach) {
   if (typeof maSach !== 'string' || !maSach.trim()) throw invalidBookResponse()
-  return withReaderToken(async (token) => normalizeBook(await getBook(maSach, token)))
+  return normalizeBook(await getBook(maSach))
 }

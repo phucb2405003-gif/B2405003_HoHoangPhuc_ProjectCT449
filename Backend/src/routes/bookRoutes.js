@@ -8,13 +8,11 @@ const router = express.Router();
 
 router.get(
     "/",
-    authenticateToken,
     bookController.findAll
 );
 
 router.get(
     "/:maSach",
-    authenticateToken,
     bookController.findOne
 );
 
