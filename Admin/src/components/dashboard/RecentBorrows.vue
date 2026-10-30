@@ -1,8 +1,8 @@
 <script setup>
 import StatusBadge from '@/components/common/StatusBadge.vue'
 
-defineProps({ rows: { type: Array, default: () => [] } })
-const variants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn tất': 'success', 'Đã từ chối': 'danger', 'Đã hủy': 'neutral' }
+defineProps({ rows: { type: Array, default: () => [] }, error: { type: String, default: '' } })
+const variants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
 </script>
 
 <template>
@@ -24,10 +24,11 @@ const variants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn t
           <tr v-for="row in rows" :key="row.maPhieu">
             <td><strong class="table-strong">{{ row.maPhieu }}</strong></td>
             <td>{{ row.tenDocGia }}</td>
-            <td>{{ new Date(`${row.ngayYeuCau}T00:00:00`).toLocaleDateString('vi-VN') }}</td>
+            <td>{{ row.ngayYeuCau || '—' }}</td>
             <td><StatusBadge :value="row.trangThai" :variants="variants" /></td>
           </tr>
-          <tr v-if="!rows.length"><td class="table-empty" colspan="4">Chưa có phiếu mượn.</td></tr>
+          <tr v-if="error"><td class="table-empty" colspan="4">{{ error }}</td></tr>
+          <tr v-else-if="!rows.length"><td class="table-empty" colspan="4">Chưa có phiếu mượn.</td></tr>
         </tbody>
       </table>
     </div>

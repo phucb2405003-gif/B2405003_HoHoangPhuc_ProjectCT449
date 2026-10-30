@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 
-const props = defineProps({ data: { type: Array, required: true } })
+const props = defineProps({ data: { type: Array, required: true }, error: { type: String, default: '' } })
 const maxValue = computed(() => Math.max(...props.data.map((item) => item.count), 1))
 </script>
 
@@ -11,7 +11,8 @@ const maxValue = computed(() => Math.max(...props.data.map((item) => item.count)
       <div><h3 id="trend-title">Tình hình mượn sách</h3><p>Số phiếu theo tháng</p></div>
       <span class="chart-legend"><i></i> Phiếu mượn</span>
     </header>
-    <p v-if="!data.length" class="trend-empty" role="status">Chưa có dữ liệu mượn sách.</p>
+    <p v-if="error" class="trend-empty" role="status">{{ error }}</p>
+    <p v-else-if="!data.length" class="trend-empty" role="status">Chưa có dữ liệu mượn sách.</p>
     <div v-else class="trend-chart" role="img" aria-label="Biểu đồ cột số phiếu mượn trong sáu tháng gần đây">
       <div v-for="item in data" :key="item.month" class="trend-column" :aria-label="`${item.month}: ${item.count} phiếu`">
         <strong>{{ item.count }}</strong>
