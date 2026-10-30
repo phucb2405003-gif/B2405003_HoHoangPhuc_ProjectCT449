@@ -62,7 +62,7 @@ function submit() {
               <span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span>
               <strong>{{ record[config.codeField] || 'Mã sẽ được tạo tự động' }}</strong>
             </div>
-            <label v-for="field in (mode === 'edit' ? config.fields.filter((item) => !item.createOnly) : config.fields)" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
+            <label v-for="field in (mode === 'edit' ? config.fields.filter((item) => !item.createOnly) : mode === 'create' && config.createFieldsOnly ? config.fields.filter((item) => item.createOnly) : config.fields)" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
               <span>{{ field.label }}<b v-if="field.required" aria-hidden="true"> *</b></span>
               <select v-if="field.type === 'select'" v-model="values[field.key]" :disabled="busy">
                 <option v-if="field.optionsFrom === 'publishers' && !publishers.length" value="" disabled>Chưa có nhà xuất bản</option>
@@ -81,7 +81,7 @@ function submit() {
 
         <div v-else class="entity-detail-grid">
           <div class="entity-detail-item"><span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span><strong>{{ record[config.codeField] || '—' }}</strong></div>
-          <div v-for="field in config.fields" :key="field.key" class="entity-detail-item" :class="{ 'entity-detail-item--wide': field.wide }">
+          <div v-for="field in config.fields.filter((item) => item.showInDetail !== false)" :key="field.key" class="entity-detail-item" :class="{ 'entity-detail-item--wide': field.wide }">
             <span>{{ field.label }}</span>
             <StatusBadge v-if="field.key === 'trangThai' && config.statusVariants" :value="record[field.key]" :variants="config.statusVariants" :boolean-status="config.key === 'accounts'" />
             <strong v-else>{{ fieldValue(field) }}</strong>

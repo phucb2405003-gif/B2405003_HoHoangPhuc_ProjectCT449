@@ -5,6 +5,7 @@ import { createPublisher, deletePublisher, getPublishers, updatePublisher } from
 import { addBookStock, createBook, deleteBook, destroyBookStock, getBooks, updateBook } from '@/services/bookService'
 import { createReader, getReader, getReaders, updateReader, updateReaderStatus } from '@/services/readerService'
 import { createEmployee, getEmployee, getEmployees, updateEmployee } from '@/services/employeeService'
+import { createAccountForProfile, getAccount, getAccounts, updateAccountStatus } from '@/services/accountService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -23,11 +24,13 @@ export default function useEntityManagement(config) {
   const isBook = config.key === 'books'
   const isReader = config.key === 'readers'
   const isEmployee = config.key === 'employees'
-  const isRemoteEntity = isPublisher || isBook || isReader || isEmployee
+  const isAccount = config.key === 'accounts'
+  const isRemoteEntity = isPublisher || isBook || isReader || isEmployee || isAccount
   const publisherRows = ref([])
   const bookRows = ref([])
   const readerRows = ref([])
   const employeeRows = ref([])
+  const accountRows = ref([])
   const bookPublisherRows = ref([])
   const loading = ref(false)
   const loadError = ref('')
@@ -42,7 +45,7 @@ export default function useEntityManagement(config) {
   const credentials = ref(null)
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : isEmployee ? employeeRows.value : entityStore[config.key])
+  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : isEmployee ? employeeRows.value : isAccount ? accountRows.value : entityStore[config.key])
   const publisherOptions = computed(() => isBook ? bookPublisherRows.value : entityStore.publishers)
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
@@ -122,10 +125,20 @@ export default function useEntityManagement(config) {
     finally { loading.value = false }
   }
 
+  async function loadAccounts() {
+    loading.value = true
+    loadError.value = ''
+    operationError.value = ''
+    try { accountRows.value = await getAccounts() }
+    catch (error) { accountRows.value = []; loadError.value = error.message || 'Không thể tải danh sách tài khoản.' }
+    finally { loading.value = false }
+  }
+
   if (isPublisher) onMounted(loadPublishers)
   if (isBook) onMounted(loadBooks)
   if (isReader) onMounted(loadReaders)
   if (isEmployee) onMounted(loadEmployees)
+  if (isAccount) onMounted(loadAccounts)
 
   function openCreate() {
     validationErrors.value = {}
@@ -165,6 +178,10 @@ export default function useEntityManagement(config) {
       try { currentRecord.value = await getEmployee(row.maNhanVien) }
       catch (error) { operationError.value = error.message || 'Không thể tải chi tiết nhân viên.' }
     }
+    if (isAccount) {
+      try { currentRecord.value = await getAccount(row.maTaiKhoan) }
+      catch (error) { operationError.value = error.message || 'Không thể tải chi tiết tài khoản.' }
+    }
   }
 
   function closeDialog() {
@@ -197,6 +214,9 @@ export default function useEntityManagement(config) {
         }
       }
     }
+    if (isAccount && dialogMode.value === 'create' && !/^(?:DG|NV)-\d{2}-\d{6}$/.test(String(record.maTaiKhoan || '').trim())) {
+      errors.maTaiKhoan = 'Nhập mã hồ sơ theo định dạng DG-YY-000001 hoặc NV-YY-000001.'
+    }
     const code = String(record[config.codeField] || '').trim().toLocaleLowerCase('vi')
     const duplicate = rows.value.some((row) => String(row[config.codeField]).toLocaleLowerCase('vi') === code && row[config.codeField] !== currentRecord.value[config.codeField])
     if (code && duplicate) errors[config.codeField] = 'Mã này đã tồn tại.'
@@ -207,7 +227,7 @@ export default function useEntityManagement(config) {
   async function saveRecord(record) {
     if (!canManage.value || !validate(record)) return
     if (isRemoteEntity && isSaving.value) return
-    const fields = config.fields.filter((field) => !((isBook || isEmployee) && dialogMode.value === 'edit' && field.createOnly))
+    const fields = config.fields.filter((field) => !((isBook || isEmployee) && dialogMode.value === 'edit' && field.createOnly) && !(isAccount && dialogMode.value === 'create' && config.createFieldsOnly && !field.createOnly))
     const normalized = Object.fromEntries(fields.map((field) => [field.key, record[field.key]]))
     for (const key of config.additionalFields || []) normalized[key] = String(record[key] || '').trim()
     if (!isRemoteEntity) normalized[config.codeField] = currentRecord.value[config.codeField]
@@ -322,6 +342,26 @@ export default function useEntityManagement(config) {
           operationError.value = ''
           closeDialog()
         } else operationError.value = error.message || 'Không thể lưu hồ sơ nhân viên.'
+      } finally { isSaving.value = false }
+      return
+    }
+
+    if (isAccount) {
+      isSaving.value = true
+      operationError.value = ''
+      try {
+        const result = await createAccountForProfile(normalized.maTaiKhoan)
+        const index = accountRows.value.findIndex((row) => row.maTaiKhoan === result.account.maTaiKhoan)
+        if (index < 0) accountRows.value.unshift(result.account)
+        else accountRows.value.splice(index, 1, result.account)
+        page.value = 1
+        credentials.value = canManage.value
+          ? { profileId: result.account.maTaiKhoan, profileLabel: 'Mã tài khoản/hồ sơ', tenDangNhap: result.account.tenDangNhap, initialPassword: result.initialPassword }
+          : null
+        actionNotice.value = 'Đã tạo tài khoản cho hồ sơ.'
+        closeDialog()
+      } catch (error) {
+        operationError.value = error.message || 'Không thể tạo tài khoản cho hồ sơ.'
       } finally { isSaving.value = false }
       return
     }
@@ -483,6 +523,23 @@ export default function useEntityManagement(config) {
       confirmOpen.value = false
       return
     }
+    if (isAccount && pendingStatusChange.value) {
+      if (!canManage.value || isStatusOperation.value) return
+      isStatusOperation.value = true
+      operationError.value = ''
+      try {
+        const row = pendingStatusChange.value
+        const account = await updateAccountStatus(row.maTaiKhoan, !row.trangThai)
+        const index = accountRows.value.findIndex((item) => item.maTaiKhoan === account.maTaiKhoan)
+        if (index >= 0) accountRows.value.splice(index, 1, account)
+        actionNotice.value = account.trangThai ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.'
+        pendingStatusChange.value = null
+        confirmOpen.value = false
+      } catch (error) {
+        operationError.value = error.message || 'Không thể cập nhật trạng thái tài khoản.'
+      } finally { isStatusOperation.value = false }
+      return
+    }
     const row = pendingStatusChange.value
     const action = config.statusAction
     if (canManage.value && row && action) row[action.key] = row[action.key] === action.activeValue ? action.inactiveValue : action.activeValue
@@ -503,7 +560,9 @@ export default function useEntityManagement(config) {
     return pendingStatusChange.value?.[statusAction?.key] === statusAction?.activeValue ? 'Khóa tài khoản?' : 'Mở khóa tài khoản?'
   })
   const confirmMessage = computed(() => pendingStatusChange.value
-    ? `Thao tác này chỉ có hiệu lực trong phiên hiện tại đối với tài khoản ${pendingStatusChange.value.tenDangNhap}.`
+    ? isAccount
+      ? `${pendingStatusChange.value.trangThai ? 'Xác nhận khóa' : 'Xác nhận mở khóa'} tài khoản ${pendingStatusChange.value.tenDangNhap}?`
+      : `Thao tác này chỉ có hiệu lực trong phiên hiện tại đối với tài khoản ${pendingStatusChange.value.tenDangNhap}.`
     : pendingDeletion.value ? isPublisher
       ? `Xác nhận xóa nhà xuất bản (${pendingDeletion.value[config.codeField]})? Nhà xuất bản đang được sách sử dụng sẽ không thể xóa.`
       : isBook
@@ -513,7 +572,7 @@ export default function useEntityManagement(config) {
 
   return {
     search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-    isPublisher, isBook, isReader, isEmployee, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders, loadEmployees,
+    isPublisher, isBook, isReader, isEmployee, isAccount, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders, loadEmployees, loadAccounts,
     tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
     dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,
