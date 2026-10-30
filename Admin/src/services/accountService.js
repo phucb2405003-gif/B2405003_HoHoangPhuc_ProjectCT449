@@ -19,6 +19,8 @@ function normalizeAccount(account) {
 
 function translateAccountError(error, operation) {
   if (!(error instanceof ApiError)) return error
+  if (operation === 'reset-password' && error.status === 400) return new Error(error.backendMessage || 'Mật khẩu mới không đáp ứng chính sách của Backend.')
+  if (operation === 'reset-password' && error.status === 404) return new Error(error.backendMessage || 'Không tìm thấy tài khoản cần đặt lại mật khẩu.')
   if (error.status === 400) return new Error(operation === 'create' ? 'Mã hồ sơ không hợp lệ hoặc hồ sơ liên kết không tồn tại.' : 'Yêu cầu tài khoản không hợp lệ.')
   if (error.status === 404) return new Error('Không tìm thấy tài khoản hoặc hồ sơ liên kết.')
   if (error.status === 409) return new Error('Tài khoản cho hồ sơ này đã tồn tại hoặc thông tin đang xung đột.')
@@ -58,5 +60,12 @@ export async function updateAccountStatus(maTaiKhoan, trangThai) {
   return withAccountErrors('update', async () => normalizeAccount(await apiClient.put(
     `${ACCOUNTS_PATH}/${encodeURIComponent(maTaiKhoan)}`,
     { trangThai },
+  )))
+}
+
+export async function resetAccountPassword(maTaiKhoan, password) {
+  return withAccountErrors('reset-password', async () => normalizeAccount(await apiClient.put(
+    `${ACCOUNTS_PATH}/${encodeURIComponent(maTaiKhoan)}`,
+    { password },
   )))
 }

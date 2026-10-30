@@ -9,6 +9,7 @@ import PaginationControl from './PaginationControl.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import StockAdjustmentDialog from './StockAdjustmentDialog.vue'
 import ReaderStatusDialog from './ReaderStatusDialog.vue'
+import ResetAccountPasswordDialog from './ResetAccountPasswordDialog.vue'
 import './ManagementView.css'
 
 const props = defineProps({ moduleKey: { type: String, required: true } })
@@ -22,6 +23,7 @@ const {
   actionNotice,
   openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestStockAdjustment, confirmStockAdjustment, closeStockDialog, requestDelete, confirmStatusChange, closeConfirmation,
   statusDialogOpen, pendingStatusChange, isStatusOperation, saveReaderStatus, closeReaderStatus, credentials, closeCredentials,
+  resetPasswordDialogOpen, resetPasswordTarget, isResettingPassword, resetPasswordError, requestPasswordReset, confirmPasswordReset, closePasswordReset,
 } = useEntityManagement(config)
 </script>
 
@@ -65,7 +67,7 @@ const {
         </div>
       </div>
 
-      <DataTable :config="config" :rows="tableRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" @add-stock="requestStockAdjustment($event, 'add')" @destroy-stock="requestStockAdjustment($event, 'destroy')" />
+      <DataTable :config="config" :rows="tableRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" @add-stock="requestStockAdjustment($event, 'add')" @destroy-stock="requestStockAdjustment($event, 'destroy')" @reset-password="requestPasswordReset" />
       <PaginationControl :page="page" :page-count="pageCount" :total="filteredRows.length" :page-size="pageSize" @change="page = $event" />
       </template>
     </section>
@@ -103,6 +105,7 @@ const {
       @close="closeStockDialog"
     />
     <ReaderStatusDialog :open="statusDialogOpen" :reader="pendingStatusChange" :options="config.statusOptions || []" :busy="isStatusOperation" :error="operationError" @save="saveReaderStatus" @close="closeReaderStatus" />
+    <ResetAccountPasswordDialog :open="resetPasswordDialogOpen" :account="resetPasswordTarget" :busy="isResettingPassword" :error="resetPasswordError" @confirm="confirmPasswordReset" @close="closePasswordReset" />
     <ConfirmDialog v-if="credentials" :open="true" title="Đã tạo tài khoản" :message="`${credentials.profileLabel}: ${credentials.profileId} · Tên đăng nhập: ${credentials.tenDangNhap} · Mật khẩu khởi tạo: ${credentials.initialPassword}. Hãy ghi nhận mật khẩu trước khi đóng.`" confirm-label="Đã ghi nhận" @confirm="closeCredentials" @close="closeCredentials" />
   </section>
 </template>

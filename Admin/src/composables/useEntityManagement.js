@@ -5,7 +5,7 @@ import { createPublisher, deletePublisher, getPublishers, updatePublisher } from
 import { addBookStock, createBook, deleteBook, destroyBookStock, getBooks, updateBook } from '@/services/bookService'
 import { createReader, getReader, getReaders, updateReader, updateReaderStatus } from '@/services/readerService'
 import { createEmployee, getEmployee, getEmployees, updateEmployee } from '@/services/employeeService'
-import { createAccountForProfile, getAccount, getAccounts, updateAccountStatus } from '@/services/accountService'
+import { createAccountForProfile, getAccount, getAccounts, resetAccountPassword as sendAccountPasswordReset, updateAccountStatus } from '@/services/accountService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -43,6 +43,10 @@ export default function useEntityManagement(config) {
   const isStockOperation = ref(false)
   const isStatusOperation = ref(false)
   const credentials = ref(null)
+  const resetPasswordDialogOpen = ref(false)
+  const resetPasswordTarget = ref(null)
+  const isResettingPassword = ref(false)
+  const resetPasswordError = ref('')
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
   const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : isEmployee ? employeeRows.value : isAccount ? accountRows.value : entityStore[config.key])
@@ -412,6 +416,36 @@ export default function useEntityManagement(config) {
 
   function closeCredentials() { credentials.value = null }
 
+  function requestPasswordReset(row) {
+    if (!isAccount || !canManage.value || isResettingPassword.value) return
+    resetPasswordTarget.value = row
+    resetPasswordError.value = ''
+    resetPasswordDialogOpen.value = true
+  }
+
+  async function confirmPasswordReset(password) {
+    if (!isAccount || !canManage.value || isResettingPassword.value || !resetPasswordTarget.value) return
+    isResettingPassword.value = true
+    resetPasswordError.value = ''
+    try {
+      const updated = await sendAccountPasswordReset(resetPasswordTarget.value.maTaiKhoan, password)
+      const index = accountRows.value.findIndex((row) => row.maTaiKhoan === updated.maTaiKhoan)
+      if (index >= 0) accountRows.value.splice(index, 1, updated)
+      actionNotice.value = `Đã đặt lại mật khẩu cho tài khoản ${updated.tenDangNhap}.`
+      resetPasswordDialogOpen.value = false
+      resetPasswordTarget.value = null
+    } catch (error) {
+      resetPasswordError.value = error.message || 'Không thể đặt lại mật khẩu.'
+    } finally { isResettingPassword.value = false }
+  }
+
+  function closePasswordReset() {
+    if (isResettingPassword.value) return
+    resetPasswordDialogOpen.value = false
+    resetPasswordTarget.value = null
+    resetPasswordError.value = ''
+  }
+
   function requestStockAdjustment(book, mode) {
     operationError.value = ''
     actionNotice.value = ''
@@ -578,5 +612,6 @@ export default function useEntityManagement(config) {
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,
     openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestStockAdjustment, confirmStockAdjustment, closeStockDialog, requestDelete, confirmStatusChange, closeConfirmation,
     statusDialogOpen, pendingStatusChange, isStatusOperation, saveReaderStatus, closeReaderStatus, credentials, closeCredentials,
+    resetPasswordDialogOpen, resetPasswordTarget, isResettingPassword, resetPasswordError, requestPasswordReset, confirmPasswordReset, closePasswordReset,
   }
 }

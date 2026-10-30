@@ -8,7 +8,7 @@ defineProps({
   canManage: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete', 'add-stock', 'destroy-stock'])
+const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete', 'add-stock', 'destroy-stock', 'reset-password'])
 
 function displayDate(value) {
   if (!value) return '—'
@@ -36,6 +36,7 @@ function displayDate(value) {
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
             <button v-if="canManage && !config.hideEdit" class="table-action" type="button" @click="emit('edit', row)"><img class="table-action__icon" :src="editIcon" alt="" aria-hidden="true">Sửa</button>
+            <button v-if="canManage && config.key === 'accounts'" class="table-action" type="button" :aria-label="`Đặt lại mật khẩu cho ${row.tenDangNhap}`" @click="emit('reset-password', row)">Đặt lại mật khẩu</button>
             <button v-if="canManage && config.stockActions" class="table-action table-action--positive" type="button" @click="emit('add-stock', row)">Bổ sung</button>
             <button v-if="canManage && config.stockActions" class="table-action table-action--danger" type="button" @click="emit('destroy-stock', row)">Tiêu hủy</button>
             <button
