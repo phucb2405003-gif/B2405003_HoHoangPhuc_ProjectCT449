@@ -4,6 +4,7 @@ import { entityStore } from '@/data/entityStore'
 import { createPublisher, deletePublisher, getPublishers, updatePublisher } from '@/services/publisherService'
 import { addBookStock, createBook, deleteBook, destroyBookStock, getBooks, updateBook } from '@/services/bookService'
 import { createReader, getReader, getReaders, updateReader, updateReaderStatus } from '@/services/readerService'
+import { createEmployee, getEmployee, getEmployees, updateEmployee } from '@/services/employeeService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -21,10 +22,12 @@ export default function useEntityManagement(config) {
   const isPublisher = config.key === 'publishers'
   const isBook = config.key === 'books'
   const isReader = config.key === 'readers'
-  const isRemoteEntity = isPublisher || isBook || isReader
+  const isEmployee = config.key === 'employees'
+  const isRemoteEntity = isPublisher || isBook || isReader || isEmployee
   const publisherRows = ref([])
   const bookRows = ref([])
   const readerRows = ref([])
+  const employeeRows = ref([])
   const bookPublisherRows = ref([])
   const loading = ref(false)
   const loadError = ref('')
@@ -39,7 +42,7 @@ export default function useEntityManagement(config) {
   const credentials = ref(null)
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : entityStore[config.key])
+  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : isReader ? readerRows.value : isEmployee ? employeeRows.value : entityStore[config.key])
   const publisherOptions = computed(() => isBook ? bookPublisherRows.value : entityStore.publishers)
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
@@ -110,9 +113,19 @@ export default function useEntityManagement(config) {
     finally { loading.value = false }
   }
 
+  async function loadEmployees() {
+    loading.value = true
+    loadError.value = ''
+    operationError.value = ''
+    try { employeeRows.value = await getEmployees() }
+    catch (error) { employeeRows.value = []; loadError.value = error.message || 'Không thể tải danh sách nhân viên.' }
+    finally { loading.value = false }
+  }
+
   if (isPublisher) onMounted(loadPublishers)
   if (isBook) onMounted(loadBooks)
   if (isReader) onMounted(loadReaders)
+  if (isEmployee) onMounted(loadEmployees)
 
   function openCreate() {
     validationErrors.value = {}
@@ -148,6 +161,10 @@ export default function useEntityManagement(config) {
       try { currentRecord.value = await getReader(row.maDocGia) }
       catch (error) { operationError.value = error.message || 'Không thể tải chi tiết độc giả.' }
     }
+    if (isEmployee) {
+      try { currentRecord.value = await getEmployee(row.maNhanVien) }
+      catch (error) { operationError.value = error.message || 'Không thể tải chi tiết nhân viên.' }
+    }
   }
 
   function closeDialog() {
@@ -163,7 +180,7 @@ export default function useEntityManagement(config) {
         errors[field.key] = 'Vui lòng nhập thông tin này.'
       } else if (field.required && typeof value === 'string' && !value.trim()) {
         errors[field.key] = 'Vui lòng nhập thông tin này.'
-      } else if (field.minLength && String(value ?? '').trim().length < field.minLength) {
+      } else if (field.minLength && String(value ?? '').trim() && String(value).trim().length < field.minLength) {
         errors[field.key] = `Tối thiểu ${field.minLength} ký tự.`
       } else if (field.type === 'number' && value !== '' && (Number(value) < field.min || Number(value) > field.max)) {
         errors[field.key] = `Giá trị phải từ ${field.min} đến ${field.max ?? 'không giới hạn'}.`
@@ -172,6 +189,13 @@ export default function useEntityManagement(config) {
 
     if (isBook && dialogMode.value !== 'edit' && !Number.isSafeInteger(Number(record.soQuyen))) {
       errors.soQuyen = 'Tổng số lượng phải là số nguyên an toàn không âm.'
+    }
+    if (isEmployee && dialogMode.value === 'edit') {
+      for (const key of ['diaChi', 'soDienThoai']) {
+        if (String(currentRecord.value[key] || '').trim() && !String(record[key] || '').trim()) {
+          errors[key] = 'Backend hiện không hỗ trợ xóa giá trị này; hãy nhập giá trị mới hoặc giữ nguyên.'
+        }
+      }
     }
     const code = String(record[config.codeField] || '').trim().toLocaleLowerCase('vi')
     const duplicate = rows.value.some((row) => String(row[config.codeField]).toLocaleLowerCase('vi') === code && row[config.codeField] !== currentRecord.value[config.codeField])
@@ -183,7 +207,7 @@ export default function useEntityManagement(config) {
   async function saveRecord(record) {
     if (!canManage.value || !validate(record)) return
     if (isRemoteEntity && isSaving.value) return
-    const fields = config.fields.filter((field) => !(isBook && dialogMode.value === 'edit' && field.createOnly))
+    const fields = config.fields.filter((field) => !((isBook || isEmployee) && dialogMode.value === 'edit' && field.createOnly))
     const normalized = Object.fromEntries(fields.map((field) => [field.key, record[field.key]]))
     for (const key of config.additionalFields || []) normalized[key] = String(record[key] || '').trim()
     if (!isRemoteEntity) normalized[config.codeField] = currentRecord.value[config.codeField]
@@ -247,7 +271,7 @@ export default function useEntityManagement(config) {
           if (index < 0) readerRows.value.unshift(result.reader)
           page.value = 1
           credentials.value = result.accountCreation?.created && canManage.value
-            ? { maDocGia: result.reader.maDocGia, tenDangNhap: result.accountCreation.tenDangNhap, initialPassword: result.accountCreation.initialPassword }
+            ? { profileId: result.reader.maDocGia, profileLabel: 'Mã độc giả', tenDangNhap: result.accountCreation.tenDangNhap, initialPassword: result.accountCreation.initialPassword }
             : null
           actionNotice.value = 'Đã tạo hồ sơ độc giả và tài khoản.'
         } else {
@@ -265,6 +289,39 @@ export default function useEntityManagement(config) {
           operationError.value = ''
           closeDialog()
         } else operationError.value = error.message || 'Không thể lưu hồ sơ độc giả.'
+      } finally { isSaving.value = false }
+      return
+    }
+
+    if (isEmployee) {
+      isSaving.value = true
+      operationError.value = ''
+      try {
+        const creating = dialogMode.value === 'create'
+        if (creating) {
+          const result = await createEmployee(normalized)
+          const index = employeeRows.value.findIndex((row) => row.maNhanVien === result.employee.maNhanVien)
+          if (index < 0) employeeRows.value.unshift(result.employee)
+          page.value = 1
+          credentials.value = result.accountCreation?.created && canManage.value
+            ? { profileId: result.employee.maNhanVien, profileLabel: 'Mã nhân viên', tenDangNhap: result.accountCreation.tenDangNhap, initialPassword: result.accountCreation.initialPassword }
+            : null
+          actionNotice.value = 'Đã tạo hồ sơ nhân viên và tài khoản.'
+        } else {
+          const employee = await updateEmployee(currentRecord.value.maNhanVien, normalized)
+          const index = employeeRows.value.findIndex((row) => row.maNhanVien === employee.maNhanVien)
+          if (index >= 0) employeeRows.value.splice(index, 1, employee)
+          actionNotice.value = 'Đã cập nhật hồ sơ nhân viên.'
+        }
+        closeDialog()
+      } catch (error) {
+        const data = error.responseData
+        if (data?.profileCreated === true && data?.accountCreated === false && typeof data.maNhanVien === 'string') {
+          actionNotice.value = `Đã tạo hồ sơ nhân viên ${data.maNhanVien}, nhưng chưa tạo được tài khoản. Hãy tạo tài khoản thủ công cho mã hồ sơ này.`
+          await loadEmployees()
+          operationError.value = ''
+          closeDialog()
+        } else operationError.value = error.message || 'Không thể lưu hồ sơ nhân viên.'
       } finally { isSaving.value = false }
       return
     }
@@ -456,7 +513,7 @@ export default function useEntityManagement(config) {
 
   return {
     search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-    isPublisher, isBook, isReader, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders,
+    isPublisher, isBook, isReader, isEmployee, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders, loadEmployees,
     tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
     dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,

@@ -82,12 +82,14 @@ export const entityConfigs = {
       { key: 'hoTen', label: 'Họ và tên' },
       { key: 'chucVu', label: 'Chức vụ', type: 'status' },
       { key: 'soDienThoai', label: 'Số điện thoại' },
+      { key: 'diaChi', label: 'Địa chỉ' },
     ],
     statusVariants: { 'Quản lý': 'info', 'Thủ thư': 'neutral' },
     fields: [
       { key: 'hoTen', label: 'Họ và tên', required: true, wide: true },
-      { key: 'chucVu', label: 'Chức vụ', type: 'select', required: true, options: employeeOptions },
-      { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', required: true, minLength: 9 },
+      { key: 'chucVu', label: 'Chức vụ', type: 'select', required: true, options: employeeOptions, createOnly: true },
+      { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', minLength: 9 },
+      { key: 'diaChi', label: 'Địa chỉ', type: 'textarea', wide: true },
     ],
   },
   accounts: {

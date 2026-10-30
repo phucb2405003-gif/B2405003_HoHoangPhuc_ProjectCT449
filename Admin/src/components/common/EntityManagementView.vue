@@ -15,7 +15,7 @@ const props = defineProps({ moduleKey: { type: String, required: true } })
 const config = entityConfigs[props.moduleKey]
 const {
   search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-  isPublisher, isBook, isReader, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders,
+  isPublisher, isBook, isReader, isEmployee, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks, loadReaders, loadEmployees,
   tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
   dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
   confirmOpen, confirmTitle, confirmMessage, confirmLabel,
@@ -42,10 +42,10 @@ const {
     <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">
-      <div v-if="isRemoteEntity && loading" class="management-state" role="status" aria-live="polite">{{ isBook ? 'Đang tải sách và nhà xuất bản…' : isReader ? 'Đang tải danh sách độc giả…' : 'Đang tải danh sách nhà xuất bản…' }}</div>
+      <div v-if="isRemoteEntity && loading" class="management-state" role="status" aria-live="polite">{{ isBook ? 'Đang tải sách và nhà xuất bản…' : isReader ? 'Đang tải danh sách độc giả…' : isEmployee ? 'Đang tải danh sách nhân viên…' : 'Đang tải danh sách nhà xuất bản…' }}</div>
       <div v-else-if="isRemoteEntity && loadError" class="management-state management-state--error" role="alert">
         <span>{{ loadError }}</span>
-        <button class="button button--secondary" type="button" @click="isBook ? loadBooks() : isReader ? loadReaders() : loadPublishers()">Thử tải lại</button>
+        <button class="button button--secondary" type="button" @click="isBook ? loadBooks() : isReader ? loadReaders() : isEmployee ? loadEmployees() : loadPublishers()">Thử tải lại</button>
       </div>
       <template v-else>
       <div class="table-toolbar">
@@ -103,6 +103,6 @@ const {
       @close="closeStockDialog"
     />
     <ReaderStatusDialog :open="statusDialogOpen" :reader="pendingStatusChange" :options="config.statusOptions || []" :busy="isStatusOperation" :error="operationError" @save="saveReaderStatus" @close="closeReaderStatus" />
-    <ConfirmDialog v-if="credentials" :open="true" title="Đã tạo tài khoản độc giả" :message="`Mã độc giả: ${credentials.maDocGia} · Tên đăng nhập: ${credentials.tenDangNhap} · Mật khẩu ban đầu: ${credentials.initialPassword}`" confirm-label="Đã ghi nhận" @confirm="closeCredentials" @close="closeCredentials" />
+    <ConfirmDialog v-if="credentials" :open="true" title="Đã tạo tài khoản" :message="`${credentials.profileLabel}: ${credentials.profileId} · Tên đăng nhập: ${credentials.tenDangNhap} · Mật khẩu ban đầu: ${credentials.initialPassword}`" confirm-label="Đã ghi nhận" @confirm="closeCredentials" @close="closeCredentials" />
   </section>
 </template>
