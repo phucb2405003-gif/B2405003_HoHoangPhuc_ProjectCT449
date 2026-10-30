@@ -1,5 +1,6 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import chevronDownIcon from '@/assets/icons/chevron-down.svg'
 import './RowActionMenu.css'
 
 const props = defineProps({
@@ -88,7 +89,7 @@ onBeforeUnmount(() => {
     :aria-expanded="isOpen"
     :disabled="props.disabled"
     @click="toggleMenu"
-  >{{ props.triggerLabel }}<span v-if="!props.disabled" class="row-action-menu__caret" aria-hidden="true"></span></button>
+  >{{ props.triggerLabel }}<span v-if="!props.disabled" class="row-action-menu__caret" aria-hidden="true"><img :src="chevronDownIcon" alt=""></span></button>
   <Teleport to="body">
     <div v-if="isOpen" ref="menu" class="row-action-menu__panel" role="menu" :style="menuStyle" aria-label="Thao tác cho dòng">
       <button
