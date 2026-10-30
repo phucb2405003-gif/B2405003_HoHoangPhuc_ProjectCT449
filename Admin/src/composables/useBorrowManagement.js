@@ -120,15 +120,7 @@ export default function useBorrowManagement() {
     dialogOpen.value = true
     actionError.value = ''
     actionNotice.value = ''
-    books.value = []
-    detailLoading.value = true
     detailError.value = ''
-    Promise.all([getReaders(), getBooks()]).then(([readerRows, bookRows]) => {
-      readers.value = readerRows
-      books.value = bookRows
-    }).catch((error) => {
-      detailError.value = error.message || 'Không thể tải danh sách độc giả và sách.'
-    }).finally(() => { detailLoading.value = false })
   }
 
   function openReject() {

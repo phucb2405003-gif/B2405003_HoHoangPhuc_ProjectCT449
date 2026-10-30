@@ -9,8 +9,6 @@ const props = defineProps({
   mode: { type: String, default: 'detail' },
   borrow: { type: Object, default: null },
   canManage: { type: Boolean, default: false },
-  readers: { type: Array, default: () => [] },
-  books: { type: Array, default: () => [] },
   detailLoading: { type: Boolean, default: false },
   detailError: { type: String, default: '' },
   actionLoading: { type: Boolean, default: false },
@@ -22,6 +20,7 @@ const {
   rejectReason,
   rejectError,
   readerCode,
+  bookCodesInput,
   selectedBookCodes,
   createError,
   borrowVariants,
@@ -47,23 +46,16 @@ const {
 
         <div class="borrow-dialog__body">
           <div v-if="mode === 'create'">
-            <p v-if="detailLoading" class="management-state">Đang tải độc giả và sách…</p>
-            <p v-else-if="detailError" class="dialog-error" role="alert">{{ detailError }}</p>
-            <form v-else class="borrow-create-form" @submit.prevent="submitCreate">
+            <form class="borrow-create-form" @submit.prevent="submitCreate">
               <label class="form-field">Độc giả <span aria-hidden="true">*</span>
-                <select v-model="readerCode" :disabled="createLoading">
-                  <option value="" disabled>Chọn độc giả</option>
-                  <option v-for="reader in readers" :key="reader.maDocGia" :value="reader.maDocGia">{{ reader.hoTen }} · {{ reader.maDocGia }}</option>
-                </select>
+                <input v-model="readerCode" type="text" autocomplete="off" placeholder="Nhập mã độc giả" :disabled="createLoading">
               </label>
-              <label class="form-field">Sách (giữ Ctrl hoặc Command để chọn tối đa 5) <span aria-hidden="true">*</span>
-                <select v-model="selectedBookCodes" multiple size="7" :disabled="createLoading">
-                  <option v-for="book in books.filter((item) => item.soQuyenConLai > 0)" :key="book.maSach" :value="book.maSach">{{ book.tenSach }} · {{ book.maSach }} (còn {{ book.soQuyenConLai }})</option>
-                </select>
+              <label class="form-field">Mã sách (tối đa 5, phân cách bằng dấu phẩy hoặc xuống dòng) <span aria-hidden="true">*</span>
+                <textarea v-model="bookCodesInput" rows="4" autocomplete="off" placeholder="Nhập mã sách" :disabled="createLoading"></textarea>
               </label>
               <p v-if="createError" class="field-error" role="alert">{{ createError }}</p>
               <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
-              <div class="dialog-actions"><button class="button button--secondary" type="button" :disabled="createLoading" @click="emit('close')">Hủy</button><button class="button button--primary" type="submit" :disabled="createLoading || detailLoading">{{ createLoading ? 'Đang tạo…' : 'Tạo phiếu tại quầy' }}</button></div>
+              <div class="dialog-actions"><button class="button button--secondary" type="button" :disabled="createLoading" @click="emit('close')">Hủy</button><button class="button button--primary" type="submit" :disabled="createLoading">{{ createLoading ? 'Đang tạo…' : 'Tạo phiếu tại quầy' }}</button></div>
             </form>
           </div>
           <template v-else-if="borrow">

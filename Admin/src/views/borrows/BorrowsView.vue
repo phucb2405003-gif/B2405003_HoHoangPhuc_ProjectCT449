@@ -10,7 +10,7 @@ import searchIcon from '@/assets/icons/search.svg'
 
 const {
   search, statusFilter, page, pageSize, statusOptions, filteredBorrows, pageRows, pageCount, canManage,
-  readers, books, listLoading, listError, loadBorrows, dialogOpen, dialogMode, selectedBorrow, detailLoading, detailError,
+  listLoading, listError, loadBorrows, dialogOpen, dialogMode, selectedBorrow, detailLoading, detailError,
   actionLoading, actionError, actionNotice, createLoading, confirmOpen, confirmation,
   openDetails, openCreate, openReject, closeDialog, askConfirmation, confirmBorrowAction, rejectBorrow, returnBook, createBorrow,
 } = useBorrowManagement()
@@ -57,8 +57,6 @@ const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warn
       :mode="dialogMode"
       :borrow="selectedBorrow"
       :can-manage="canManage"
-      :readers="readers"
-      :books="books"
       :detail-loading="detailLoading"
       :detail-error="detailError"
       :action-loading="actionLoading"
