@@ -7,17 +7,19 @@ import DataTable from './DataTable.vue'
 import EntityDialog from './EntityDialog.vue'
 import PaginationControl from './PaginationControl.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
+import StockAdjustmentDialog from './StockAdjustmentDialog.vue'
 import './ManagementView.css'
 
 const props = defineProps({ moduleKey: { type: String, required: true } })
 const config = entityConfigs[props.moduleKey]
 const {
   search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-  isPublisher, loading, loadError, operationError, isSaving, isDeleting, loadPublishers,
+  isPublisher, isBook, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks,
+  tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
   dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
   confirmOpen, confirmTitle, confirmMessage, confirmLabel,
   actionNotice,
-  openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestDelete, confirmStatusChange, closeConfirmation,
+  openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestStockAdjustment, confirmStockAdjustment, closeStockDialog, requestDelete, confirmStatusChange, closeConfirmation,
 } = useEntityManagement(config)
 </script>
 
@@ -38,10 +40,10 @@ const {
     <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">
-      <div v-if="isPublisher && loading" class="management-state" role="status" aria-live="polite">Đang tải danh sách nhà xuất bản…</div>
-      <div v-else-if="isPublisher && loadError" class="management-state management-state--error" role="alert">
+      <div v-if="isRemoteEntity && loading" class="management-state" role="status" aria-live="polite">{{ isBook ? 'Đang tải sách và nhà xuất bản…' : 'Đang tải danh sách nhà xuất bản…' }}</div>
+      <div v-else-if="isRemoteEntity && loadError" class="management-state management-state--error" role="alert">
         <span>{{ loadError }}</span>
-        <button class="button button--secondary" type="button" @click="loadPublishers">Thử tải lại</button>
+        <button class="button button--secondary" type="button" @click="isBook ? loadBooks() : loadPublishers()">Thử tải lại</button>
       </div>
       <template v-else>
       <div class="table-toolbar">
@@ -61,7 +63,7 @@ const {
         </div>
       </div>
 
-      <DataTable :config="config" :rows="pageRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" />
+      <DataTable :config="config" :rows="tableRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" @add-stock="requestStockAdjustment($event, 'add')" @destroy-stock="requestStockAdjustment($event, 'destroy')" />
       <PaginationControl :page="page" :page-count="pageCount" :total="filteredRows.length" :page-size="pageSize" @change="page = $event" />
       </template>
     </section>
@@ -73,8 +75,8 @@ const {
       :record="currentRecord"
       :errors="validationErrors"
       :publishers="publisherOptions"
-      :busy="isPublisher && isSaving"
-      :error="isPublisher ? operationError : ''"
+      :busy="isRemoteEntity && isSaving"
+      :error="isRemoteEntity ? operationError : ''"
       @close="closeDialog"
       @save="saveRecord"
     />
@@ -84,10 +86,19 @@ const {
       :message="confirmMessage"
       :confirm-label="confirmLabel"
       tone="danger"
-      :busy="isPublisher && isDeleting"
-      :error="isPublisher ? operationError : ''"
+      :busy="isRemoteEntity && isDeleting"
+      :error="isRemoteEntity ? operationError : ''"
       @confirm="confirmStatusChange"
       @close="closeConfirmation"
+    />
+    <StockAdjustmentDialog
+      :open="stockDialogOpen"
+      :mode="stockMode"
+      :book="stockBook"
+      :busy="isStockOperation"
+      :error="operationError"
+      @adjust="confirmStockAdjustment"
+      @close="closeStockDialog"
     />
   </section>
 </template>

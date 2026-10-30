@@ -8,7 +8,7 @@ defineProps({
   canManage: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete'])
+const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete', 'add-stock', 'destroy-stock'])
 
 function displayDate(value) {
   if (!value) return '—'
@@ -36,6 +36,8 @@ function displayDate(value) {
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
             <button v-if="canManage && !config.hideEdit" class="table-action" type="button" @click="emit('edit', row)"><img class="table-action__icon" :src="editIcon" alt="" aria-hidden="true">Sửa</button>
+            <button v-if="canManage && config.stockActions" class="table-action table-action--positive" type="button" @click="emit('add-stock', row)">Bổ sung</button>
+            <button v-if="canManage && config.stockActions" class="table-action table-action--danger" type="button" @click="emit('destroy-stock', row)">Tiêu hủy</button>
             <button
               v-if="canManage && config.statusAction"
               class="table-action"
@@ -46,7 +48,7 @@ function displayDate(value) {
             <button v-if="canManage && config.deleteAction" class="table-action table-action--danger" type="button" @click="emit('delete', row)">Xóa</button>
           </td>
         </tr>
-        <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>{{ config.key === 'publishers' ? 'Chưa có nhà xuất bản' : 'Chưa có dữ liệu' }}</strong><span>{{ config.key === 'publishers' ? 'Danh sách nhà xuất bản hiện chưa có dữ liệu.' : 'Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>
+        <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>{{ config.key === 'publishers' ? 'Chưa có nhà xuất bản' : config.key === 'books' ? 'Chưa có sách' : 'Chưa có dữ liệu' }}</strong><span>{{ config.key === 'publishers' ? 'Danh sách nhà xuất bản hiện chưa có dữ liệu.' : config.key === 'books' ? 'Danh sách sách hiện chưa có dữ liệu.' : 'Các bản ghi sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>
       </tbody>
     </table>
   </div>

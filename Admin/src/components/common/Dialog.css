@@ -24,6 +24,9 @@
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus, .reject-reason:focus { border-color: #8aaeea; box-shadow: 0 0 0 3px #2563eb16; }
 .field-error { color: var(--admin-error); font-size: 10px; font-weight: 500; }
 .dialog-error { margin: 0; padding: 9px 11px; border: 1px solid #f2c9c6; border-radius: 7px; color: var(--admin-error); background: #fff5f4; font-size: 11px; }
+.stock-book-summary { display: grid; gap: 5px; margin-bottom: 17px; padding: 12px; border: 1px solid var(--admin-line); border-radius: 8px; background: #f8fafd; }
+.stock-book-summary strong { color: var(--admin-ink); font-size: 13px; }
+.stock-book-summary span { color: var(--admin-muted); font-size: 11px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #edf1f6; }
 .entity-detail-grid { gap: 0; }
 .entity-detail-item { min-width: 0; display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid #edf1f6; }

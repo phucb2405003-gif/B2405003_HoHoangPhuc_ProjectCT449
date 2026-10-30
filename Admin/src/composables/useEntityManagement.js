@@ -2,6 +2,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { authState } from '@/services/authService'
 import { entityStore } from '@/data/entityStore'
 import { createPublisher, deletePublisher, getPublishers, updatePublisher } from '@/services/publisherService'
+import { addBookStock, createBook, deleteBook, destroyBookStock, getBooks, updateBook } from '@/services/bookService'
 
 export default function useEntityManagement(config) {
   const search = ref('')
@@ -17,30 +18,49 @@ export default function useEntityManagement(config) {
   const pendingDeletion = ref(null)
   const actionNotice = ref('')
   const isPublisher = config.key === 'publishers'
+  const isBook = config.key === 'books'
+  const isRemoteEntity = isPublisher || isBook
   const publisherRows = ref([])
+  const bookRows = ref([])
+  const bookPublisherRows = ref([])
   const loading = ref(false)
   const loadError = ref('')
   const operationError = ref('')
   const isSaving = ref(false)
   const isDeleting = ref(false)
+  const stockDialogOpen = ref(false)
+  const stockMode = ref('add')
+  const stockBook = ref(null)
+  const isStockOperation = ref(false)
 
   const canManage = computed(() => config.writeRoles.includes(authState.user?.chucVu))
-  const rows = computed(() => isPublisher ? publisherRows.value : entityStore[config.key])
+  const rows = computed(() => isPublisher ? publisherRows.value : isBook ? bookRows.value : entityStore[config.key])
+  const publisherOptions = computed(() => isBook ? bookPublisherRows.value : entityStore.publishers)
   const filterOptions = computed(() => Object.fromEntries((config.filters || []).map((filter) => {
     const values = [...new Set(rows.value.map((row) => row[filter.key]))]
-    return [filter.key, values.map((value) => filter.boolean ? { label: value ? 'Đang hoạt động' : 'Đã khóa', value } : { label: value, value })]
+    return [filter.key, values.map((value) => {
+      if (filter.boolean) return { label: value ? 'Đang hoạt động' : 'Đã khóa', value }
+      if (isBook && filter.key === 'maNXB') {
+        return { label: bookPublisherRows.value.find((publisher) => publisher.maNXB === value)?.tenNXB || value, value }
+      }
+      return { label: value, value }
+    })]
   })))
   const filteredRows = computed(() => {
     const needle = search.value.trim().toLocaleLowerCase('vi')
     return rows.value.filter((row) => {
-      const matchesSearch = !needle || config.searchKeys.some((key) => String(row[key] ?? '').toLocaleLowerCase('vi').includes(needle))
+      const publisherName = isBook ? bookPublisherRows.value.find((publisher) => publisher.maNXB === row.maNXB)?.tenNXB || '' : ''
+      const matchesSearch = !needle || config.searchKeys.some((key) => String(row[key] ?? '').toLocaleLowerCase('vi').includes(needle)) || publisherName.toLocaleLowerCase('vi').includes(needle)
       const matchesFilters = (config.filters || []).every((filter) => filters[filter.key] === '' || String(row[filter.key]) === String(filters[filter.key]))
       return matchesSearch && matchesFilters
     })
   })
   const pageCount = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize)))
   const pageRows = computed(() => filteredRows.value.slice((page.value - 1) * pageSize, page.value * pageSize))
-  const publisherOptions = computed(() => entityStore.publishers)
+  const tableRows = computed(() => isBook ? pageRows.value.map((book) => ({
+    ...book,
+    nhaXuatBan: bookPublisherRows.value.find((publisher) => publisher.maNXB === book.maNXB)?.tenNXB || book.maNXB,
+  })) : pageRows.value)
 
   watch([search, filters], () => { page.value = 1 }, { deep: true })
   watch(pageCount, (count) => { if (page.value > count) page.value = count })
@@ -59,20 +79,37 @@ export default function useEntityManagement(config) {
     }
   }
 
+  async function loadBooks() {
+    loading.value = true
+    loadError.value = ''
+    operationError.value = ''
+    try {
+      const [books, publishers] = await Promise.all([getBooks(), getPublishers()])
+      bookRows.value = books
+      bookPublisherRows.value = publishers
+    } catch (error) {
+      bookRows.value = []
+      bookPublisherRows.value = []
+      loadError.value = error.message || 'Không thể tải sách và danh sách nhà xuất bản.'
+    } finally {
+      loading.value = false
+    }
+  }
+
   if (isPublisher) onMounted(loadPublishers)
+  if (isBook) onMounted(loadBooks)
 
   function openCreate() {
     validationErrors.value = {}
     operationError.value = ''
     actionNotice.value = ''
     const values = Object.fromEntries(config.fields.map((field) => {
-      const firstOption = field.options?.[0] ?? (field.optionsFrom === 'publishers' ? entityStore.publishers[0]?.[field.optionValue] : undefined)
+      const firstOption = field.options?.[0] ?? (field.optionsFrom === 'publishers' ? publisherOptions.value[0]?.[field.optionValue] : undefined)
       const defaultValue = typeof firstOption === 'object' ? firstOption.value : firstOption
       return [field.key, field.defaultValue ?? defaultValue ?? '']
     }))
     for (const key of config.additionalFields || []) values[key] = ''
-    if (!isPublisher) values[config.codeField] = generateCode()
-    if (config.key === 'books') values.soQuyenConLai = values.soQuyen
+    if (!isRemoteEntity) values[config.codeField] = generateCode()
     currentRecord.value = values
     dialogMode.value = 'create'
     dialogOpen.value = true
@@ -113,8 +150,8 @@ export default function useEntityManagement(config) {
       }
     }
 
-    if (config.key === 'books' && Number(record.soQuyenConLai) > Number(record.soQuyen)) {
-      errors.soQuyenConLai = 'Số lượng khả dụng không được vượt quá số lượng tối đa.'
+    if (isBook && dialogMode.value !== 'edit' && !Number.isSafeInteger(Number(record.soQuyen))) {
+      errors.soQuyen = 'Tổng số lượng phải là số nguyên an toàn không âm.'
     }
     const reasonField = config.statusReasonFields?.[record.trangThai]
     if (reasonField && !String(record[reasonField] || '').trim()) {
@@ -130,13 +167,14 @@ export default function useEntityManagement(config) {
 
   async function saveRecord(record) {
     if (!canManage.value || !validate(record)) return
-    if (isPublisher && isSaving.value) return
-    const normalized = Object.fromEntries(config.fields.map((field) => [field.key, record[field.key]]))
+    if (isRemoteEntity && isSaving.value) return
+    const fields = config.fields.filter((field) => !(isBook && dialogMode.value === 'edit' && field.createOnly))
+    const normalized = Object.fromEntries(fields.map((field) => [field.key, record[field.key]]))
     for (const key of config.additionalFields || []) normalized[key] = String(record[key] || '').trim()
-    if (!isPublisher) normalized[config.codeField] = currentRecord.value[config.codeField]
-    for (const field of config.fields) {
+    if (!isRemoteEntity) normalized[config.codeField] = currentRecord.value[config.codeField]
+    for (const field of fields) {
       if (field.type === 'number' && normalized[field.key] !== '') normalized[field.key] = Number(normalized[field.key])
-      else if (isPublisher && typeof normalized[field.key] === 'string') normalized[field.key] = normalized[field.key].trim()
+      else if (isRemoteEntity && typeof normalized[field.key] === 'string') normalized[field.key] = normalized[field.key].trim()
     }
 
     if (isPublisher) {
@@ -161,6 +199,28 @@ export default function useEntityManagement(config) {
       return
     }
 
+    if (isBook) {
+      isSaving.value = true
+      operationError.value = ''
+      try {
+        const creating = dialogMode.value === 'create'
+        const book = creating
+          ? await createBook(normalized)
+          : await updateBook(currentRecord.value[config.codeField], normalized)
+        const index = bookRows.value.findIndex((row) => row[config.codeField] === book[config.codeField])
+        if (index < 0) bookRows.value.unshift(book)
+        else bookRows.value.splice(index, 1, book)
+        page.value = 1
+        actionNotice.value = creating ? 'Đã thêm sách.' : 'Đã cập nhật thông tin sách.'
+        closeDialog()
+      } catch (error) {
+        operationError.value = error.message || 'Không thể lưu thông tin sách.'
+      } finally {
+        isSaving.value = false
+      }
+      return
+    }
+
     if (dialogMode.value === 'create') entityStore[config.key].unshift(normalized)
     else {
       const index = entityStore[config.key].findIndex((row) => row[config.codeField] === currentRecord.value[config.codeField])
@@ -174,6 +234,51 @@ export default function useEntityManagement(config) {
     pendingDeletion.value = null
     pendingStatusChange.value = row
     confirmOpen.value = true
+  }
+
+  function requestStockAdjustment(book, mode) {
+    operationError.value = ''
+    actionNotice.value = ''
+    stockBook.value = book
+    stockMode.value = mode
+    stockDialogOpen.value = true
+  }
+
+  async function confirmStockAdjustment(soLuong) {
+    if (!isBook || !canManage.value || isStockOperation.value || !stockBook.value) return
+    if (!Number.isSafeInteger(soLuong) || soLuong <= 0) {
+      operationError.value = 'Số lượng phải là số nguyên dương.'
+      return
+    }
+    if (stockMode.value === 'destroy' && soLuong > stockBook.value.soQuyenConLai) {
+      operationError.value = 'Số lượng tiêu hủy vượt quá số sách còn khả dụng.'
+      return
+    }
+
+    isStockOperation.value = true
+    operationError.value = ''
+    try {
+      const book = stockMode.value === 'add'
+        ? await addBookStock(stockBook.value.maSach, soLuong)
+        : await destroyBookStock(stockBook.value.maSach, soLuong)
+      const index = bookRows.value.findIndex((row) => row.maSach === book.maSach)
+      if (index < 0) throw new Error('Không tìm thấy sách trong danh sách hiện tại để đồng bộ kết quả.')
+      bookRows.value.splice(index, 1, book)
+      actionNotice.value = stockMode.value === 'add' ? 'Đã bổ sung số lượng sách.' : 'Đã tiêu hủy số lượng sách.'
+      stockDialogOpen.value = false
+      stockBook.value = null
+    } catch (error) {
+      operationError.value = error.message || 'Không thể cập nhật số lượng sách.'
+    } finally {
+      isStockOperation.value = false
+    }
+  }
+
+  function closeStockDialog() {
+    if (isStockOperation.value) return
+    stockDialogOpen.value = false
+    stockBook.value = null
+    operationError.value = ''
   }
 
   function generateCode() {
@@ -214,6 +319,25 @@ export default function useEntityManagement(config) {
         }
         return
       }
+      if (isBook) {
+        if (!canManage.value || isDeleting.value) return
+        isDeleting.value = true
+        operationError.value = ''
+        try {
+          const maSach = pendingDeletion.value[config.codeField]
+          await deleteBook(maSach)
+          const index = bookRows.value.findIndex((item) => item[config.codeField] === maSach)
+          if (index >= 0) bookRows.value.splice(index, 1)
+          actionNotice.value = `Đã xóa sách ${maSach}.`
+          pendingDeletion.value = null
+          confirmOpen.value = false
+        } catch (error) {
+          operationError.value = error.message || 'Không thể xóa sách.'
+        } finally {
+          isDeleting.value = false
+        }
+        return
+      }
       if (canManage.value) {
         const index = entityStore[config.key].findIndex((item) => item[config.codeField] === pendingDeletion.value[config.codeField])
         if (index >= 0) entityStore[config.key].splice(index, 1)
@@ -246,14 +370,17 @@ export default function useEntityManagement(config) {
     ? `Thao tác này chỉ có hiệu lực trong phiên hiện tại đối với tài khoản ${pendingStatusChange.value.tenDangNhap}.`
     : pendingDeletion.value ? isPublisher
       ? `Xác nhận xóa nhà xuất bản (${pendingDeletion.value[config.codeField]})? Nhà xuất bản đang được sách sử dụng sẽ không thể xóa.`
-      : `Xác nhận xóa ${config.singular} (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ có hiệu lực trong phiên hiện tại.` : '')
+      : isBook
+        ? `Xác nhận xóa sách (${pendingDeletion.value[config.codeField]})? Sách có lịch sử mượn trả sẽ không thể xóa.`
+        : `Xác nhận xóa ${config.singular} (${pendingDeletion.value[config.codeField]}). Thao tác này chỉ có hiệu lực trong phiên hiện tại.` : '')
   const confirmLabel = computed(() => pendingDeletion.value ? isPublisher ? 'Xóa nhà xuất bản' : 'Xóa sách' : pendingStatusChange.value?.[config.statusAction?.key] === config.statusAction?.activeValue ? 'Khóa tài khoản' : 'Mở khóa')
 
   return {
     search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
-    isPublisher, loading, loadError, operationError, isSaving, isDeleting, loadPublishers,
+    isPublisher, isBook, isRemoteEntity, loading, loadError, operationError, isSaving, isDeleting, loadPublishers, loadBooks,
+    tableRows, stockDialogOpen, stockMode, stockBook, isStockOperation,
     dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
     confirmOpen, confirmTitle, confirmMessage, confirmLabel, actionNotice,
-    openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestDelete, confirmStatusChange, closeConfirmation,
+    openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestStockAdjustment, confirmStockAdjustment, closeStockDialog, requestDelete, confirmStatusChange, closeConfirmation,
   }
 }

@@ -13,15 +13,21 @@ export class ApiError extends Error {
 }
 
 function errorMessage(status, method, path) {
+  if (status === 400 && path.includes('/destroy-stock')) return 'Số lượng tiêu hủy phải là số nguyên dương và không vượt quá số sách còn khả dụng.'
+  if (status === 400 && path.includes('/add-stock')) return 'Số lượng bổ sung phải là số nguyên dương.'
+  if (status === 400 && path.startsWith('/api/books')) return 'Thông tin sách chưa hợp lệ hoặc mã nhà xuất bản không tồn tại.'
   if (status === 400) return 'Thông tin gửi lên chưa hợp lệ. Vui lòng kiểm tra lại.'
   if (status === 401) return 'Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại.'
   if (status === 403) return 'Bạn không có quyền thực hiện thao tác này.'
   if (status === 404) return method === 'DELETE' ? 'Dữ liệu không còn tồn tại trên hệ thống. Danh sách được giữ nguyên.' : 'Không tìm thấy dữ liệu yêu cầu.'
   if (status === 409 && method === 'DELETE' && path.startsWith('/api/publishers/')) return 'Không thể xóa nhà xuất bản đang được sách sử dụng.'
+  if (status === 409 && method === 'DELETE' && path.startsWith('/api/books/')) return 'Không thể xóa sách đã được ghi nhận trong lịch sử mượn trả.'
+  if (status === 409 && path.startsWith('/api/books')) return 'Sách có cùng tên, tác giả và nhà xuất bản đã tồn tại.'
   if (status === 409 && path.startsWith('/api/publishers')) return 'Tên nhà xuất bản đã tồn tại hoặc dữ liệu đang xung đột.'
   if (status === 409) return 'Dữ liệu đang xung đột với một thao tác khác.'
   if (status === 429) return 'Bạn thao tác quá nhanh. Vui lòng chờ rồi thử lại.'
   if (status === 503 && method === 'DELETE' && path.startsWith('/api/publishers/')) return 'Hệ thống đang xử lý phiếu mượn. Vui lòng thử xóa lại sau.'
+  if (status === 503 && path.startsWith('/api/books')) return 'Hệ thống đang xử lý nghiệp vụ mượn. Vui lòng thử lại sau.'
   if (status === 503) return 'Backend đang tạm thời không khả dụng. Vui lòng thử lại sau.'
   if (status >= 500) return 'Backend gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.'
   return 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.'

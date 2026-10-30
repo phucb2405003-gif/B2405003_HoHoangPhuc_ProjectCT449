@@ -36,6 +36,9 @@ function optionsFor(field) {
 function fieldValue(field) {
   const value = props.record?.[field.key]
   if (field.type === 'date' && value) return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN')
+  if (field.type === 'select' && field.optionsFrom === 'publishers') {
+    return optionsFor(field).find((item) => item.value === value)?.label || value || '—'
+  }
   if (field.type === 'select' && Array.isArray(field.options)) {
     const option = optionsFor(field).find((item) => item.value === value)
     if (option) return option.label
@@ -65,9 +68,10 @@ function submit() {
               <span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span>
               <strong>{{ record[config.codeField] || 'Mã sẽ được tạo tự động' }}</strong>
             </div>
-            <label v-for="field in config.fields" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
+            <label v-for="field in (mode === 'edit' ? config.fields.filter((item) => !item.createOnly) : config.fields)" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
               <span>{{ field.label }}<b v-if="field.required" aria-hidden="true"> *</b></span>
               <select v-if="field.type === 'select'" v-model="values[field.key]" :disabled="busy">
+                <option v-if="field.optionsFrom === 'publishers' && !publishers.length" value="" disabled>Chưa có nhà xuất bản</option>
                 <option v-for="option in optionsFor(field)" :key="String(option.value)" :value="option.value">{{ option.label }}</option>
               </select>
               <textarea v-else-if="field.type === 'textarea'" v-model="values[field.key]" :disabled="busy" rows="3" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`"></textarea>
