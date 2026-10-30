@@ -11,7 +11,8 @@ import {
   getMyBorrows,
   submitBorrow,
 } from '@/services/borrowingService'
-import { changeReaderPassword, getReaderProfile, updateMyReaderProfile } from '@/services/readerProfileService'
+import { changeReaderPassword } from '@/services/readerProfileService'
+import useReaderProfile from '@/composables/useReaderProfile'
 
 const BORROWS_PER_PAGE = 5
 
@@ -21,14 +22,6 @@ export default function useProfile() {
   const activeTab = computed(() => route.query.tab === 'muon' ? 'muon' : 'thong-tin')
   const readerId = computed(() => authState.user?.maTaiKhoan || '')
 
-  const profile = ref(null)
-  const profileLoading = ref(true)
-  const profileError = ref('')
-  const isProfileEditOpen = ref(false)
-  const isUpdatingProfile = ref(false)
-  const profileUpdateError = ref('')
-  const profileUpdateNotice = ref('')
-  const profileForm = ref({ hoLot: '', ten: '', ngaySinh: '', phai: null, diaChi: '', dienThoai: '' })
   const borrows = ref([])
   const borrowsLoading = ref(false)
   const borrowsLoaded = ref(false)
@@ -85,11 +78,6 @@ export default function useProfile() {
     if (currentBorrowPage.value > pageCount) currentBorrowPage.value = pageCount
   }, { flush: 'sync' })
 
-  const fullName = computed(() => [profile.value?.hoLot, profile.value?.ten]
-    .filter((part) => typeof part === 'string' && part.trim())
-    .map((part) => part.trim())
-    .join(' '))
-
   async function chooseTab(tab) {
     if (activeTab.value === tab) return
     await router.replace({ name: 'reader-profile', query: { tab } })
@@ -104,102 +92,17 @@ export default function useProfile() {
     return true
   }
 
-  async function loadProfile() {
-    const token = getReaderAccessToken()
-    if (!token || !readerId.value || authState.user?.loaiTaiKhoan !== 'DOCGIA') {
-      profileLoading.value = false
-      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
-      return
-    }
-
-    profileLoading.value = true
-    profileError.value = ''
-    try {
-      const result = await getReaderProfile(readerId.value, token)
-      if (result?.maDocGia !== readerId.value) {
-        throw new Error('Thông tin hồ sơ không khớp với tài khoản đang đăng nhập.')
-      }
-      profile.value = result
-    } catch (error) {
-      if (await handleUnauthorized(error)) return
-      profileError.value = error.message || 'Không thể tải thông tin cá nhân.'
-    } finally {
-      profileLoading.value = false
-    }
+  function redirectToLogin() {
+    return router.replace({ name: 'login', query: { redirect: route.fullPath } })
   }
 
-  function openProfileEditor() {
-    const date = profile.value?.ngaySinh ? new Date(profile.value.ngaySinh) : null
-    profileForm.value = {
-      hoLot: profile.value?.hoLot || '',
-      ten: profile.value?.ten || '',
-      ngaySinh: date && !Number.isNaN(date.getTime()) ? date.toISOString().slice(0, 10) : '',
-      phai: typeof profile.value?.phai === 'boolean' ? profile.value.phai : null,
-      diaChi: profile.value?.diaChi || '',
-      dienThoai: profile.value?.dienThoai || '',
-    }
-    profileUpdateError.value = ''
-    profileUpdateNotice.value = ''
-    isProfileEditOpen.value = true
-  }
-
-  function cancelProfileEdit() {
-    if (isUpdatingProfile.value) return
-    isProfileEditOpen.value = false
-    profileUpdateError.value = ''
-    profileForm.value = { hoLot: '', ten: '', ngaySinh: '', phai: null, diaChi: '', dienThoai: '' }
-  }
-
-  async function saveReaderProfile() {
-    if (isUpdatingProfile.value) return
-    profileUpdateError.value = ''
-    profileUpdateNotice.value = ''
-
-    const form = profileForm.value
-    if (typeof form.hoLot !== 'string' || !form.hoLot.trim() || typeof form.ten !== 'string' || !form.ten.trim()) {
-      profileUpdateError.value = 'Vui lòng nhập họ lót và tên.'
-      return
-    }
-    if (typeof form.phai !== 'boolean') {
-      profileUpdateError.value = 'Vui lòng chọn giới tính.'
-      return
-    }
-    if (form.ngaySinh && !/^\d{4}-\d{2}-\d{2}$/.test(form.ngaySinh)) {
-      profileUpdateError.value = 'Ngày sinh không hợp lệ.'
-      return
-    }
-
-    const payload = {
-      hoLot: form.hoLot.trim(),
-      ten: form.ten.trim(),
-      phai: form.phai,
-      ...(form.ngaySinh ? { ngaySinh: form.ngaySinh } : {}),
-      ...(form.diaChi.trim() ? { diaChi: form.diaChi.trim() } : {}),
-      ...(form.dienThoai.trim() ? { dienThoai: form.dienThoai.trim() } : {}),
-    }
-    const token = getReaderAccessToken()
-    if (!token) {
-      await router.replace({ name: 'login', query: { redirect: route.fullPath } })
-      return
-    }
-
-    isUpdatingProfile.value = true
-    try {
-      const updated = await updateMyReaderProfile(payload, token)
-      if (!updated || updated.maDocGia !== readerId.value) {
-        throw new Error('Máy chủ không xác nhận hồ sơ độc giả sau cập nhật.')
-      }
-      profile.value = { ...profile.value, ...updated }
-      isProfileEditOpen.value = false
-      profileUpdateNotice.value = 'Cập nhật thông tin cá nhân thành công.'
-    } catch (error) {
-      if (!await handleUnauthorized(error)) {
-        profileUpdateError.value = error.message || 'Không thể cập nhật thông tin cá nhân.'
-      }
-    } finally {
-      isUpdatingProfile.value = false
-    }
-  }
+  const readerProfile = useReaderProfile({
+    readerId,
+    getAccessToken: getReaderAccessToken,
+    isReaderAccount: () => authState.user?.loaiTaiKhoan === 'DOCGIA',
+    handleUnauthorized,
+    redirectToLogin,
+  })
 
   async function loadBorrows(force = false) {
     if ((!force && borrowsLoaded.value) || borrowsLoading.value) return
@@ -580,9 +483,10 @@ export default function useProfile() {
     if (tab === 'muon') void loadBorrows()
   }, { immediate: true })
 
-  onMounted(loadProfile)
+  onMounted(readerProfile.loadProfile)
 
   return {
+    ...readerProfile,
     activeTab,
     authState,
     availableBookCount,
