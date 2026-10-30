@@ -54,10 +54,10 @@ export async function updateEmployee(maNhanVien, record) {
 }
 
 export async function updateMyEmployeeProfile(record) {
-  const payload = { hoTenNV: String(record.hoTenNV || '').trim() }
-  for (const field of ['diaChi', 'soDienThoai']) {
-    const value = String(record[field] || '').trim()
-    if (value) payload[field] = value
+  const payload = {
+    hoTenNV: String(record.hoTenNV || '').trim(),
+    diaChi: String(record.diaChi || '').trim(),
+    soDienThoai: String(record.soDienThoai || '').trim(),
   }
   return normalizeEmployee(await apiClient.put(`${EMPLOYEES_PATH}/me`, payload))
 }

@@ -163,7 +163,7 @@ async function updateMe(req, res) {
     if (!maNhanVien) return;
 
     try {
-        const employee = await employeeService.update(maNhanVien, req.body);
+        const employee = await employeeService.updateMyProfile(maNhanVien, req.body);
         return res.json(publicEmployeeProfile(employee));
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {

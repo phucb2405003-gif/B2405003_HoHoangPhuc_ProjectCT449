@@ -91,6 +91,10 @@ async function update(maNhanVien, employee) {
         diaChi: "string",
         soDienThoai: "string",
     });
+    return persistUpdate(maNhanVien, employeeToUpdate);
+}
+
+async function persistUpdate(maNhanVien, employeeToUpdate) {
     const collection = await getCollection();
 
     if (!(await collection.findOne({ maNhanVien }))) {
@@ -117,9 +121,46 @@ async function update(maNhanVien, employee) {
     return await findOne(maNhanVien);
 }
 
+function getSelfUpdateFields(employee) {
+    const allowedFields = ["hoTenNV", "diaChi", "soDienThoai"];
+    if (
+        employee === null ||
+        typeof employee !== "object" ||
+        Array.isArray(employee) ||
+        Object.getPrototypeOf(employee) !== Object.prototype ||
+        !Object.hasOwn(employee, "hoTenNV") ||
+        Object.keys(employee).length === 0 ||
+        Object.keys(employee).some((field) => !allowedFields.includes(field))
+    ) {
+        const error = new Error("Du lieu cap nhat khong hop le");
+        error.code = "INVALID_UPDATE";
+        throw error;
+    }
+
+    for (const field of Object.keys(employee)) {
+        const value = employee[field];
+        if (
+            typeof value !== "string" ||
+            (field === "hoTenNV" && value.trim().length === 0) ||
+            (field !== "hoTenNV" && value !== "" && value.trim().length === 0)
+        ) {
+            const error = new Error("Du lieu cap nhat khong hop le");
+            error.code = "INVALID_UPDATE";
+            throw error;
+        }
+    }
+
+    return Object.fromEntries(Object.keys(employee).map((field) => [field, employee[field]]));
+}
+
+async function updateMyProfile(maNhanVien, employee) {
+    return persistUpdate(maNhanVien, getSelfUpdateFields(employee));
+}
+
 module.exports = {
     findAll,
     findOne,
     create,
-    update
+    update,
+    updateMyProfile,
 };

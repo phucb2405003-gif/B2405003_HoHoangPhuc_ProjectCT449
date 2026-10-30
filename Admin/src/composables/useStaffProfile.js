@@ -72,7 +72,7 @@ export default function useStaffProfile() {
       Object.assign(form, next)
       savedSnapshot.value = { ...next }
       messageType.value = 'success'
-      message.value = 'Thông tin cá nhân đã được cập nhật trong phiên hiện tại.'
+      message.value = 'Thông tin cá nhân đã được cập nhật thành công.'
     } catch (error) {
       messageType.value = 'error'
       message.value = error.message || 'Không thể cập nhật thông tin cá nhân.'
