@@ -1,7 +1,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authState, getReaderAccessToken, initializeAuth } from '@/services/authService'
-import { getBookCatalog } from '@/services/bookCatalogService'
+import { getBookByCode } from '@/services/bookCatalogService'
 import { createBorrowWithBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
 
 export default function useBookDetail() {
@@ -9,7 +9,7 @@ export default function useBookDetail() {
 const route = useRoute()
 const router = useRouter()
 const book = ref(null)
-const isCatalogEmpty = ref(false)
+const isBookNotFound = ref(false)
 const isLoading = ref(true)
 const loadError = ref('')
 const isBorrowDialogOpen = ref(false)
@@ -46,21 +46,20 @@ async function loadBook() {
   const requestVersion = ++bookLoadVersion
   isLoading.value = true
   loadError.value = ''
-  isCatalogEmpty.value = false
+  isBookNotFound.value = false
   book.value = null
 
   try {
-    const catalog = await getBookCatalog()
+    const loadedBook = await getBookByCode(String(route.params.maSach || ''))
     if (requestVersion !== bookLoadVersion) return
-    if (!catalog.length) {
-      isCatalogEmpty.value = true
-      return
-    }
-    book.value = catalog.find((item) => item.id === route.params.maSach) || null
-    if (!book.value) throw new Error('Không tìm thấy dữ liệu sách hợp lệ.')
+    book.value = loadedBook
   } catch (error) {
     if (requestVersion !== bookLoadVersion) return
-    loadError.value = error.message || 'Không thể tải thông tin sách.'
+    if (error?.status === 404) {
+      isBookNotFound.value = true
+    } else {
+      loadError.value = error.message || 'Không thể tải thông tin sách.'
+    }
   } finally {
     if (requestVersion === bookLoadVersion) isLoading.value = false
   }
@@ -153,11 +152,12 @@ onMounted(loadBook)
     goBackToBooks,
     isBorrowDialogOpen,
     isCreatingBorrow,
-    isCatalogEmpty,
+    isBookNotFound,
     isLoading,
     isLoadingBorrows,
     loadError,
     openBorrowDialog,
+    retryLoadBook: loadBook,
     pendingBorrows,
     publisher,
     selectedBorrowHasBook,

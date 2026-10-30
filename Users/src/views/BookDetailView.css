@@ -304,6 +304,7 @@
 }
 .book-detail-message p { margin: 0 0 0.75rem; }
 .book-detail-message a { color: #93c5fd; }
+.book-detail-message button { margin-left: 0.75rem; padding: 0; border: 0; background: transparent; color: #93c5fd; font: inherit; text-decoration: underline; cursor: pointer; }
 .book-detail-notice {
   margin: 0 0 1rem;
   padding: 0.8rem 1rem;

@@ -17,6 +17,7 @@ const {
   genres,
   isLoadingBooks,
   isSidebarOpen,
+  loadBooks,
   pageCount,
   pageNumbers,
   resetFilters,
@@ -128,7 +129,10 @@ const {
             </div>
 
             <div v-if="isLoadingBooks" class="books-empty" role="status">Đang tải danh sách sách…</div>
-            <div v-else-if="booksLoadError" class="books-empty" role="alert">{{ booksLoadError }}</div>
+            <div v-else-if="booksLoadError" class="books-empty" role="alert">
+              <p>{{ booksLoadError }}</p>
+              <button type="button" :disabled="isLoadingBooks" @click="loadBooks">Thử tải lại</button>
+            </div>
             <div v-else-if="!books.length" class="books-empty" role="status">Thư viện chưa có sách để hiển thị.</div>
             <div v-else-if="visibleBooks.length" class="books-grid">
               <BookListCard

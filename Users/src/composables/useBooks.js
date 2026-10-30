@@ -16,6 +16,7 @@ const selectedAuthor = ref('')
 const sortOrder = ref('default')
 const currentPage = ref(1)
 const isSidebarOpen = ref(false)
+let booksLoadPending = false
 
 function normalize(value) {
   return String(value || '')
@@ -57,15 +58,22 @@ const visibleBooks = computed(() => {
   return filteredBooks.value.slice(start, start + pageSize)
 })
 
-onMounted(async () => {
+async function loadBooks() {
+  if (booksLoadPending) return
+  booksLoadPending = true
+  isLoadingBooks.value = true
+  booksLoadError.value = ''
   try {
     books.value = await getBookCatalog()
   } catch (error) {
     booksLoadError.value = error.message || 'Không thể tải danh sách sách.'
   } finally {
     isLoadingBooks.value = false
+    booksLoadPending = false
   }
-})
+}
+
+onMounted(loadBooks)
 
 watch(() => route.query, (query) => {
   searchTerm.value = typeof query.q === 'string' ? query.q : ''
@@ -99,6 +107,7 @@ function resetFilters() {
     genres,
     isLoadingBooks,
     isSidebarOpen,
+    loadBooks,
     pageCount,
     pageNumbers,
     resetFilters,

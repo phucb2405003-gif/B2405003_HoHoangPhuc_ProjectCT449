@@ -27,11 +27,12 @@ const {
   goBackToBooks,
   isBorrowDialogOpen,
   isCreatingBorrow,
-  isCatalogEmpty,
+  isBookNotFound,
   isLoading,
   isLoadingBorrows,
   loadError,
   openBorrowDialog,
+  retryLoadBook,
   pendingBorrows,
   publisher,
   selectedBorrowHasBook,
@@ -61,13 +62,14 @@ const {
         <p v-if="borrowNotice" class="book-detail-notice" role="status" aria-live="polite">{{ borrowNotice }}</p>
 
         <div v-if="isLoading" class="book-detail-message" role="status">Đang tải thông tin sách…</div>
-        <div v-else-if="isCatalogEmpty" class="book-detail-message" role="status">
-          <p>Chưa có dữ liệu sách để hiển thị.</p>
+        <div v-else-if="isBookNotFound" class="book-detail-message" role="alert">
+          <p>Không tìm thấy sách theo mã này.</p>
           <RouterLink :to="{ name: 'books' }">Quay lại danh sách sách</RouterLink>
         </div>
         <div v-else-if="loadError" class="book-detail-message" role="alert">
           <p>{{ loadError }}</p>
           <RouterLink v-if="!authState.isAuthenticated" :to="{ name: 'login' }">Đăng nhập</RouterLink>
+          <button type="button" @click="retryLoadBook">Thử tải lại</button>
         </div>
         <template v-else-if="book">
           <div class="book-detail-layout">
