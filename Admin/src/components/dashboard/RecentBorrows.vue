@@ -13,6 +13,12 @@ const variants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn t
     </header>
     <div class="recent-borrows__scroll">
       <table class="data-table recent-borrows__table">
+        <colgroup>
+          <col class="recent-borrows__col recent-borrows__col--code">
+          <col class="recent-borrows__col recent-borrows__col--reader">
+          <col class="recent-borrows__col recent-borrows__col--date">
+          <col class="recent-borrows__col recent-borrows__col--status">
+        </colgroup>
         <thead><tr><th>Mã phiếu</th><th>Độc giả</th><th>Ngày yêu cầu</th><th>Trạng thái phiếu</th></tr></thead>
         <tbody>
           <tr v-for="row in rows" :key="row.maPhieu">

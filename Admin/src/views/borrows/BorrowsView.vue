@@ -56,7 +56,6 @@ const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'H
       @approve="askConfirmation('approve', selectedBorrow)"
       @reject-open="openReject(selectedBorrow)"
       @reject="rejectBorrow"
-      @cancel="askConfirmation('cancel', selectedBorrow)"
       @return-book="returnBook"
     />
     <ConfirmDialog :open="confirmOpen" :title="confirmation.title" :message="confirmation.message" :confirm-label="confirmation.confirmLabel" :tone="confirmation.tone" @confirm="confirmBorrowAction" @close="confirmOpen = false" />

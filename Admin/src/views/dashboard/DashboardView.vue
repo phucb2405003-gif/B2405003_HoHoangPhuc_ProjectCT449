@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import bookIcon from '@/assets/icons/book-open-text.svg'
 import readerIcon from '@/assets/icons/user.svg'
+import employeeIcon from '@/assets/icons/id-card-lanyard.svg'
 import borrowIcon from '@/assets/icons/book-lock.svg'
 import StatCard from '@/components/dashboard/StatCard.vue'
 import BorrowTrendChart from '@/components/dashboard/BorrowTrendChart.vue'
@@ -17,7 +18,7 @@ const activeBookCount = computed(() => mockStore.borrows.reduce((total, borrow) 
 const stats = computed(() => [
   { label: 'Đầu sách', value: mockStore.books.length, caption: 'Trong danh mục mẫu', icon: bookIcon },
   { label: 'Độc giả', value: mockStore.readers.length, caption: 'Hồ sơ minh họa', icon: readerIcon },
-  { label: 'Nhân viên', value: mockStore.employees.length, caption: 'Hồ sơ minh họa', icon: readerIcon },
+  { label: 'Nhân viên', value: mockStore.employees.length, caption: 'Hồ sơ minh họa', icon: employeeIcon },
   { label: 'Chờ duyệt', value: pendingCount.value, caption: 'Phiếu trong dữ liệu mẫu', icon: borrowIcon },
   { label: 'Sách đang mượn', value: activeBookCount.value, caption: 'Bao gồm sách quá hạn', icon: borrowIcon },
 ])

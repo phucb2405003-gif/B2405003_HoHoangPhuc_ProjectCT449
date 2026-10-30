@@ -64,10 +64,6 @@ export default function useMockBorrows() {
       borrow.ngayMuon = today()
       borrow.chiTiet.forEach((book) => { book.trangThaiSach = 'Đang mượn' })
     }
-    if (confirmAction.value === 'cancel' && borrow.trangThai === 'Chờ duyệt') {
-      borrow.trangThai = 'Đã hủy'
-      borrow.chiTiet.forEach((book) => { book.trangThaiSach = 'Chưa giao' })
-    }
     confirmOpen.value = false
     pendingBorrow.value = null
   }
@@ -89,12 +85,11 @@ export default function useMockBorrows() {
   }
 
   const confirmation = computed(() => {
-    const isApprove = confirmAction.value === 'approve'
     return {
-      title: isApprove ? 'Duyệt phiếu mượn?' : 'Hủy phiếu mượn?',
-      confirmLabel: isApprove ? 'Duyệt phiếu' : 'Hủy phiếu',
-      message: `${isApprove ? 'Duyệt' : 'Hủy'} ${pendingBorrow.value?.maPhieu || 'phiếu'} trong bộ dữ liệu mẫu. Không gửi thao tác đến Backend.`,
-      tone: isApprove ? 'primary' : 'danger',
+      title: 'Duyệt phiếu mượn?',
+      confirmLabel: 'Duyệt phiếu',
+      message: `Duyệt ${pendingBorrow.value?.maPhieu || 'phiếu'} trong bộ dữ liệu mẫu. Không gửi thao tác đến Backend.`,
+      tone: 'primary',
     }
   })
 

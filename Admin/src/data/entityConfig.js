@@ -12,27 +12,25 @@ export const entityConfigs = {
     writeRoles: employeeOptions,
     searchKeys: ['maSach', 'tenSach'],
     searchPlaceholder: 'Tìm theo mã sách hoặc tên sách',
+    deleteAction: true,
     columns: [
       { key: 'maSach', label: 'Mã sách', strong: true },
       { key: 'tenSach', label: 'Tên sách', secondaryKey: 'tacGia' },
       { key: 'nhaXuatBan', label: 'Nhà xuất bản' },
       { key: 'namXuatBan', label: 'Năm XB' },
-      { key: 'soLuong', label: 'Số lượng' },
-      { key: 'trangThai', label: 'Trạng thái', type: 'status' },
+      { key: 'soQuyen', label: 'Số lượng tối đa' },
+      { key: 'soQuyenConLai', label: 'Số lượng khả dụng' },
     ],
     filters: [
       { key: 'nhaXuatBan', label: 'Nhà xuất bản', allLabel: 'Tất cả nhà xuất bản' },
-      { key: 'trangThai', label: 'Trạng thái', allLabel: 'Tất cả trạng thái' },
     ],
-    statusVariants: { 'Đang lưu hành': 'success', 'Hết sách': 'warning', 'Ngừng kinh doanh': 'danger' },
     fields: [
-      { key: 'maSach', label: 'Mã sách', required: true },
       { key: 'tenSach', label: 'Tên sách', required: true, wide: true },
       { key: 'tacGia', label: 'Tác giả', required: true },
       { key: 'nhaXuatBan', label: 'Nhà xuất bản', type: 'select', required: true, optionsFrom: 'publishers', optionLabel: 'tenNXB', optionValue: 'tenNXB' },
       { key: 'namXuatBan', label: 'Năm xuất bản', type: 'number', required: true, min: 1450, max: 2100 },
-      { key: 'soLuong', label: 'Số lượng', type: 'number', required: true, min: 0 },
-      { key: 'trangThai', label: 'Trạng thái', type: 'select', required: true, options: ['Đang lưu hành', 'Hết sách', 'Ngừng kinh doanh'] },
+      { key: 'soQuyen', label: 'Số lượng tối đa', type: 'number', required: true, min: 0 },
+      { key: 'soQuyenConLai', label: 'Số lượng khả dụng', type: 'number', required: true, min: 0 },
     ],
   },
   readers: {
@@ -55,13 +53,14 @@ export const entityConfigs = {
     filters: [{ key: 'trangThai', label: 'Trạng thái', allLabel: 'Tất cả trạng thái' }],
     statusVariants: { 'Bình thường': 'success', 'Hạn chế': 'warning', 'Bị cấm': 'danger' },
     fields: [
-      { key: 'maDocGia', label: 'Mã độc giả', required: true },
       { key: 'hoTen', label: 'Họ và tên', required: true, wide: true },
       { key: 'gioiTinh', label: 'Giới tính', type: 'select', required: true, options: ['Nam', 'Nữ', 'Khác'] },
       { key: 'ngaySinh', label: 'Ngày sinh', type: 'date', required: true },
       { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', required: true, minLength: 9 },
       { key: 'trangThai', label: 'Trạng thái độc giả', type: 'select', required: true, options: ['Bình thường', 'Hạn chế', 'Bị cấm'] },
     ],
+    mockFields: ['lyDoHanChe', 'lyDoCam'],
+    statusReasonFields: { 'Hạn chế': 'lyDoHanChe', 'Bị cấm': 'lyDoCam' },
   },
   employees: {
     key: 'employees',
@@ -80,7 +79,6 @@ export const entityConfigs = {
     ],
     statusVariants: { 'Quản lý': 'info', 'Thủ thư': 'neutral' },
     fields: [
-      { key: 'maNhanVien', label: 'Mã nhân viên', required: true },
       { key: 'hoTen', label: 'Họ và tên', required: true, wide: true },
       { key: 'chucVu', label: 'Chức vụ', type: 'select', required: true, options: employeeOptions },
       { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', required: true, minLength: 9 },
@@ -107,7 +105,6 @@ export const entityConfigs = {
     ],
     statusVariants: { NHANVIEN: 'info', DOCGIA: 'neutral', true: 'success', false: 'danger' },
     fields: [
-      { key: 'maTaiKhoan', label: 'Mã tài khoản', required: true },
       { key: 'tenDangNhap', label: 'Tên đăng nhập', required: true, minLength: 3 },
       { key: 'loaiTaiKhoan', label: 'Loại tài khoản', type: 'select', required: true, options: ['NHANVIEN', 'DOCGIA'] },
       { key: 'trangThai', label: 'Trạng thái', type: 'select', required: true, options: [{ label: 'Đang hoạt động', value: true }, { label: 'Đã khóa', value: false }] },
@@ -132,7 +129,6 @@ export const entityConfigs = {
       { key: 'soDienThoai', label: 'Số điện thoại' },
     ],
     fields: [
-      { key: 'maNXB', label: 'Mã nhà xuất bản', required: true },
       { key: 'tenNXB', label: 'Tên nhà xuất bản', required: true, wide: true },
       { key: 'diaChi', label: 'Địa chỉ', required: true, wide: true },
       { key: 'soDienThoai', label: 'Số điện thoại', type: 'tel', required: true, minLength: 9 },

@@ -8,7 +8,7 @@ const props = defineProps({
   borrow: { type: Object, default: null },
   canManage: { type: Boolean, default: false },
 })
-const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'cancel', 'return-book'])
+const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'return-book'])
 const rejectReason = ref('')
 const rejectError = ref('')
 const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Hoàn tất': 'success', 'Đã từ chối': 'danger', 'Đã hủy': 'neutral' }
@@ -51,6 +51,7 @@ function submitRejection() {
 
           <template v-else>
             <p v-if="borrow.lyDoTuChoi" class="borrow-rejection-note"><strong>Lý do từ chối:</strong> {{ borrow.lyDoTuChoi }}</p>
+            <p v-if="borrow.trangThai === 'Đã hủy' && borrow.lyDoHuy" class="borrow-cancellation-note"><strong>Lý do hủy:</strong> {{ borrow.lyDoHuy }}</p>
             <h3 class="borrow-books-title">Sách trong phiếu <span>{{ borrow.chiTiet.length }}</span></h3>
             <div class="borrow-books-list">
               <article v-for="book in borrow.chiTiet" :key="book.maSach" class="borrow-book-row">
@@ -60,7 +61,6 @@ function submitRejection() {
               </article>
             </div>
             <div v-if="canManage && borrow.trangThai === 'Chờ duyệt'" class="dialog-actions borrow-dialog__actions">
-              <button class="button button--secondary" type="button" @click="emit('cancel')">Hủy phiếu</button>
               <button class="button button--danger" type="button" @click="emit('reject-open')">Từ chối</button>
               <button class="button button--primary" type="button" @click="emit('approve')">Duyệt phiếu</button>
             </div>

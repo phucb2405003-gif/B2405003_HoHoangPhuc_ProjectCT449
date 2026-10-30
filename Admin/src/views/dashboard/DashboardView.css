@@ -39,9 +39,13 @@
 .activity-item small { color: #a0aaba; font-size: 9px; }
 .recent-borrows { margin-top: 0; }
 .recent-borrows__scroll { overflow-x: auto; }
-.recent-borrows__table { min-width: 620px; }
-.recent-borrows__table th { height: 36px; }
-.recent-borrows__table td { height: 47px; }
+.recent-borrows__table { width: 100%; min-width: 650px; table-layout: fixed; }
+.recent-borrows__col--code { width: 18%; }
+.recent-borrows__col--reader { width: 31%; }
+.recent-borrows__col--date { width: 24%; }
+.recent-borrows__col--status { width: 27%; }
+.recent-borrows__table th { height: 40px; text-align: left; }
+.recent-borrows__table td { height: 48px; text-align: left; vertical-align: middle; }
 
 @media (max-width: 1160px) {
   .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

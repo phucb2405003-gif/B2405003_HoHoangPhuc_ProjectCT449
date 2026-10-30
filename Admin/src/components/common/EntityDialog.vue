@@ -20,6 +20,12 @@ watch(() => [props.open, props.mode, props.record], () => {
   Object.assign(values, props.record || {})
 }, { immediate: true, deep: true })
 
+watch(() => values.trangThai, (nextStatus, previousStatus) => {
+  if (props.config.key !== 'readers' || !previousStatus || !nextStatus || nextStatus === previousStatus) return
+  const reasonField = props.config.statusReasonFields?.[nextStatus]
+  if (reasonField) values[reasonField] = ''
+}, { flush: 'sync' })
+
 function optionsFor(field) {
   if (field.optionsFrom === 'publishers') return props.publishers.map((publisher) => ({ label: publisher[field.optionLabel], value: publisher[field.optionValue] }))
   return (field.options || []).map((option) => typeof option === 'object' ? option : { label: option, value: option })
@@ -52,6 +58,10 @@ function submit() {
 
         <form v-if="mode !== 'detail'" class="entity-form" novalidate @submit.prevent="submit">
           <div class="entity-form__grid">
+            <div class="form-field form-field--readonly">
+              <span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span>
+              <strong>{{ record[config.codeField] || 'Mã sẽ được tạo tự động' }}</strong>
+            </div>
             <label v-for="field in config.fields" :key="field.key" class="form-field" :class="{ 'form-field--wide': field.wide }">
               <span>{{ field.label }}<b v-if="field.required" aria-hidden="true"> *</b></span>
               <select v-if="field.type === 'select'" v-model="values[field.key]">
@@ -61,6 +71,15 @@ function submit() {
               <input v-else v-model="values[field.key]" :type="field.type || 'text'" :min="field.min" :max="field.max" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`">
               <small v-if="errors[field.key]" class="field-error">{{ errors[field.key] }}</small>
             </label>
+            <label
+              v-if="config.statusReasonFields?.[values.trangThai]"
+              class="form-field form-field--wide"
+              :for="config.statusReasonFields[values.trangThai]"
+            >
+              <span>{{ values.trangThai === 'Hạn chế' ? 'Lý do hạn chế' : 'Lý do cấm' }}<b aria-hidden="true"> *</b></span>
+              <textarea :id="config.statusReasonFields[values.trangThai]" v-model="values[config.statusReasonFields[values.trangThai]]" rows="3" :placeholder="`Nhập ${values.trangThai === 'Hạn chế' ? 'lý do hạn chế' : 'lý do cấm'}`"></textarea>
+              <small v-if="errors[config.statusReasonFields[values.trangThai]]" class="field-error">{{ errors[config.statusReasonFields[values.trangThai]] }}</small>
+            </label>
           </div>
           <div class="dialog-actions">
             <button class="button button--secondary" type="button" @click="emit('close')">Hủy</button>
@@ -69,10 +88,15 @@ function submit() {
         </form>
 
         <div v-else class="entity-detail-grid">
+          <div class="entity-detail-item"><span>{{ config.columns.find((column) => column.key === config.codeField)?.label || 'Mã thực thể' }}</span><strong>{{ record[config.codeField] || '—' }}</strong></div>
           <div v-for="field in config.fields" :key="field.key" class="entity-detail-item" :class="{ 'entity-detail-item--wide': field.wide }">
             <span>{{ field.label }}</span>
             <StatusBadge v-if="field.key === 'trangThai' && config.statusVariants" :value="record[field.key]" :variants="config.statusVariants" :boolean-status="config.key === 'accounts'" />
             <strong v-else>{{ fieldValue(field) }}</strong>
+          </div>
+          <div v-if="config.statusReasonFields?.[record.trangThai]" class="entity-detail-item entity-detail-item--wide">
+            <span>{{ record.trangThai === 'Hạn chế' ? 'Lý do hạn chế' : 'Lý do cấm' }}</span>
+            <strong>{{ record[config.statusReasonFields[record.trangThai]] || 'Chưa có lý do trong dữ liệu mẫu' }}</strong>
           </div>
           <p class="entity-detail-note">Thông tin này thuộc dữ liệu minh họa trên giao diện.</p>
           <div class="dialog-actions"><button class="button button--secondary" type="button" @click="emit('close')">Đóng</button></div>

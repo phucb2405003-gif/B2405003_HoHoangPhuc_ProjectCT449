@@ -2,6 +2,7 @@
 import { entityConfigs } from '@/data/entityConfig'
 import useMockEntity from '@/composables/useMockEntity'
 import searchIcon from '@/assets/icons/search.svg'
+import plusIcon from '@/assets/icons/plus.svg'
 import DataTable from './DataTable.vue'
 import EntityDialog from './EntityDialog.vue'
 import MockDataNotice from './MockDataNotice.vue'
@@ -15,7 +16,8 @@ const {
   search, page, pageSize, filters, filterOptions, canManage, pageRows, filteredRows, pageCount,
   dialogMode, dialogOpen, currentRecord, validationErrors, publisherOptions,
   confirmOpen, confirmTitle, confirmMessage, confirmLabel,
-  openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, confirmStatusChange,
+  actionNotice,
+  openCreate, openEdit, openDetail, closeDialog, saveRecord, requestStatusChange, requestDelete, confirmStatusChange, closeConfirmation,
 } = useMockEntity(config)
 </script>
 
@@ -28,11 +30,12 @@ const {
         <p>{{ config.description }}</p>
       </div>
       <button v-if="canManage && !config.hideCreate" class="button button--primary" type="button" @click="openCreate">
-        <span class="button-plus" aria-hidden="true">+</span> Thêm {{ config.singular }}
+        <img class="button-plus-icon" :src="plusIcon" alt="" aria-hidden="true"> Thêm {{ config.singular }}
       </button>
     </header>
 
     <MockDataNotice />
+    <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">
       <div class="table-toolbar">
@@ -52,7 +55,7 @@ const {
         </div>
       </div>
 
-      <DataTable :config="config" :rows="pageRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" />
+      <DataTable :config="config" :rows="pageRows" :can-manage="canManage" @detail="openDetail" @edit="openEdit" @toggle-status="requestStatusChange" @delete="requestDelete" />
       <PaginationControl :page="page" :page-count="pageCount" :total="filteredRows.length" :page-size="pageSize" @change="page = $event" />
     </section>
 
@@ -73,7 +76,7 @@ const {
       :confirm-label="confirmLabel"
       tone="danger"
       @confirm="confirmStatusChange"
-      @close="confirmOpen = false"
+      @close="closeConfirmation"
     />
   </section>
 </template>

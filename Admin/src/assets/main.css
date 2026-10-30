@@ -1,3 +1,10 @@
 @import 'tailwindcss';
 @import './styles/tokens.css';
 @import './styles/base.css';
+
+/* Dashboard table uses these scoped base rules without loading management styles. */
+.recent-borrows__table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+.recent-borrows__table th { padding: 0 14px; color: #78869b; background: #f8fafd; font-size: 10px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.recent-borrows__table td { padding: 9px 14px; border-top: 1px solid #edf1f6; color: #53627a; font-size: 12px; }
+.recent-borrows__table tbody tr:hover { background: #fbfcfe; }
+.recent-borrows .table-strong { color: #283950; font-size: 11px; font-weight: 700; }

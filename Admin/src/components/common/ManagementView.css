@@ -5,6 +5,7 @@
 .management-heading__eyebrow { display: flex; align-items: center; gap: 8px; color: var(--admin-blue); font-size: 10px; font-weight: 750; letter-spacing: .13em; }
 .heading-indicator { width: 7px; height: 7px; border-radius: 50%; background: var(--admin-blue); box-shadow: 0 0 0 3px #2563eb20; }
 .management-card { overflow: hidden; border: 1px solid var(--admin-line); border-radius: 12px; background: #fff; box-shadow: 0 3px 14px #0b12200a; }
+.management-feedback { margin: 0 0 16px; padding: 10px 12px; border: 1px solid #bbebca; border-radius: 8px; color: #166534; background: #f0fdf4; font-size: 12px; }
 .table-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; border-bottom: 1px solid #edf1f6; }
 .search-box { width: min(100%, 380px); height: 39px; display: flex; align-items: center; gap: 9px; padding: 0 10px; border: 1px solid var(--admin-line); border-radius: 8px; color: #8290a4; background: #fff; }
 .search-box:focus-within { border-color: #8aaeea; box-shadow: 0 0 0 3px #2563eb16; }
@@ -28,6 +29,7 @@
 .table-actions-heading { min-width: 150px; text-align: right !important; }
 .table-actions { display: flex; height: 59px; align-items: center; justify-content: flex-end; gap: 8px; }
 .table-action { padding: 5px 2px; border: 0; color: #2859a8; background: transparent; font-size: 11px; font-weight: 650; }
+.table-action__icon { width: 13px; height: 13px; margin-right: 4px; vertical-align: -2px; filter: brightness(0) saturate(100%) invert(28%) sepia(18%) saturate(1064%) hue-rotate(181deg) brightness(93%) contrast(89%); }
 .table-action:hover { color: var(--admin-blue-hover); text-decoration: underline; }
 .table-action--danger { color: #b42318; }
 .table-action--positive { color: #15803d; }
@@ -35,6 +37,7 @@
 .table-empty strong, .table-empty span { display: block; }
 .table-empty strong { color: #43516a; font-size: 13px; }
 .table-empty span { margin-top: 5px; color: #8b97a9; font-size: 12px; }
+.button-plus-icon { width: 15px; height: 15px; flex: 0 0 auto; filter: brightness(0) invert(1); }
 .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-top: 1px solid #edf1f6; }
 .pagination-bar p { margin: 0; color: #7e8ba0; font-size: 11px; }
 .pagination-bar p strong { color: #485770; font-weight: 650; }

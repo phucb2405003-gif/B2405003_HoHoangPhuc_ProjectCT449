@@ -1,5 +1,6 @@
 <script setup>
 import StatusBadge from './StatusBadge.vue'
+import editIcon from '@/assets/icons/notebook-pen.svg'
 
 defineProps({
   config: { type: Object, required: true },
@@ -7,7 +8,7 @@ defineProps({
   canManage: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['detail', 'edit', 'toggle-status'])
+const emit = defineEmits(['detail', 'edit', 'toggle-status', 'delete'])
 
 function displayDate(value) {
   if (!value) return '—'
@@ -28,11 +29,13 @@ function displayDate(value) {
             </div>
             <StatusBadge v-else-if="column.type === 'status'" :value="row[column.key]" :variants="config.statusVariants" :boolean-status="column.booleanStatus" />
             <strong v-else-if="column.strong" class="table-strong">{{ row[column.key] || '—' }}</strong>
+            <span v-else-if="column.key === 'soQuyen'">{{ row.soQuyen ?? 0 }} bản</span>
+            <span v-else-if="column.key === 'soQuyenConLai'">{{ row.soQuyenConLai ?? 0 }} bản có thể mượn</span>
             <span v-else>{{ column.type === 'date' ? displayDate(row[column.key]) : row[column.key] ?? '—' }}</span>
           </td>
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
-            <button v-if="canManage && !config.hideEdit" class="table-action" type="button" @click="emit('edit', row)">Sửa</button>
+            <button v-if="canManage && !config.hideEdit" class="table-action" type="button" @click="emit('edit', row)"><img class="table-action__icon" :src="editIcon" alt="" aria-hidden="true">Sửa</button>
             <button
               v-if="canManage && config.statusAction"
               class="table-action"
@@ -40,6 +43,7 @@ function displayDate(value) {
               type="button"
               @click="emit('toggle-status', row)"
             >{{ row[config.statusAction.key] === config.statusAction.activeValue ? config.statusAction.activeLabel : config.statusAction.inactiveLabel }}</button>
+            <button v-if="canManage && config.deleteAction" class="table-action table-action--danger" type="button" @click="emit('delete', row)">Xóa</button>
           </td>
         </tr>
         <tr v-if="!rows.length"><td class="table-empty" :colspan="config.columns.length + 1"><strong>Không tìm thấy dữ liệu</strong><span>Thử điều chỉnh từ khóa hoặc bộ lọc.</span></td></tr>

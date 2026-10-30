@@ -24,6 +24,7 @@ const router = createRouter({
       { key: 'publishers', path: '/publishers', component: () => import('@/views/publishers/PublishersView.vue') },
       { key: 'employees', path: '/employees', component: () => import('@/views/employees/EmployeesView.vue') },
       { key: 'accounts', path: '/accounts', component: () => import('@/views/accounts/AccountsView.vue') },
+      { key: 'profile', path: '/profile', component: () => import('@/views/profile/ProfileView.vue') },
     ].map(({ key, path, component }) => ({
       path,
       component: AdminLayout,
