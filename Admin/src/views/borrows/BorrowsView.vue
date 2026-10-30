@@ -1,10 +1,10 @@
 <script setup>
-import SessionDataNotice from '@/components/common/SessionDataNotice.vue'
 import PaginationControl from '@/components/common/PaginationControl.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import BorrowDialog from '@/components/borrows/BorrowDialog.vue'
 import useBorrowManagement from '@/composables/useBorrowManagement'
+import '@/components/common/ManagementView.css'
 import './BorrowsView.css'
 import searchIcon from '@/assets/icons/search.svg'
 
@@ -21,7 +21,6 @@ const borrowVariants = { 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'H
     <header class="management-heading">
       <div><div class="management-heading__eyebrow"><span class="heading-indicator"></span> NGHIỆP VỤ THƯ VIỆN</div><h2 id="borrow-page-title">Quản lý mượn sách</h2><p>Theo dõi phiếu mượn và tình trạng từng cuốn sách riêng biệt.</p></div>
     </header>
-    <SessionDataNotice />
 
     <section class="management-card">
       <div class="table-toolbar">

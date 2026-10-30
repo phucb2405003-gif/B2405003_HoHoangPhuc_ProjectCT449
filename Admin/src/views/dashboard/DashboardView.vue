@@ -8,7 +8,6 @@ import StatCard from '@/components/dashboard/StatCard.vue'
 import BorrowTrendChart from '@/components/dashboard/BorrowTrendChart.vue'
 import RecentBorrows from '@/components/dashboard/RecentBorrows.vue'
 import RecentActivity from '@/components/dashboard/RecentActivity.vue'
-import SessionDataNotice from '@/components/common/SessionDataNotice.vue'
 import { entityStore } from '@/data/entityStore'
 import './DashboardView.css'
 
@@ -30,8 +29,6 @@ const recentBorrows = computed(() => entityStore.borrows.slice(0, 5))
       <div><p class="dashboard-eyebrow">BẢNG ĐIỀU KHIỂN</p><h2 id="dashboard-title">Tổng quan thư viện</h2><p>Các chỉ số sẽ xuất hiện khi có dữ liệu.</p></div>
       <span class="dashboard-date">Tình trạng hiện tại</span>
     </header>
-
-    <SessionDataNotice />
 
     <div class="stats-grid">
       <StatCard v-for="stat in stats" :key="stat.label" :label="stat.label" :value="stat.value" :caption="stat.caption" :icon="stat.icon" />

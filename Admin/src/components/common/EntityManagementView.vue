@@ -5,7 +5,6 @@ import searchIcon from '@/assets/icons/search.svg'
 import plusIcon from '@/assets/icons/plus.svg'
 import DataTable from './DataTable.vue'
 import EntityDialog from './EntityDialog.vue'
-import SessionDataNotice from './SessionDataNotice.vue'
 import PaginationControl from './PaginationControl.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import './ManagementView.css'
@@ -34,7 +33,6 @@ const {
       </button>
     </header>
 
-    <SessionDataNotice />
     <p v-if="actionNotice" class="management-feedback" role="status">{{ actionNotice }}</p>
 
     <section class="management-card">
