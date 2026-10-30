@@ -21,7 +21,6 @@ const {
   rejectError,
   readerCode,
   bookCodesInput,
-  selectedBookCodes,
   createError,
   borrowVariants,
   bookVariants,

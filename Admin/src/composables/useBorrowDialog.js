@@ -5,7 +5,6 @@ export default function useBorrowDialog({ open, mode, onReject, onCreate }) {
   const rejectError = ref('')
   const readerCode = ref('')
   const bookCodesInput = ref('')
-  const selectedBookCodes = ref([])
   const createError = ref('')
   const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
   const bookVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Đã trả': 'success', 'Từ chối': 'danger', 'Hủy': 'neutral' }
@@ -16,7 +15,6 @@ export default function useBorrowDialog({ open, mode, onReject, onCreate }) {
     createError.value = ''
     readerCode.value = ''
     bookCodesInput.value = ''
-    selectedBookCodes.value = []
   })
 
   function submitRejection() {
@@ -34,8 +32,7 @@ export default function useBorrowDialog({ open, mode, onReject, onCreate }) {
     if (!maDocGia) { createError.value = 'Vui lòng nhập mã độc giả.'; return }
     if (maSach.length < 1 || maSach.length > 5) { createError.value = 'Nhập từ 1 đến 5 mã sách.'; return }
     if (new Set(maSach).size !== maSach.length) { createError.value = 'Mã sách không được trùng lặp.'; return }
-    selectedBookCodes.value = maSach
-    onCreate({ maDocGia, maSach: [...selectedBookCodes.value] })
+    onCreate({ maDocGia, maSach: [...maSach] })
   }
 
   return {
@@ -43,7 +40,6 @@ export default function useBorrowDialog({ open, mode, onReject, onCreate }) {
     rejectError,
     readerCode,
     bookCodesInput,
-    selectedBookCodes,
     createError,
     borrowVariants,
     bookVariants,
