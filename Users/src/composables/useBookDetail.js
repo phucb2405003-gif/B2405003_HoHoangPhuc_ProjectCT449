@@ -21,6 +21,7 @@ const allBorrows = ref([])
 const pendingBorrows = ref([])
 const selectedBorrowId = ref('')
 const borrowDetailsById = ref({})
+const borrowDetailsIncomplete = ref(false)
 let bookLoadVersion = 0
 
 const title = computed(() => book.value?.tenSach || book.value?.title || 'Chi tiết sách')
@@ -29,12 +30,12 @@ const genre = computed(() => book.value?.genre || '')
 const publisher = computed(() => book.value?.tenNXB || '')
 const availableCopies = computed(() => Number.isSafeInteger(book.value?.soQuyenConLai) ? book.value.soQuyenConLai : null)
 const activeDuplicate = computed(() => allBorrows.value.some((borrow) => {
-  const details = borrowDetailsById.value[borrow.maPhieu] || []
-  return details.some((detail) => detail.maSach === book.value?.maSach && ['Chờ duyệt', 'Đang mượn'].includes(detail.trangThai))
+  const details = borrowDetailsById.value[borrow.maPhieu]
+  return Array.isArray(details) && details.some((detail) => detail.maSach === book.value?.maSach && ['Chờ duyệt', 'Đang mượn'].includes(detail.trangThai))
 }))
 const selectedBorrowHasBook = computed(() => {
-  const details = borrowDetailsById.value[selectedBorrowId.value] || []
-  return details.some((detail) => detail.maSach === book.value?.maSach)
+  const details = borrowDetailsById.value[selectedBorrowId.value]
+  return Array.isArray(details) && details.some((detail) => detail.maSach === book.value?.maSach)
 })
 const backQuery = computed(() => Object.fromEntries(
   ['q', 'genre', 'author', 'sort', 'page']
@@ -77,6 +78,8 @@ async function goBackToBooks() {
 async function loadBorrowChoices(token) {
   isLoadingBorrows.value = true
   borrowError.value = ''
+  borrowDetailsIncomplete.value = false
+  borrowDetailsById.value = {}
   try {
     const borrows = await getMyBorrows(token)
     allBorrows.value = Array.isArray(borrows) ? borrows : []
@@ -85,13 +88,19 @@ async function loadBorrowChoices(token) {
     const details = await Promise.all(allBorrows.value.map(async (item) => {
       try {
         const rows = await getBorrowDetails(item.maPhieu, token)
-        return [item.maPhieu, Array.isArray(rows) ? rows : []]
+        if (!Array.isArray(rows)) return [item.maPhieu, null]
+        return [item.maPhieu, rows]
       } catch {
-        return [item.maPhieu, []]
+        return [item.maPhieu, null]
       }
     }))
     borrowDetailsById.value = Object.fromEntries(details)
     selectedBorrowId.value = pendingBorrows.value[0]?.maPhieu || 'new'
+    const failedBorrowCount = details.filter(([, rows]) => rows === null).length
+    if (failedBorrowCount) {
+      borrowDetailsIncomplete.value = true
+      borrowError.value = `Không thể tải chi tiết ${failedBorrowCount} phiếu mượn để kiểm tra sách. Vui lòng đóng hộp thoại rồi chọn lại để thử tải lại.`
+    }
   } catch (error) {
     borrowError.value = error.message || 'Không thể tải các phiếu mượn của bạn.'
   } finally {
@@ -119,7 +128,7 @@ async function openBorrowDialog() {
 
 async function createNewBorrow() {
   const token = getReaderAccessToken()
-  if (!token || selectedBorrowId.value !== 'new' || !book.value?.maSach || activeDuplicate.value || availableCopies.value === 0) return
+  if (!token || borrowDetailsIncomplete.value || selectedBorrowId.value !== 'new' || !book.value?.maSach || activeDuplicate.value || availableCopies.value === 0) return
 
   isCreatingBorrow.value = true
   borrowError.value = ''
