@@ -1,6 +1,7 @@
 <script setup>
-import { reactive, watch } from 'vue'
+import { toRef } from 'vue'
 import StatusBadge from './StatusBadge.vue'
+import useEntityDialog from '@/composables/useEntityDialog'
 import './Dialog.css'
 
 const props = defineProps({
@@ -15,35 +16,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'save'])
-const values = reactive({})
-
-watch(() => [props.open, props.mode, props.record], () => {
-  for (const key of Object.keys(values)) delete values[key]
-  Object.assign(values, props.record || {})
-}, { immediate: true, deep: true })
-
-function optionsFor(field) {
-  if (field.optionsFrom === 'publishers') return props.publishers.map((publisher) => ({ label: publisher[field.optionLabel], value: publisher[field.optionValue] }))
-  return (field.options || []).map((option) => typeof option === 'object' ? option : { label: option, value: option })
-}
-
-function fieldValue(field) {
-  const value = props.record?.[field.key]
-  if (field.type === 'date' && value) return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN')
-  if (field.type === 'select' && field.optionsFrom === 'publishers') {
-    return optionsFor(field).find((item) => item.value === value)?.label || value || '—'
-  }
-  if (field.type === 'select' && Array.isArray(field.options)) {
-    const option = optionsFor(field).find((item) => item.value === value)
-    if (option) return option.label
-  }
-  if (field.type === 'status') return value
-  return value === true ? 'Đang hoạt động' : value === false ? 'Đã khóa' : value || '—'
-}
-
-function submit() {
-  if (!props.busy) emit('save', { ...values })
-}
+const { values, optionsFor, fieldValue, submit } = useEntityDialog({
+  open: toRef(props, 'open'),
+  mode: toRef(props, 'mode'),
+  record: toRef(props, 'record'),
+  publishers: toRef(props, 'publishers'),
+  busy: toRef(props, 'busy'),
+  onSave: (payload) => emit('save', payload),
+})
 </script>
 
 <template>
