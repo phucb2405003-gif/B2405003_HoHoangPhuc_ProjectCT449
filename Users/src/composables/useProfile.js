@@ -59,6 +59,7 @@ export default function useProfile() {
   const borrowDetailLoaded = ref({})
   const borrowDetailErrors = ref({})
   const bookNames = ref({})
+  const bookNameRequests = new Map()
   const borrowableBooks = ref([])
   const selectedBookIds = ref([])
   const isBorrowDialogOpen = ref(false)
@@ -227,6 +228,35 @@ export default function useProfile() {
     }
   }
 
+  function hasBookName(value) {
+    return typeof value === 'string' && value.trim().length > 0
+  }
+
+  function loadBookName(maSach, token) {
+    const cachedName = bookNames.value[maSach]
+    if (hasBookName(cachedName)) return Promise.resolve(cachedName)
+
+    const existingRequest = bookNameRequests.get(maSach)
+    if (existingRequest) return existingRequest
+
+    let request
+    request = getBook(maSach, token)
+      .then((book) => {
+        const name = book?.tenSach
+        if (hasBookName(name)) {
+          bookNames.value = { ...bookNames.value, [maSach]: name }
+          return name
+        }
+        return null
+      })
+      .finally(() => {
+        if (bookNameRequests.get(maSach) === request) bookNameRequests.delete(maSach)
+      })
+
+    bookNameRequests.set(maSach, request)
+    return request
+  }
+
   async function loadBorrowDetailRows(maPhieu, token = getReaderAccessToken()) {
     if (!token) {
       await router.replace({ name: 'login', query: { redirect: route.fullPath } })
@@ -240,16 +270,16 @@ export default function useProfile() {
       borrowDetails.value[maPhieu] = rows
       borrowDetailLoaded.value[maPhieu] = true
 
-      const resolvedNames = await Promise.all(rows.map(async (detail) => {
+      const bookCodes = [...new Set(rows
+        .map((detail) => detail.maSach)
+        .filter((maSach) => typeof maSach === 'string' && maSach.trim()))]
+      await Promise.all(bookCodes.map(async (maSach) => {
         try {
-          const book = await getBook(detail.maSach, token)
-          return [detail.maSach, typeof book?.tenSach === 'string' ? book.tenSach : null]
+          await loadBookName(maSach, token)
         } catch (error) {
-          if (await handleUnauthorized(error)) return [detail.maSach, null]
-          return [detail.maSach, null]
+          await handleUnauthorized(error)
         }
       }))
-      bookNames.value = { ...bookNames.value, ...Object.fromEntries(resolvedNames) }
       return true
     } catch (error) {
       if (!await handleUnauthorized(error)) {
