@@ -112,15 +112,25 @@ async function update(maDocGia, user) {
     return await findOne(maDocGia);
 }
 
-async function updateReaderStatus(maDocGia, trangThai) {
+async function updateReaderStatus(maDocGia, trangThai, lyDoHanChe) {
     if (typeof trangThai !== "string" || !READER_STATUSES.has(trangThai)) {
         const error = new Error("Trang thai doc gia khong hop le");
         error.code = "INVALID_UPDATE";
         throw error;
     }
 
+    const isRestricted = trangThai === "Hạn chế" || trangThai === "Bị cấm";
+    if ((isRestricted && (typeof lyDoHanChe !== "string" || !lyDoHanChe.trim())) ||
+        (lyDoHanChe !== undefined && typeof lyDoHanChe !== "string")) {
+        const error = new Error("Ly do han che doc gia khong hop le");
+        error.code = "INVALID_UPDATE";
+        throw error;
+    }
+
     const collection = await getCollection();
-    const result = await collection.updateOne({ maDocGia }, { $set: { trangThai } });
+    const result = await collection.updateOne({ maDocGia }, {
+        $set: { trangThai, lyDoHanChe: isRestricted ? lyDoHanChe.trim() : "" }
+    });
     if (result.matchedCount === 0) {
         const error = new Error("Khong tim thay doc gia");
         error.code = "NOT_FOUND";

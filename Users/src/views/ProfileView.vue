@@ -133,7 +133,7 @@ const {
               <div><dt>Số điện thoại</dt><dd>{{ profile.dienThoai || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Email</dt><dd>{{ authState.user?.email || 'Chưa cập nhật' }}</dd></div>
               <div><dt>Địa chỉ</dt><dd>{{ profile.diaChi || 'Chưa cập nhật' }}</dd></div>
-              <div class="reader-profile-reader-status"><dt>Trạng thái độc giả</dt><dd><span v-if="profile.trangThai" class="reader-profile-reader-status__badge" :class="`reader-profile-reader-status__badge--${readerStatusClass(profile.trangThai)}`">{{ profile.trangThai }}</span><span v-else>Chưa cập nhật</span></dd></div>
+              <div class="reader-profile-reader-status"><dt>Tr&#7841;ng th&#225;i &#273;&#7897;c gi&#7843;</dt><dd><span v-if="profile.trangThai" class="reader-profile-reader-status__badge" :class="`reader-profile-reader-status__badge--${readerStatusClass(profile.trangThai)}`">{{ profile.trangThai }}</span><span v-else>Ch&#432;a c&#7853;p nh&#7853;t</span><p v-if="profile.trangThai === 'H&#7841;n ch&#7871;' || profile.trangThai === 'B&#7883; c&#7845;m'" class="reader-profile-reader-status__reason"><strong>L&#253; do:</strong> {{ typeof profile.lyDoHanChe === 'string' && profile.lyDoHanChe.trim() ? profile.lyDoHanChe.trim() : 'Ch&#432;a c&#243; th&#244;ng tin l&#253; do' }}</p></dd></div>
             </dl>
 
             <button v-if="!isProfileEditOpen" type="button" class="reader-profile-primary-button reader-profile-edit-button" @click="openProfileEditor">Chỉnh sửa thông tin</button>

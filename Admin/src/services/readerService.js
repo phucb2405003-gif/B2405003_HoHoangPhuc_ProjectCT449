@@ -55,8 +55,10 @@ export async function updateReader(maDocGia, record) {
   return normalizeReader(await apiClient.put(`${READERS_PATH}/${encodeURIComponent(maDocGia)}`, toPayload(record, UPDATE_FIELDS)))
 }
 
-export async function updateReaderStatus(maDocGia, trangThai) {
+export async function updateReaderStatus(maDocGia, trangThai, lyDoHanChe = '') {
   if (!READER_STATUSES.includes(trangThai)) throw new Error('Trạng thái độc giả không hợp lệ.')
-  return normalizeReader(await apiClient.put(`${READERS_PATH}/${encodeURIComponent(maDocGia)}/status`, { trangThai }))
+  const reason = trangThai === READER_STATUSES[0] ? '' : String(lyDoHanChe || '').trim()
+  if (trangThai !== READER_STATUSES[0] && !reason) throw new Error('Vui lòng nhập lý do hạn chế/cấm.')
+  return normalizeReader(await apiClient.put(`${READERS_PATH}/${encodeURIComponent(maDocGia)}/status`, { trangThai, lyDoHanChe: reason }))
 }
 

@@ -101,13 +101,13 @@ async function updateReaderStatus(req, res) {
         typeof req.body !== "object" ||
         Array.isArray(req.body) ||
         Object.getPrototypeOf(req.body) !== Object.prototype ||
-        Object.keys(req.body).length !== 1 ||
+        Object.keys(req.body).some((field) => !["trangThai", "lyDoHanChe"].includes(field)) ||
         !Object.hasOwn(req.body, "trangThai")
     ) {
         return res.status(400).json({ message: "Trang thai doc gia khong hop le" });
     }
     try {
-        const user = await userService.updateReaderStatus(req.params.maDocGia, req.body?.trangThai);
+        const user = await userService.updateReaderStatus(req.params.maDocGia, req.body?.trangThai, req.body?.lyDoHanChe);
         return res.json(user);
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
@@ -132,7 +132,7 @@ async function updateMe(req, res) {
     try {
         const user = await userService.update(req.user.maTaiKhoan, req.body);
         const responseUser = Object.fromEntries(
-            ["maDocGia", "hoLot", "ten", "ngaySinh", "phai", "diaChi", "dienThoai", "trangThai"]
+            ["maDocGia", "hoLot", "ten", "ngaySinh", "phai", "diaChi", "dienThoai", "trangThai", "lyDoHanChe"]
                 .filter((field) => Object.hasOwn(user, field))
                 .map((field) => [field, user[field]])
         );

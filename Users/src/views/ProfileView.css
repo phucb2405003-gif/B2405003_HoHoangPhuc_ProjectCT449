@@ -185,7 +185,9 @@
   overflow-wrap: anywhere;
 }
 
-.reader-profile-reader-status dd { display: flex; align-items: flex-start; }
+.reader-profile-reader-status dd { display: flex; align-items: flex-start; flex-direction: column; gap: 0.55rem; }
+.reader-profile-reader-status__reason { margin: 0; color: #cbd5e1; font-size: 0.82rem; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.reader-profile-reader-status__reason strong { color: #9fb1c9; font-weight: 600; }
 .reader-profile-reader-status__badge {
   max-width: 100%;
   padding: 0.25rem 0.6rem;

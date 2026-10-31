@@ -392,12 +392,12 @@ export default function useEntityManagement(config) {
   }
 
   const statusDialogOpen = ref(false)
-  async function saveReaderStatus(status) {
+  async function saveReaderStatus({ trangThai, lyDoHanChe }) {
     if (!isReader || !canManage.value || isStatusOperation.value || !pendingStatusChange.value) return
     isStatusOperation.value = true
     operationError.value = ''
     try {
-      const updated = await updateReaderStatus(pendingStatusChange.value.maDocGia, status)
+      const updated = await updateReaderStatus(pendingStatusChange.value.maDocGia, trangThai, lyDoHanChe)
       const index = readerRows.value.findIndex((row) => row.maDocGia === updated.maDocGia)
       if (index >= 0) readerRows.value.splice(index, 1, updated)
       actionNotice.value = 'Đã cập nhật trạng thái độc giả.'
