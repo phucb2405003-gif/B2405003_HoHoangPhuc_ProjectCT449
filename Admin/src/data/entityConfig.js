@@ -35,7 +35,7 @@ export const entityConfigs = {
       { key: 'theLoai', label: 'Thể loại', required: true },
       { key: 'maNXB', label: 'Nhà xuất bản', type: 'select', required: true, optionsFrom: 'publishers', optionLabel: 'tenNXB', optionValue: 'maNXB' },
       { key: 'donGia', label: 'Đơn giá', type: 'number', required: true, min: 0, step: 'any' },
-      { key: 'namXuatBan', label: 'Năm xuất bản', type: 'number', required: true, step: 1 },
+      { key: 'namXuatBan', label: 'Năm xuất bản', type: 'number', required: true, min: 0, step: 1 },
       { key: 'soQuyen', label: 'Tổng số lượng', type: 'number', required: true, min: 0, createOnly: true },
     ],
   },
