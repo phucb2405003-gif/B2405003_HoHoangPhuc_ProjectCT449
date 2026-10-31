@@ -57,6 +57,12 @@ function getUpdateFields(payload, allowedFields) {
         if (type === "nonNegativeInteger" && (!Number.isSafeInteger(value) || value < 0)) {
             throw invalidUpdateError();
         }
+        if (type === "nonNegativeNumber" && (typeof value !== "number" || !Number.isFinite(value) || value < 0)) {
+            throw invalidUpdateError();
+        }
+        if (type === "integer" && (typeof value !== "number" || !Number.isInteger(value))) {
+            throw invalidUpdateError();
+        }
         if (type === "date" && !isIsoDate(value)) throw invalidUpdateError();
     }
 

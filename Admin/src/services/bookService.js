@@ -1,8 +1,8 @@
 import apiClient from './apiClient'
 
 const BOOKS_PATH = '/api/books'
-const CREATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'soQuyen']
-const UPDATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB']
+const CREATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'soQuyen', 'donGia', 'namXuatBan']
+const UPDATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'donGia', 'namXuatBan']
 
 function pickFields(source, fields) {
   return Object.fromEntries(fields.filter((key) => Object.hasOwn(source || {}, key)).map((key) => [key, source[key]]))
@@ -15,6 +15,10 @@ function normalizeBook(book) {
 
   if (typeof book.maSach !== 'string' || !book.maSach.trim()) {
     throw new Error('Backend không trả về mã sách đã lưu.')
+  }
+  if ((Object.hasOwn(book, 'donGia') && (typeof book.donGia !== 'number' || !Number.isFinite(book.donGia) || book.donGia < 0)) ||
+      (Object.hasOwn(book, 'namXuatBan') && (typeof book.namXuatBan !== 'number' || !Number.isInteger(book.namXuatBan)))) {
+    throw new Error(`Dữ liệu đơn giá hoặc năm xuất bản sách ${book.maSach || ''} không hợp lệ.`)
   }
   if (!Number.isSafeInteger(book.soQuyen) || book.soQuyen < 0 ||
       !Number.isSafeInteger(book.soQuyenConLai) || book.soQuyenConLai < 0 ||

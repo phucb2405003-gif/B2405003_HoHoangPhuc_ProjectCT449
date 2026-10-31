@@ -203,7 +203,7 @@ export default function useEntityManagement(config) {
         errors[field.key] = 'Vui lòng nhập thông tin này.'
       } else if (field.minLength && String(value ?? '').trim() && String(value).trim().length < field.minLength) {
         errors[field.key] = `Tối thiểu ${field.minLength} ký tự.`
-      } else if (field.type === 'number' && value !== '' && (Number(value) < field.min || Number(value) > field.max)) {
+      } else if (field.type === 'number' && value !== '' && (!Number.isFinite(Number(value)) || Number(value) < (field.min ?? -Infinity) || Number(value) > (field.max ?? Infinity) || (field.step === 1 && !Number.isInteger(Number(value))))) {
         errors[field.key] = `Giá trị phải từ ${field.min} đến ${field.max ?? 'không giới hạn'}.`
       }
     }

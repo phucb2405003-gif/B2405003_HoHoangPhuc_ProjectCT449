@@ -47,6 +47,8 @@ async function create(book) {
         theLoai: "string",
         maNXB: "string",
         soQuyen: "nonNegativeInteger",
+        donGia: "nonNegativeNumber",
+        namXuatBan: "nonNegativeInteger",
     }, ["tenSach", "tacGia", "theLoai", "maNXB", "soQuyen"]);
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
@@ -122,6 +124,8 @@ async function update(maSach, book) {
         tacGia: "string",
         theLoai: "string",
         maNXB: "string",
+        donGia: "nonNegativeNumber",
+        namXuatBan: "nonNegativeInteger",
     });
     const db = await connectDB();
     const collection = db.collection(BOOK_COLLECTION);
