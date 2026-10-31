@@ -7,12 +7,17 @@ import authorIcon from '@/assets/icons/author.svg'
 import bookIcon from '@/assets/icons/book-open-text.svg'
 import bookBorrowIcon from '@/assets/icons/book-lock.svg'
 import calendarIcon from '@/assets/icons/calendar.svg'
+import currencyIcon from '@/assets/icons/circle-dollar-sign.svg'
 import circleCheckIcon from '@/assets/icons/circle-check.svg'
 import circleXIcon from '@/assets/icons/circle-x.svg'
-import pageIcon from '@/assets/icons/page.svg'
 import publisherIcon from '@/assets/icons/publisher.svg'
 import tagIcon from '@/assets/icons/tag.svg'
 import './BookDetailView.css'
+
+function formatPrice(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 'Chưa cập nhật'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 20 }).format(value)
+}
 
 const {
   activeDuplicate,
@@ -108,8 +113,8 @@ const {
                     <dt>Năm xuất bản</dt><dd>Chưa cập nhật</dd>
                   </div>
                   <div>
-                    <img :src="pageIcon" alt="" aria-hidden="true" />
-                    <dt>Số quyển khả dụng</dt><dd>{{ availableCopies === null ? 'Chưa cập nhật' : availableCopies }}</dd>
+                    <img :src="currencyIcon" alt="" aria-hidden="true" />
+                    <dt>Đơn giá</dt><dd>{{ formatPrice(book.donGia) }}</dd>
                   </div>
                 </dl>
 

@@ -18,6 +18,11 @@ function displayDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('vi-VN')
 }
 
+function formatCurrency(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 20 }).format(value)
+}
+
 function actionsFor(row, config, canManage) {
   if (!canManage) return []
   const actions = []
@@ -55,7 +60,7 @@ const actionsByRow = computed(() => new Map(rows.value.map((row) => [
 
 <template>
   <div class="data-table-scroll">
-    <table class="data-table">
+    <table class="data-table" :class="{ 'data-table--books': config.key === 'books' }">
       <thead><tr><th v-for="column in config.columns" :key="column.key">{{ column.label }}</th><th class="table-actions-heading">Thao tác</th></tr></thead>
       <tbody>
         <tr v-for="row in rows" :key="row[config.codeField]">
@@ -65,9 +70,10 @@ const actionsByRow = computed(() => new Map(rows.value.map((row) => [
             </div>
             <StatusBadge v-else-if="column.type === 'status'" :value="row[column.key]" :variants="config.statusVariants" :boolean-status="column.booleanStatus" />
             <strong v-else-if="column.strong" class="table-strong">{{ row[column.key] || '—' }}</strong>
+            <span v-else-if="config.key === 'books' && column.key === 'donGia'">{{ formatCurrency(row.donGia) }}</span>
             <span v-else-if="column.key === 'soQuyen'">{{ row.soQuyen ?? 0 }} bản</span>
             <span v-else-if="column.key === 'soQuyenConLai'">{{ row.soQuyenConLai ?? 0 }} bản có thể mượn</span>
-            <span v-else>{{ column.type === 'date' ? displayDate(row[column.key]) : row[column.key] ?? '—' }}</span>
+            <span v-else :class="{ 'table-book-publisher': config.key === 'books' && column.key === 'nhaXuatBan' }">{{ column.type === 'date' ? displayDate(row[column.key]) : row[column.key] ?? '—' }}</span>
           </td>
           <td class="table-actions">
             <button class="table-action" type="button" @click="emit('detail', row)">Chi tiết</button>
