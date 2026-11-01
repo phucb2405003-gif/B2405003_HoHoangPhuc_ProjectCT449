@@ -57,7 +57,7 @@ export default function useReaderPassword({ getAccessToken, handleUnauthorized, 
     } catch (error) {
       if (await handleUnauthorized(error)) return
       const message = String(error.message || '')
-      passwordError.value = message.toLocaleLowerCase('vi').includes('mat khau hien tai khong dung')
+      passwordError.value = message === 'Mật khẩu hiện tại không chính xác.'
         ? 'Mật khẩu hiện tại không đúng.'
         : message || 'Không thể đổi mật khẩu. Vui lòng thử lại.'
     } finally {

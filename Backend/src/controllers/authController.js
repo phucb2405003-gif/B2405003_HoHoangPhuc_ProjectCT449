@@ -13,7 +13,7 @@ async function login(req, res) {
             password.length === 0
         ) {
             return res.status(400).json({
-                message: "Vui long nhap ten dang nhap va mat khau"
+                message: "Vui lòng nhập tên đăng nhập và mật khẩu."
             });
         }
 
@@ -35,7 +35,7 @@ async function login(req, res) {
         console.error("Loi dang nhap:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }

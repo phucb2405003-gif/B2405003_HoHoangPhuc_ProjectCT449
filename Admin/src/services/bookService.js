@@ -10,11 +10,11 @@ function pickFields(source, fields) {
 
 function normalizeBook(book) {
   if (!book || typeof book !== 'object' || Array.isArray(book)) {
-    throw new Error('Backend trả về thông tin sách không hợp lệ.')
+    throw new Error('Máy chủ trả về thông tin sách không hợp lệ.')
   }
 
   if (typeof book.maSach !== 'string' || !book.maSach.trim()) {
-    throw new Error('Backend không trả về mã sách đã lưu.')
+    throw new Error('Máy chủ chưa xác nhận mã sách đã lưu.')
   }
   if ((Object.hasOwn(book, 'donGia') && (typeof book.donGia !== 'number' || !Number.isFinite(book.donGia) || book.donGia < 0)) ||
       (Object.hasOwn(book, 'namXuatBan') && (typeof book.namXuatBan !== 'number' || !Number.isInteger(book.namXuatBan)))) {
@@ -38,7 +38,7 @@ function normalizeBook(book) {
 
 export async function getBooks() {
   const result = await apiClient.get(BOOKS_PATH)
-  if (!Array.isArray(result)) throw new Error('Backend trả về danh sách sách không hợp lệ.')
+  if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách sách không hợp lệ.')
   return result.map(normalizeBook)
 }
 

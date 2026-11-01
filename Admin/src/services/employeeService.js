@@ -6,7 +6,7 @@ const UPDATE_FIELDS = ['hoTenNV', 'diaChi', 'soDienThoai']
 
 function normalizeEmployee(employee) {
   if (!employee || typeof employee !== 'object' || typeof employee.maNhanVien !== 'string' || !employee.maNhanVien.trim()) {
-    throw new Error('Backend trả về hồ sơ nhân viên không hợp lệ.')
+    throw new Error('Máy chủ trả về hồ sơ nhân viên không hợp lệ.')
   }
   const profile = { ...employee }
   delete profile.accountCreation
@@ -29,7 +29,7 @@ function toPayload(record, fields) {
 
 export async function getEmployees() {
   const result = await apiClient.get(EMPLOYEES_PATH)
-  if (!Array.isArray(result)) throw new Error('Backend trả về danh sách nhân viên không hợp lệ.')
+  if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách nhân viên không hợp lệ.')
   return result.map(normalizeEmployee)
 }
 

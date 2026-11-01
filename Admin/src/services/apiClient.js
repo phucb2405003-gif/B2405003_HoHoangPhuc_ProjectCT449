@@ -29,8 +29,8 @@ function errorMessage(status, method, path) {
   if (status === 429) return 'Bạn thao tác quá nhanh. Vui lòng chờ rồi thử lại.'
   if (status === 503 && method === 'DELETE' && path.startsWith('/api/publishers/')) return 'Hệ thống đang xử lý phiếu mượn. Vui lòng thử xóa lại sau.'
   if (status === 503 && path.startsWith('/api/books')) return 'Hệ thống đang xử lý nghiệp vụ mượn. Vui lòng thử lại sau.'
-  if (status === 503) return 'Backend đang tạm thời không khả dụng. Vui lòng thử lại sau.'
-  if (status >= 500) return 'Backend gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.'
+  if (status === 503) return 'Máy chủ đang tạm thời không khả dụng. Vui lòng thử lại sau.'
+  if (status >= 500) return 'Máy chủ gặp sự cố khi xử lý yêu cầu. Vui lòng thử lại sau.'
   return 'Không thể hoàn tất yêu cầu. Vui lòng thử lại.'
 }
 
@@ -60,7 +60,7 @@ async function request(method, path, body) {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     })
   } catch {
-    throw new ApiError('Không thể kết nối đến Backend. Vui lòng kiểm tra kết nối rồi thử lại.', { method, path })
+    throw new ApiError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối rồi thử lại.', { method, path })
   }
 
   let data = null

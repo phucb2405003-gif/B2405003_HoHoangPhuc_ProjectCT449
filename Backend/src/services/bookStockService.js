@@ -7,12 +7,12 @@ function stockError(message, statusCode = 409) {
 
 function getAvailable(book, maSach) {
     if (!Number.isSafeInteger(book.soQuyen) || book.soQuyen < 0) {
-        throw stockError(`Du lieu tong so quyen cua sach ${maSach} khong hop le`);
+        throw stockError(`Thông tin tồn kho chưa hợp lệ. Vui lòng liên hệ thư viện.`);
     }
 
     const hasAvailable = Object.prototype.hasOwnProperty.call(book, "soQuyenConLai");
     if (!hasAvailable) {
-        throw stockError(`Sach ${maSach} thieu soQuyenConLai; can doi soat du lieu truoc khi thay doi ton kho`);
+        throw stockError(`Thông tin tồn kho chưa đầy đủ. Vui lòng liên hệ thư viện.`);
     }
 
     const available = book.soQuyenConLai;
@@ -21,7 +21,7 @@ function getAvailable(book, maSach) {
         available < 0 ||
         available > book.soQuyen
     ) {
-        throw stockError(`Du lieu soQuyenConLai cua sach ${maSach} khong hop le`);
+        throw stockError(`Thông tin tồn kho chưa hợp lệ. Vui lòng liên hệ thư viện.`);
     }
 
     return { hasAvailable, value: available };
@@ -33,15 +33,15 @@ async function changeAvailable(bookCollection, maSach, delta, assertOwned) {
     }
 
     const book = await bookCollection.findOne({ maSach });
-    if (!book) throw stockError(`Khong tim thay sach ${maSach}`, 404);
+    if (!book) throw stockError(`Không tìm thấy sách.`, 404);
 
     const { hasAvailable, value: before } = getAvailable(book, maSach);
     const after = before + delta;
     if (after < 0) {
-        throw stockError(`Sach ${maSach} khong du so luong kha dung`, 400);
+        throw stockError(`Sách hiện không còn đủ số lượng khả dụng.`, 400);
     }
     if (after > book.soQuyen) {
-        throw stockError(`Hoan kho sach ${maSach} se vuot tong so quyen`);
+        throw stockError(`Không thể cập nhật tồn kho sách. Vui lòng liên hệ thư viện.`);
     }
 
     const filter = {
@@ -74,7 +74,7 @@ async function changeAvailable(bookCollection, maSach, delta, assertOwned) {
 
     if (!updateError) {
         throw stockError(
-            `Ton kho sach ${maSach} da thay doi; vui long thu lai`,
+            `Tồn kho sách vừa thay đổi. Vui lòng tải lại và thử lại.`,
             409
         );
     }
@@ -84,7 +84,7 @@ async function changeAvailable(bookCollection, maSach, delta, assertOwned) {
         current = await bookCollection.findOne({ maSach });
     } catch (readError) {
         const uncertainError = stockError(
-            `Khong the xac minh ton kho sach ${maSach}; can doi soat`,
+            `Không thể xác minh tồn kho sách. Vui lòng thử lại sau.`,
             503
         );
         uncertainError.stockChangeState = "uncertain";
@@ -107,7 +107,7 @@ async function changeAvailable(bookCollection, maSach, delta, assertOwned) {
         throw updateError;
     }
     const uncertainError = stockError(
-        `Khong the xac nhan cap nhat ton kho sach ${maSach}; can doi soat`,
+        `Không thể xác nhận cập nhật tồn kho sách. Vui lòng thử lại sau.`,
         503
     );
     uncertainError.stockChangeState = "uncertain";

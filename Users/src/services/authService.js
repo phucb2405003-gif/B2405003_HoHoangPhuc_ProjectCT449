@@ -142,8 +142,8 @@ export async function loginReader(tenDangNhap, password) {
   }
 
   if (!response.ok || result?.success !== true) {
-    const message = String(result?.message || '').toLocaleLowerCase('vi')
-    if (response.status === 401 && message.includes('khoa')) {
+    const message = String(result?.message || '')
+    if (response.status === 401 && message === 'Tài khoản đã bị khóa.') {
       throw new Error('Tài khoản đã bị khóa. Vui lòng liên hệ thư viện để được hỗ trợ.')
     }
     if (response.status === 401) {

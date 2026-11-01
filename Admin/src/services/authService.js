@@ -97,9 +97,9 @@ export function expireStaffSession() {
 }
 
 function loginError(response, result) {
-  const message = String(result?.message || '').toLocaleLowerCase('vi')
+  const message = String(result?.message || '')
   if (response.status === 429) return 'Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ rồi thử lại.'
-  if (response.status === 401 && message.includes('khoa')) return 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.'
+  if (response.status === 401 && message === 'Tài khoản đã bị khóa.') return 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.'
   if (response.status === 401) return 'Tên đăng nhập hoặc mật khẩu không chính xác.'
   if (response.status === 400) return 'Vui lòng nhập tên đăng nhập và mật khẩu.'
   return 'Máy chủ đang gặp sự cố. Vui lòng thử lại sau.'
@@ -149,7 +149,7 @@ export function initializeAuth({ retry = false } = {}) {
         headers: { Authorization: `Bearer ${session.token}` },
       })
     } catch {
-      setVerificationFailure('Không thể kết nối để xác minh phiên. Kiểm tra Backend rồi thử lại.', true)
+      setVerificationFailure('Không thể kết nối để xác minh phiên. Vui lòng kiểm tra kết nối rồi thử lại.', true)
       return
     }
 
@@ -167,7 +167,7 @@ export function initializeAuth({ retry = false } = {}) {
     const staff = normalizeStaff(result?.user)
     if (!staff) {
       removeStoredSession()
-      setVerificationFailure('Backend không trả về phiên nhân viên hợp lệ. Vui lòng đăng nhập lại.', false)
+      setVerificationFailure('Máy chủ không trả về phiên nhân viên hợp lệ. Vui lòng đăng nhập lại.', false)
       return
     }
 

@@ -30,7 +30,7 @@ router.get("/", authenticateToken, (req, res, next) => {
     }
 
     return res.status(403).json({
-        message: "Khong co quyen xem phieu muon"
+        message: "Bạn không có quyền xem phiếu mượn."
     });
 });
 
@@ -53,7 +53,7 @@ router.get(
         }
 
         return res.status(403).json({
-            message: "Khong co quyen xem phieu muon"
+            message: "Bạn không có quyền xem phiếu mượn."
         });
     },
     borrowDetailController.findByMaPhieu
@@ -68,7 +68,7 @@ router.get(
     (req, res, next) => {
         if (req.user.loaiTaiKhoan !== "DOCGIA") {
             return res.status(403).json({
-                message: "Chi doc gia moi duoc xem phieu cua minh"
+                message: "Chỉ độc giả mới được xem phiếu mượn của mình."
             });
         }
 
@@ -93,7 +93,7 @@ router.get(
         }
 
         return res.status(403).json({
-            message: "Khong co quyen xem phieu muon"
+            message: "Bạn không có quyền xem phiếu mượn."
         });
     },
     borrowController.findOne
@@ -161,7 +161,7 @@ router.delete(
     (req, res, next) => {
         if (req.user.loaiTaiKhoan !== "DOCGIA") {
             return res.status(403).json({
-                message: "Chi doc gia moi duoc xoa phieu muon cua minh"
+                message: "Chỉ độc giả mới được xóa phiếu mượn của mình."
             });
         }
         return next();

@@ -76,7 +76,7 @@ async function restoreDetail(collection, detail, assertOwned) {
     }
     if (current) return;
 
-    const error = new Error("Khong the xac nhan khoi phuc chi tiet phieu; can doi soat");
+    const error = new Error("Không thể hoàn tất thao tác với phiếu mượn. Vui lòng liên hệ thư viện để được hỗ trợ.");
     error.cause = retryError || insertError;
     throw error;
 }
@@ -131,13 +131,13 @@ async function remove(maPhieu, maSach, requester) {
 
         const totalDetails = await detailCollection.countDocuments({ maPhieu });
         if (!Number.isSafeInteger(borrow.soLuong) || borrow.soLuong !== totalDetails) {
-            const error = new Error("So luong sach trong phieu khong khop chi tiet; can doi soat");
+            const error = new Error("Không thể cập nhật phiếu do thông tin sách chưa khớp. Vui lòng tải lại và thử lại.");
             error.statusCode = 409;
             throw error;
         }
         const book = await bookCollection.findOne({ maSach });
         if (!book) {
-            const error = new Error(`Khong tim thay sach ${maSach}`);
+            const error = new Error(`Không tìm thấy sách.`);
             error.statusCode = 404;
             throw error;
         }

@@ -17,7 +17,7 @@ async function login(tenDangNhap, password) {
     if (!account) {
         return {
             success: false,
-            message: "Sai ten dang nhap hoac mat khau"
+            message: "Tên đăng nhập hoặc mật khẩu không chính xác."
         };
     }
 
@@ -25,7 +25,7 @@ async function login(tenDangNhap, password) {
     if (account.trangThai !== true) {
         return {
             success: false,
-            message: "Tai khoan da bi khoa"
+            message: "Tài khoản đã bị khóa."
         };
     }
 
@@ -38,7 +38,7 @@ async function login(tenDangNhap, password) {
     if (!isPasswordCorrect) {
         return {
             success: false,
-            message: "Sai ten dang nhap hoac mat khau"
+            message: "Tên đăng nhập hoặc mật khẩu không chính xác."
         };
     }
 

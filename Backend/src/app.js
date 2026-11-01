@@ -26,7 +26,7 @@ app.use(express.json());
 
 // Route chính
 app.get("/", (req, res) => {
-    res.json({ message: "Chao mung toi Web dang ky muon sach" });
+    res.json({ message: "Chào mừng bạn đến với hệ thống đăng ký mượn sách." });
 });
 
 // API sách

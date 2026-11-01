@@ -40,7 +40,7 @@ async function create(req, res) {
         res.status(201).json(publisher); // 201 = tạo thành công
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu khong hop le" });
+            return res.status(400).json({ message: "Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "DUPLICATE_NAME") {
             return res.status(409).json({
@@ -51,7 +51,7 @@ async function create(req, res) {
             return res.status(409).json({ message: error.publicMessage });
         }
         if (error.code === "PUBLISHER_CODE_ALREADY_EXISTS") {
-            return res.status(409).json({ message: "Ma nha xuat ban da ton tai; vui long thu lai" });
+            return res.status(409).json({ message: "Mã nhà xuất bản đã tồn tại. Vui lòng thử lại." });
         }
 
         res.status(500).json({
@@ -72,13 +72,13 @@ async function update(req, res) {
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({
-                message: "Du lieu cap nhat khong hop le",
+                message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại.",
             });
         }
 
         if (error.code === "NOT_FOUND") {
             return res.status(404).json({
-                message: "Khong tim thay nha xuat ban",
+                message: "Không tìm thấy nhà xuất bản.",
             });
         }
 
@@ -111,18 +111,18 @@ async function remove(req, res) {
     } catch (error) {
         if (error.statusCode === 503) {
             return res.status(503).json({
-                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+                message: "Hệ thống đang xử lý phiếu mượn. Vui lòng thử lại sau."
             });
         }
         if (error.code === "NOT_FOUND") {
             return res.status(404).json({
-                message: "Khong tim thay nha xuat ban",
+                message: "Không tìm thấy nhà xuất bản.",
             });
         }
 
         if (error.code === "PUBLISHER_REFERENCED") {
             return res.status(409).json({
-                message: "Khong the xoa nha xuat ban dang duoc sach su dung",
+                message: "Không thể xóa nhà xuất bản đang được sách sử dụng.",
             });
         }
 

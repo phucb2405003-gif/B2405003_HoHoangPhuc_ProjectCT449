@@ -7,7 +7,7 @@ const router = express.Router();
 
 function allowEmployeeSelf(req, res, next) {
     if (req.user?.loaiTaiKhoan !== "NHANVIEN") {
-        return res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+        return res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này." });
     }
     return next();
 }

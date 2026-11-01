@@ -41,11 +41,11 @@ async function create(req, res) {
     } catch (error) {
         if (error.statusCode === 503) {
             return res.status(503).json({
-                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+                message: "Hệ thống đang xử lý phiếu mượn. Vui lòng thử lại sau."
             });
         }
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu khong hop le" });
+            return res.status(400).json({ message: "Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "DUPLICATE_NAME") {
             return res.status(409).json({
@@ -56,7 +56,7 @@ async function create(req, res) {
             return res.status(409).json({ message: error.publicMessage });
         }
         if (error.code === "BOOK_CODE_ALREADY_EXISTS") {
-            return res.status(409).json({ message: "Ma sach da ton tai; vui long thu lai" });
+            return res.status(409).json({ message: "Mã sách đã tồn tại. Vui lòng thử lại." });
         }
 
         if (error.code === "PUBLISHER_NOT_FOUND") {
@@ -83,12 +83,12 @@ async function update(req, res) {
     } catch (error) {
         if (error.statusCode === 503) {
             return res.status(503).json({
-                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+                message: "Hệ thống đang xử lý phiếu mượn. Vui lòng thử lại sau."
             });
         }
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({
-                message: "Du lieu cap nhat khong hop le",
+                message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại.",
             });
         }
 
@@ -141,7 +141,7 @@ async function addStock(req, res) {
         }
 
         res.status(500).json({
-            message: "Lỗi server",
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.",
         });
     }
 }
@@ -176,7 +176,7 @@ async function destroyStock(req, res) {
         }
 
         res.status(500).json({
-            message: "Lỗi server",
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau.",
         });
     }
 }
@@ -198,7 +198,7 @@ async function remove(req, res) {
     } catch (error) {
         if (error.statusCode === 503) {
             return res.status(503).json({
-                message: "He thong dang xu ly phieu muon; vui long thu lai sau"
+                message: "Hệ thống đang xử lý phiếu mượn. Vui lòng thử lại sau."
             });
         }
         if (error.code === "BOOK_REFERENCED") {

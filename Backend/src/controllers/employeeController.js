@@ -11,7 +11,7 @@ async function findAll(req, res) {
         console.error("Loi lay danh sach nhan vien:", error);
 
         res.status(500).json({
-            message: "Khong the lay danh sach nhan vien"
+            message: "Không thể tải danh sách nhân viên. Vui lòng thử lại sau."
         });
     }
 }
@@ -26,7 +26,7 @@ async function findOne(req, res) {
 
         if (!employee) {
             return res.status(404).json({
-                message: "Khong tim thay nhan vien"
+                message: "Không tìm thấy nhân viên."
             });
         }
 
@@ -35,7 +35,7 @@ async function findOne(req, res) {
         console.error("Loi tim nhan vien:", error);
 
         res.status(500).json({
-            message: "Khong the tim nhan vien"
+            message: "Không thể tải thông tin nhân viên. Vui lòng thử lại sau."
         });
     }
 }
@@ -60,26 +60,26 @@ async function create(req, res) {
             });
             return res.status(lockFailure ? 503 : duplicateFailure ? 409 : 500).json({
                 message: lockFailure
-                    ? "Da tao ho so nhan vien nhung he thong chua xac nhan duoc viec tao tai khoan; vui long thu lai sau"
-                    : "Da tao ho so nhan vien nhung chua tao duoc tai khoan; hay tao tai khoan cho ma ho so nay",
+                    ? "Đã tạo hồ sơ nhân viên nhưng chưa xác nhận được việc tạo tài khoản. Vui lòng thử lại sau."
+                    : "Đã tạo hồ sơ nhân viên nhưng chưa tạo được tài khoản. Vui lòng tạo tài khoản cho mã hồ sơ này.",
                 profileCreated: true,
                 accountCreated: false,
                 maNhanVien: error.profileCode,
             });
         }
         if (error.code === "INVALID_CREATE") {
-            return res.status(400).json({ message: "Du lieu tao nhan vien khong hop le" });
+            return res.status(400).json({ message: "Thông tin nhân viên chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "CODE_SEQUENCE_EXHAUSTED") {
             return res.status(409).json({ message: error.publicMessage });
         }
         if (error.code === "PROFILE_CODE_ALREADY_EXISTS") {
-            return res.status(409).json({ message: "Ma nhan vien da ton tai; vui long thu lai" });
+            return res.status(409).json({ message: "Mã nhân viên đã tồn tại. Vui lòng thử lại." });
         }
         console.error("Loi tao nhan vien:", error);
 
         res.status(500).json({
-            message: "Khong the tao nhan vien"
+            message: "Không thể thêm nhân viên. Vui lòng thử lại sau."
         });
     }
 }
@@ -95,7 +95,7 @@ async function update(req, res) {
 
         if (!oldEmployee) {
             return res.status(404).json({
-                message: "Khong tim thay nhan vien"
+                message: "Không tìm thấy nhân viên."
             });
         }
 
@@ -109,19 +109,19 @@ async function update(req, res) {
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({
-                message: "Du lieu cap nhat khong hop le"
+                message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại."
             });
         }
         if (error.code === "NOT_FOUND") {
             return res.status(404).json({
-                message: "Khong tim thay nhan vien"
+                message: "Không tìm thấy nhân viên."
             });
         }
 
         console.error("Loi cap nhat nhan vien:", error);
 
         res.status(500).json({
-            message: "Khong the cap nhat nhan vien"
+            message: "Không thể cập nhật thông tin nhân viên. Vui lòng thử lại sau."
         });
     }
 }
@@ -138,7 +138,7 @@ function publicEmployeeProfile(employee) {
 
 function authenticatedEmployeeCode(req, res) {
     if (req.user?.loaiTaiKhoan !== "NHANVIEN" || typeof req.user.maTaiKhoan !== "string") {
-        res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+        res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này." });
         return null;
     }
     return req.user.maTaiKhoan;
@@ -150,11 +150,11 @@ async function getMe(req, res) {
 
     try {
         const employee = await employeeService.findOne(maNhanVien);
-        if (!employee) return res.status(404).json({ message: "Khong tim thay nhan vien" });
+        if (!employee) return res.status(404).json({ message: "Không tìm thấy nhân viên." });
         return res.json(publicEmployeeProfile(employee));
     } catch (error) {
         console.error("Loi lay ho so nhan vien dang dang nhap:", error);
-        return res.status(500).json({ message: "Khong the lay ho so nhan vien" });
+        return res.status(500).json({ message: "Không thể tải hồ sơ nhân viên. Vui lòng thử lại sau." });
     }
 }
 
@@ -167,14 +167,14 @@ async function updateMe(req, res) {
         return res.json(publicEmployeeProfile(employee));
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+            return res.status(400).json({ message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay nhan vien" });
+            return res.status(404).json({ message: "Không tìm thấy nhân viên." });
         }
 
         console.error("Loi cap nhat ho so nhan vien dang dang nhap:", error);
-        return res.status(500).json({ message: "Khong the cap nhat ho so nhan vien" });
+        return res.status(500).json({ message: "Không thể cập nhật hồ sơ nhân viên. Vui lòng thử lại sau." });
     }
 }
 

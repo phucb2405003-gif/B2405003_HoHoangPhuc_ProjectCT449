@@ -16,7 +16,7 @@ async function findAll(req, res) {
 
         res.status(500).json({
             message:
-                "Khong the lay chi tiet phieu muon"
+                "Không thể tải chi tiết phiếu mượn. Vui lòng thử lại sau."
         });
     }
 }
@@ -31,7 +31,7 @@ async function findByMaPhieu(req, res) {
         const borrow = await borrowService.findOne(maPhieu);
         if (!borrow) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
@@ -49,7 +49,7 @@ async function findByMaPhieu(req, res) {
 
         res.status(500).json({
             message:
-                "Khong the lay sach trong phieu muon"
+                "Không thể tải danh sách sách trong phiếu mượn. Vui lòng thử lại sau."
         });
     }
 }
@@ -76,19 +76,19 @@ async function remove(req, res) {
         if (result.notFound) {
             return res.status(404).json({
                 message:
-                    "Khong tim thay phieu muon"
+                    "Không tìm thấy phiếu mượn."
             });
         }
 
         if (result.detailNotFound) {
             return res.status(404).json({
                 message:
-                    "Khong tim thay sach trong phieu muon"
+                    "Không tìm thấy sách trong phiếu mượn."
             });
         }
 
         if (result.expired) {
-            return res.status(400).json({ message: "Phieu muon da het han" });
+            return res.status(400).json({ message: "Phiếu mượn đã hết hạn." });
         }
 
         if (result.invalidStatus) {
@@ -117,23 +117,23 @@ async function remove(req, res) {
             : 500;
         res.status(statusCode).json({
             message: statusCode < 500
-                ? (error.publicMessage || error.message || "Khong the xoa sach khoi phieu muon")
-                : (error.publicMessage || "Khong the xoa sach khoi phieu muon")
+                ? (error.publicMessage || error.message || "Không thể xóa sách khỏi phiếu mượn. Vui lòng thử lại sau.")
+                : (error.publicMessage || "Không thể xóa sách khỏi phiếu mượn. Vui lòng thử lại sau.")
         });
     }
 }
 
 async function add(req, res) {
     try {
-        if (!Array.isArray(req.body?.borrowDetails)) return res.status(400).json({ message: "borrowDetails phai la danh sach sach can them" });
+        if (!Array.isArray(req.body?.borrowDetails)) return res.status(400).json({ message: "Danh sách sách cần thêm chưa hợp lệ." });
         const result = await borrowService.addBooks(req.params.maPhieu, req.body.borrowDetails, req.user);
-        if (result.forbidden) return res.status(403).json({ message: "Ban khong co quyen them sach vao phieu muon nay" });
-        if (result.notFound) return res.status(404).json({ message: "Khong tim thay phieu muon" });
-        if (result.invalidStatus || result.expired) return res.status(400).json({ message: "Chi duoc them sach vao phieu dang chon sach chua het han" });
-        return res.status(201).json({ message: "Them sach vao phieu muon thanh cong", borrow: result.borrow, details: result.details });
+        if (result.forbidden) return res.status(403).json({ message: "Bạn không có quyền thêm sách vào phiếu mượn này." });
+        if (result.notFound) return res.status(404).json({ message: "Không tìm thấy phiếu mượn." });
+        if (result.invalidStatus || result.expired) return res.status(400).json({ message: "Chỉ có thể thêm sách vào phiếu đang chọn sách và chưa hết hạn." });
+        return res.status(201).json({ message: "Đã thêm sách vào phiếu mượn thành công.", borrow: result.borrow, details: result.details });
     } catch (error) {
         const statusCode = Number.isInteger(error.statusCode) && error.statusCode >= 400 && error.statusCode <= 599 ? error.statusCode : 500;
-        return res.status(statusCode).json({ message: statusCode < 500 ? (error.publicMessage || error.message) : (error.publicMessage || "Khong the them sach vao phieu muon") });
+        return res.status(statusCode).json({ message: statusCode < 500 ? (error.publicMessage || error.message) : (error.publicMessage || "Không thể thêm sách vào phiếu mượn. Vui lòng thử lại sau.") });
     }
 }
 

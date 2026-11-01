@@ -50,21 +50,21 @@ async function create(req, res) {
             });
             return res.status(lockFailure ? 503 : duplicateFailure ? 409 : 500).json({
                 message: lockFailure
-                    ? "Da tao ho so doc gia nhung he thong chua xac nhan duoc viec tao tai khoan; vui long thu lai sau"
-                    : "Da tao ho so doc gia nhung chua tao duoc tai khoan; hay tao tai khoan cho ma ho so nay",
+                    ? "Đã tạo hồ sơ độc giả nhưng chưa xác nhận được việc tạo tài khoản. Vui lòng thử lại sau."
+                    : "Đã tạo hồ sơ độc giả nhưng chưa tạo được tài khoản. Vui lòng tạo tài khoản cho mã hồ sơ này.",
                 profileCreated: true,
                 accountCreated: false,
                 maDocGia: error.profileCode,
             });
         }
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu khong hop le" });
+            return res.status(400).json({ message: "Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "CODE_SEQUENCE_EXHAUSTED") {
             return res.status(409).json({ message: error.publicMessage });
         }
         if (error.code === "PROFILE_CODE_ALREADY_EXISTS") {
-            return res.status(409).json({ message: "Ma doc gia da ton tai; vui long thu lai" });
+            return res.status(409).json({ message: "Mã độc giả đã tồn tại. Vui lòng thử lại." });
         }
         res.status(500).json({
             message: "Lỗi khi thêm người dùng",
@@ -83,10 +83,10 @@ async function update(req, res) {
         res.json(user); // Trả dữ liệu sau khi cập nhật
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+            return res.status(400).json({ message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay doc gia" });
+            return res.status(404).json({ message: "Không tìm thấy độc giả." });
         }
 
         res.status(500).json({
@@ -104,29 +104,29 @@ async function updateReaderStatus(req, res) {
         Object.keys(req.body).some((field) => !["trangThai", "lyDoHanChe"].includes(field)) ||
         !Object.hasOwn(req.body, "trangThai")
     ) {
-        return res.status(400).json({ message: "Trang thai doc gia khong hop le" });
+        return res.status(400).json({ message: "Trạng thái độc giả không hợp lệ." });
     }
     try {
         const user = await userService.updateReaderStatus(req.params.maDocGia, req.body?.trangThai, req.body?.lyDoHanChe);
         return res.json(user);
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Trang thai doc gia khong hop le" });
+            return res.status(400).json({ message: "Trạng thái độc giả không hợp lệ." });
         }
         if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay doc gia" });
+            return res.status(404).json({ message: "Không tìm thấy độc giả." });
         }
-        return res.status(500).json({ message: "Loi khi cap nhat trang thai doc gia" });
+        return res.status(500).json({ message: "Không thể cập nhật trạng thái độc giả. Vui lòng thử lại sau." });
     }
 }
 
 // Độc giả tự cập nhật hồ sơ dựa trên danh tính do authenticateToken xác minh
 async function updateMe(req, res) {
     if (!req.user) {
-        return res.status(401).json({ message: "Chua dang nhap" });
+        return res.status(401).json({ message: "Bạn cần đăng nhập để tiếp tục." });
     }
     if (req.user.loaiTaiKhoan !== "DOCGIA") {
-        return res.status(403).json({ message: "Ban khong co quyen thuc hien chuc nang nay" });
+        return res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này." });
     }
 
     try {
@@ -139,13 +139,13 @@ async function updateMe(req, res) {
         return res.json(responseUser);
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu cap nhat khong hop le" });
+            return res.status(400).json({ message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay doc gia" });
+            return res.status(404).json({ message: "Không tìm thấy độc giả." });
         }
 
-        return res.status(500).json({ message: "Loi khi cap nhat thong tin ca nhan" });
+        return res.status(500).json({ message: "Không thể cập nhật thông tin cá nhân. Vui lòng thử lại sau." });
     }
 }
 

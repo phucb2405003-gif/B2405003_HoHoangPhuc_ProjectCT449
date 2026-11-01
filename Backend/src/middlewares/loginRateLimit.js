@@ -33,7 +33,7 @@ function loginRateLimit(req, res, next) {
     if (entry.count >= maxRequests) {
         res.set("Retry-After", String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))));
         return res.status(429).json({
-            message: "Qua nhieu yeu cau dang nhap. Vui long thu lai sau."
+            message: "Bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ rồi thử lại."
         });
     }
 

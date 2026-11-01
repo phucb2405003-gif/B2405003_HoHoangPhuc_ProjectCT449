@@ -4,7 +4,7 @@ const { BORROW_COLLECTION } = require("../models/Borrow");
 function allowReaderOrManager(req, res, next) {
     if (!req.user) {
         return res.status(401).json({
-            message: "Chua dang nhap"
+            message: "Bạn cần đăng nhập để tiếp tục."
         });
     }
 
@@ -16,7 +16,7 @@ function allowReaderOrManager(req, res, next) {
     }
 
     return res.status(403).json({
-        message: "Ban khong co quyen xoa sach khoi phieu muon"
+        message: "Bạn không có quyền xóa sách khỏi phiếu mượn."
     });
 }
 
@@ -24,7 +24,7 @@ async function allowOwnBorrow(req, res, next) {
     try {
         if (!req.user) {
             return res.status(401).json({
-                message: "Chua dang nhap"
+                message: "Bạn cần đăng nhập để tiếp tục."
             });
         }
 
@@ -45,14 +45,14 @@ async function allowOwnBorrow(req, res, next) {
 
         if (!borrow) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
         // Độc giả chỉ được xem phiếu của mình
         if (borrow.maDocGia !== req.user.maTaiKhoan) {
             return res.status(403).json({
-                message: "Ban khong co quyen xem phieu muon nay"
+                message: "Bạn không có quyền xem phiếu mượn này."
             });
         }
 
@@ -61,7 +61,7 @@ async function allowOwnBorrow(req, res, next) {
         console.error("Loi kiem tra quyen phieu muon:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }

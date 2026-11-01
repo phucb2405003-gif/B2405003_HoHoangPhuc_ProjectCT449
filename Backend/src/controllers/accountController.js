@@ -10,7 +10,7 @@ async function findAll(req, res) {
         console.error("Loi lay danh sach tai khoan:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }
@@ -24,7 +24,7 @@ async function findOne(req, res) {
 
         if (!account) {
             return res.status(404).json({
-                message: "Khong tim thay tai khoan"
+                message: "Không tìm thấy tài khoản."
             });
         }
 
@@ -33,7 +33,7 @@ async function findOne(req, res) {
         console.error("Loi tim tai khoan:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }
@@ -61,7 +61,7 @@ async function create(req, res) {
 
         if (existingAccount) {
             return res.status(409).json({
-                message: "Ma tai khoan da ton tai"
+                message: "Mã tài khoản đã tồn tại."
             });
         }
 
@@ -71,11 +71,11 @@ async function create(req, res) {
     } catch (error) {
         if (accountService.ACCOUNT_CREATION_LOCK_ERROR_CODES.has(error.code)) {
             return res.status(503).json({
-                message: "He thong dang xu ly tao tai khoan; vui long thu lai sau",
+                message: "Hệ thống đang xử lý tạo tài khoản. Vui lòng thử lại sau.",
             });
         }
         if (error.code === "INVALID_UPDATE") {
-            return res.status(400).json({ message: "Du lieu tao tai khoan khong hop le" });
+            return res.status(400).json({ message: "Thông tin tài khoản chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
         if (error.code === "INVALID_PASSWORD") {
             return res.status(400).json({
@@ -91,20 +91,20 @@ async function create(req, res) {
 
         if (error.code === "DUPLICATE_USERNAME") {
             return res.status(409).json({
-                message: "Ten dang nhap da ton tai"
+                message: "Tên đăng nhập đã tồn tại."
             });
         }
 
         if (error.code === "ACCOUNT_ALREADY_EXISTS") {
             return res.status(409).json({
-                message: "Tai khoan da ton tai cho ho so nay"
+                message: "Hồ sơ này đã có tài khoản."
             });
         }
 
         console.error("Loi tao tai khoan:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }
@@ -125,7 +125,7 @@ async function update(req, res) {
 
         if (!existingAccount) {
             return res.status(404).json({
-                message: "Khong tim thay tai khoan"
+                message: "Không tìm thấy tài khoản."
             });
         }
 
@@ -138,13 +138,13 @@ async function update(req, res) {
     } catch (error) {
         if (error.code === "INVALID_UPDATE") {
             return res.status(400).json({
-                message: "Du lieu cap nhat khong hop le"
+                message: "Thông tin cập nhật chưa hợp lệ. Vui lòng kiểm tra lại."
             });
         }
 
         if (error.code === "NOT_FOUND") {
             return res.status(404).json({
-                message: "Khong tim thay tai khoan"
+                message: "Không tìm thấy tài khoản."
             });
         }
 
@@ -156,14 +156,14 @@ async function update(req, res) {
 
         if (error.code === "DUPLICATE_USERNAME") {
             return res.status(409).json({
-                message: "Ten dang nhap da ton tai"
+                message: "Tên đăng nhập đã tồn tại."
             });
         }
 
         console.error("Loi cap nhat tai khoan:", error);
 
         res.status(500).json({
-            message: "Loi server"
+            message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau."
         });
     }
 }
@@ -179,7 +179,7 @@ async function changeOwnPassword(req, res) {
             body.currentPassword.length === 0 ||
             typeof body.newPassword !== "string"
         ) {
-            return res.status(400).json({ message: "Du lieu doi mat khau khong hop le" });
+            return res.status(400).json({ message: "Thông tin đổi mật khẩu chưa hợp lệ. Vui lòng kiểm tra lại." });
         }
 
         await accountService.changeOwnPassword(
@@ -188,20 +188,20 @@ async function changeOwnPassword(req, res) {
             body.newPassword
         );
 
-        return res.json({ message: "Doi mat khau thanh cong" });
+        return res.json({ message: "Đổi mật khẩu thành công." });
     } catch (error) {
         if (error.code === "INVALID_PASSWORD") {
             return res.status(400).json({ message: error.message });
         }
         if (error.code === "INVALID_CURRENT_PASSWORD") {
-            return res.status(400).json({ message: "Mat khau hien tai khong dung" });
+            return res.status(400).json({ message: "Mật khẩu hiện tại không chính xác." });
         }
         if (error.code === "NOT_FOUND") {
-            return res.status(404).json({ message: "Khong tim thay tai khoan" });
+            return res.status(404).json({ message: "Không tìm thấy tài khoản." });
         }
 
         console.error("Loi doi mat khau tai khoan:", error);
-        return res.status(500).json({ message: "Loi server" });
+        return res.status(500).json({ message: "Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau." });
     }
 }
 

@@ -9,7 +9,7 @@ function sequenceExhaustedError(counterId) {
     const error = new Error(`Sequence cho ${counterId} da dat gioi han ${MAX_SEQUENCE}.`);
     error.code = "CODE_SEQUENCE_EXHAUSTED";
     error.statusCode = 409;
-    error.publicMessage = `Da het day ma ${counterId}; khong the tao ma moi`;
+    error.publicMessage = `Hệ thống đã sử dụng hết mã số khả dụng. Vui lòng liên hệ quản trị viên.`;
     return error;
 }
 

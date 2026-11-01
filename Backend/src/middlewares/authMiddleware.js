@@ -7,7 +7,7 @@ const { USER_COLLECTION } = require("../models/User");
 
 function unauthorized(res) {
     return res.status(401).json({
-        message: "Tai khoan khong con hoat dong hoac ho so khong ton tai"
+        message: "Tài khoản không hoạt động hoặc hồ sơ không còn tồn tại."
     });
 }
 
@@ -16,14 +16,14 @@ async function authenticateToken(req, res, next) {
 
     if (!authHeader) {
         return res.status(401).json({
-            message: "Chua dang nhap"
+            message: "Bạn cần đăng nhập để tiếp tục."
         });
     }
 
     const [scheme, token, ...extra] = authHeader.split(" ");
     if (scheme !== "Bearer" || !token || extra.length) {
         return res.status(401).json({
-            message: "Token khong hop le"
+            message: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại."
         });
     }
 
@@ -32,7 +32,7 @@ async function authenticateToken(req, res, next) {
         decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
         return res.status(401).json({
-            message: "Token khong hop le hoac da het han"
+            message: "Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Vui lòng đăng nhập lại."
         });
     }
 
@@ -78,7 +78,7 @@ async function authenticateToken(req, res, next) {
     } catch (error) {
         console.error("Loi xac minh tai khoan va quyen hien tai:", error);
         return res.status(503).json({
-            message: "Khong the xac minh tai khoan; vui long thu lai sau"
+            message: "Không thể xác minh tài khoản lúc này. Vui lòng thử lại sau."
         });
     }
 

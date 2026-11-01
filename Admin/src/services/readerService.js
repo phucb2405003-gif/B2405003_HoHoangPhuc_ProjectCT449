@@ -17,7 +17,7 @@ function splitName(value) {
 
 function normalizeReader(reader) {
   if (!reader || typeof reader !== 'object' || typeof reader.maDocGia !== 'string' || !reader.maDocGia.trim()) {
-    throw new Error('Backend trả về hồ sơ độc giả không hợp lệ.')
+    throw new Error('Máy chủ trả về hồ sơ độc giả không hợp lệ.')
   }
   return {
     ...reader,
@@ -37,7 +37,7 @@ function toPayload(record, fields) {
 
 export async function getReaders() {
   const result = await apiClient.get(READERS_PATH)
-  if (!Array.isArray(result)) throw new Error('Backend trả về danh sách độc giả không hợp lệ.')
+  if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách độc giả không hợp lệ.')
   return result.map(normalizeReader)
 }
 

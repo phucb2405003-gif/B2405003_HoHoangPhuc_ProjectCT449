@@ -1,7 +1,7 @@
 function allowOwnReader(req, res, next) {
     if (!req.user) {
         return res.status(401).json({
-            message: "Chua dang nhap"
+            message: "Bạn cần đăng nhập để tiếp tục."
         });
     }
 
@@ -13,7 +13,7 @@ function allowOwnReader(req, res, next) {
         req.user.maTaiKhoan !== maDocGia
     ) {
         return res.status(403).json({
-            message: "Ban khong co quyen xem thong tin nay"
+            message: "Bạn không có quyền xem thông tin này."
         });
     }
 

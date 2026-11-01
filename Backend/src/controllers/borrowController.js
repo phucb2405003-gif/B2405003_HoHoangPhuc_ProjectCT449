@@ -20,7 +20,7 @@ async function findAll(req, res) {
     } catch (error) {
         console.error("Loi lay danh sach phieu muon:", error);
         res.status(500).json({
-            message: "Khong the lay danh sach phieu muon"
+            message: "Không thể tải danh sách phiếu mượn. Vui lòng thử lại sau."
         });
     }
 }
@@ -33,7 +33,7 @@ async function findMine(req, res) {
     } catch (error) {
         console.error("Loi lay phieu muon cua doc gia:", error);
         res.status(500).json({
-            message: "Khong the lay danh sach phieu muon"
+            message: "Không thể tải danh sách phiếu mượn. Vui lòng thử lại sau."
         });
     }
 }
@@ -44,7 +44,7 @@ async function findOne(req, res) {
 
         if (!borrow) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
@@ -52,7 +52,7 @@ async function findOne(req, res) {
     } catch (error) {
         console.error("Loi tim phieu muon:", error);
         res.status(500).json({
-            message: "Khong the tim phieu muon"
+            message: "Không thể tải thông tin phiếu mượn. Vui lòng thử lại sau."
         });
     }
 }
@@ -68,7 +68,7 @@ async function create(req, res) {
 
         if (!isReader && !isStaff) {
             return res.status(403).json({
-                message: "Ban khong co quyen tao phieu muon"
+                message: "Bạn không có quyền tạo phiếu mượn."
             });
         }
 
@@ -93,7 +93,7 @@ async function create(req, res) {
             res,
             error,
             `tao phieu muon ${req.user?.maTaiKhoan || "unknown"}`,
-            "Khong the tao phieu muon"
+            "Không thể tạo phiếu mượn. Vui lòng kiểm tra lại dữ liệu."
         );
     }
 }
@@ -101,13 +101,13 @@ async function create(req, res) {
 async function submit(req, res) {
     try {
         const result = await borrowService.submit(req.params.maPhieu, req.user);
-        if (result.notFound) return res.status(404).json({ message: "Khong tim thay phieu muon" });
-        if (result.forbidden) return res.status(403).json({ message: "Ban khong co quyen gui phieu muon nay" });
-        if (result.invalidStatus || result.invalidDetails) return res.status(400).json({ message: "Phieu muon khong hop le de gui" });
-        if (result.expired) return res.status(400).json({ message: "Phieu da het han" });
-        return res.json({ message: "Gui phieu muon thanh cong", borrow: result.borrow });
+        if (result.notFound) return res.status(404).json({ message: "Không tìm thấy phiếu mượn." });
+        if (result.forbidden) return res.status(403).json({ message: "Bạn không có quyền gửi phiếu mượn này." });
+        if (result.invalidStatus || result.invalidDetails) return res.status(400).json({ message: "Phiếu mượn không hợp lệ để gửi. Vui lòng kiểm tra trạng thái và danh sách sách." });
+        if (result.expired) return res.status(400).json({ message: "Phiếu mượn đã hết hạn." });
+        return res.json({ message: "Đã gửi phiếu mượn thành công.", borrow: result.borrow });
     } catch (error) {
-        return serviceErrorResponse(res, error, `gui phieu muon ${req.params.maPhieu}`, "Khong the gui phieu muon");
+        return serviceErrorResponse(res, error, `gui phieu muon ${req.params.maPhieu}`, "Không thể gửi phiếu mượn. Vui lòng thử lại sau.");
     }
 }
 
@@ -120,33 +120,33 @@ async function remove(req, res) {
 
         if (result.notFound) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
         if (result.forbidden) {
             return res.status(403).json({
-                message: "Ban khong co quyen xoa phieu muon nay"
+                message: "Bạn không có quyền xóa phiếu mượn này."
             });
         }
 
         if (result.expired) {
-            return res.status(400).json({ message: "Phieu muon da het han" });
+            return res.status(400).json({ message: "Phiếu mượn đã hết hạn." });
         }
 
         if (result.invalidStatus) {
             return res.status(400).json({
-                message: "Chi duoc xoa phieu truc tuyen khi tat ca sach dang cho duyet"
+                message: "Chỉ được xóa phiếu trực tuyến khi tất cả sách trong phiếu đang chờ duyệt."
             });
         }
 
-        return res.json({ message: "Huy phieu muon thanh cong" });
+        return res.json({ message: "Đã hủy phiếu mượn thành công." });
     } catch (error) {
         return serviceErrorResponse(
             res,
             error,
             `huy phieu muon ${req.params.maPhieu}`,
-            "Khong the huy phieu muon"
+            "Không thể hủy phiếu mượn. Vui lòng thử lại sau."
         );
     }
 }
@@ -162,19 +162,19 @@ async function approve(req, res) {
 
         if (result.notFound) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
         if (result.invalidStatus) {
             return res.status(400).json({
                 message:
-                    "Phieu muon khong o trang thai cho duyet"
+                    "Phiếu mượn không ở trạng thái chờ duyệt."
             });
         }
 
         res.json({
-            message: "Duyet phieu muon thanh cong",
+            message: "Đã duyệt phiếu mượn thành công.",
             borrow: result.borrow
         });
     } catch (error) {
@@ -182,7 +182,7 @@ async function approve(req, res) {
             res,
             error,
             `duyet phieu muon ${req.params.maPhieu}`,
-            "Khong the duyet phieu muon"
+            "Không thể duyệt phiếu mượn. Vui lòng thử lại sau."
         );
     }
 }
@@ -199,19 +199,19 @@ async function reject(req, res) {
 
         if (result.notFound) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
         if (result.invalidStatus) {
             return res.status(400).json({
                 message:
-                    "Phieu muon khong o trang thai cho duyet"
+                    "Phiếu mượn không ở trạng thái chờ duyệt."
             });
         }
 
         res.json({
-            message: "Tu choi phieu muon thanh cong",
+            message: "Đã từ chối phiếu mượn thành công.",
             borrow: result.borrow
         });
     } catch (error) {
@@ -219,7 +219,7 @@ async function reject(req, res) {
             res,
             error,
             `tu choi phieu muon ${req.params.maPhieu}`,
-            "Khong the tu choi phieu muon"
+            "Không thể từ chối phiếu mượn. Vui lòng thử lại sau."
         );
     }
 }
@@ -234,25 +234,25 @@ async function returnBook(req, res) {
 
         if (result.notFound) {
             return res.status(404).json({
-                message: "Khong tim thay phieu muon"
+                message: "Không tìm thấy phiếu mượn."
             });
         }
 
         if (result.detailNotFound) {
             return res.status(404).json({
-                message: "Khong tim thay sach trong phieu muon"
+                message: "Không tìm thấy sách trong phiếu mượn."
             });
         }
 
         if (result.invalidStatus) {
             return res.status(400).json({
                 message:
-                    "Sach khong o trang thai dang muon"
+                    "Sách không ở trạng thái đang mượn."
             });
         }
 
         res.json({
-            message: "Tra sach thanh cong",
+            message: "Đã ghi nhận trả sách thành công.",
             borrow: result.borrow,
             detail: result.detail
         });
@@ -261,7 +261,7 @@ async function returnBook(req, res) {
             res,
             error,
             `tra sach ${req.params.maSach} trong phieu ${req.params.maPhieu}`,
-            "Khong the tra sach"
+            "Không thể ghi nhận trả sách. Vui lòng thử lại sau."
         );
     }
 }

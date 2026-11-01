@@ -4,7 +4,7 @@ const PUBLISHERS_PATH = '/api/publishers'
 
 function normalizePublisher(publisher) {
   if (!publisher || typeof publisher !== 'object' || Array.isArray(publisher)) {
-    throw new Error('Backend trả về thông tin nhà xuất bản không hợp lệ.')
+    throw new Error('Máy chủ trả về thông tin nhà xuất bản không hợp lệ.')
   }
 
   const normalized = {
@@ -16,7 +16,7 @@ function normalizePublisher(publisher) {
   }
 
   if (!normalized.maNXB || !normalized.tenNXB) {
-    throw new Error('Backend không trả đủ mã và tên nhà xuất bản đã lưu.')
+    throw new Error('Máy chủ chưa xác nhận đầy đủ thông tin nhà xuất bản đã lưu.')
   }
 
   return normalized
@@ -24,7 +24,7 @@ function normalizePublisher(publisher) {
 
 export async function getPublishers() {
   const result = await apiClient.get(PUBLISHERS_PATH)
-  if (!Array.isArray(result)) throw new Error('Backend trả về danh sách nhà xuất bản không hợp lệ.')
+  if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách nhà xuất bản không hợp lệ.')
   return result.map(normalizePublisher)
 }
 

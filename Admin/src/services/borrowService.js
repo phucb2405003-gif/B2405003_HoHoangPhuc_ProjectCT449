@@ -4,7 +4,7 @@ const BORROWS_PATH = '/api/borrows'
 
 function normalizeBorrow(borrow) {
   if (!borrow || typeof borrow !== 'object' || Array.isArray(borrow) || typeof borrow.maPhieu !== 'string' || !borrow.maPhieu.trim()) {
-    throw new Error('Backend trả về thông tin phiếu mượn không hợp lệ.')
+    throw new Error('Máy chủ trả về thông tin phiếu mượn không hợp lệ.')
   }
   return { ...borrow, maPhieu: borrow.maPhieu.trim() }
 }
@@ -17,7 +17,7 @@ function explainBorrowError(error) {
     403: 'Bạn không có quyền thực hiện thao tác này hoặc độc giả không đủ điều kiện mượn.',
     404: 'Phiếu hoặc sách trong phiếu không còn tồn tại.',
     409: 'Dữ liệu đang xung đột với tình trạng hiện tại của phiếu hoặc sách.',
-    503: 'Backend chưa thể hoàn tất thao tác an toàn. Dữ liệu trên giao diện được giữ nguyên.',
+    503: 'Hệ thống chưa thể hoàn tất thao tác an toàn. Dữ liệu trên giao diện được giữ nguyên.',
   }
   error.message = backend || messages[error.status] || error.message
   return error
@@ -30,7 +30,7 @@ async function run(request) {
 export async function getBorrows() {
   return run(async () => {
     const result = await apiClient.get(BORROWS_PATH)
-    if (!Array.isArray(result)) throw new Error('Backend trả về danh sách phiếu mượn không hợp lệ.')
+    if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách phiếu mượn không hợp lệ.')
     return result.map(normalizeBorrow)
   })
 }
@@ -42,7 +42,7 @@ export async function getBorrow(maPhieu) {
 export async function getBorrowDetails(maPhieu) {
   return run(async () => {
     const result = await apiClient.get(`${BORROWS_PATH}/${encodeURIComponent(maPhieu)}/borrow-details`)
-    if (!Array.isArray(result)) throw new Error('Backend trả về danh sách sách trong phiếu không hợp lệ.')
+    if (!Array.isArray(result)) throw new Error('Máy chủ trả về danh sách sách trong phiếu không hợp lệ.')
     return result
   })
 }

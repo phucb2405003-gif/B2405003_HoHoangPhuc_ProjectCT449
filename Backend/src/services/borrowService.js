@@ -36,15 +36,15 @@ const READER_BORROW_LIMITS = new Map([
 
 function getReaderBorrowLimit(reader) {
     if (!reader || !READER_BORROW_LIMITS.has(reader.trangThai)) {
-        const error = new Error("Trang thai doc gia thieu hoac khong hop le; can ra soat du lieu");
+        const error = new Error("Trạng thái độc giả chưa hợp lệ. Vui lòng liên hệ thư viện.");
         error.statusCode = 409;
-        error.publicMessage = "Trang thai doc gia thieu hoac khong hop le; can ra soat du lieu";
+        error.publicMessage = "Trạng thái độc giả chưa hợp lệ. Vui lòng liên hệ thư viện.";
         throw error;
     }
     if (reader.trangThai === "Bị cấm") {
-        const error = new Error("Doc gia dang bi cam muon sach");
+        const error = new Error("Tài khoản độc giả hiện không được phép mượn sách.");
         error.statusCode = 403;
-        error.publicMessage = "Doc gia dang bi cam muon sach";
+        error.publicMessage = "Tài khoản độc giả hiện không được phép mượn sách.";
         throw error;
     }
     return READER_BORROW_LIMITS.get(reader.trangThai);
@@ -52,13 +52,13 @@ function getReaderBorrowLimit(reader) {
 
 function normalizeDetails(details, allowEmpty = false) {
     if (!Array.isArray(details) || (!allowEmpty && details.length === 0)) {
-        const error = new Error("Phieu muon phai co it nhat mot sach");
+        const error = new Error("Phiếu mượn cần có ít nhất một cuốn sách.");
         error.statusCode = 400;
         throw error;
     }
 
     if (details.length > MAX_BOOKS_PER_BORROW) {
-        const error = new Error("Moi phieu muon chi duoc toi da 5 sach");
+        const error = new Error("Mỗi phiếu mượn chỉ được đăng ký tối đa 5 cuốn sách.");
         error.statusCode = 400;
         throw error;
     }
@@ -70,7 +70,7 @@ function normalizeDetails(details, allowEmpty = false) {
             detail.maSach.trim().length === 0 ||
             seen.has(detail.maSach)
         ) {
-            const error = new Error("maSach bi thieu hoac trung trong phieu");
+            const error = new Error("Mã sách đang thiếu hoặc bị trùng trong phiếu mượn.");
             error.statusCode = 400;
             throw error;
         }
@@ -167,7 +167,7 @@ async function create(borrow) {
         borrow.maDocGia.trim().length === 0 ||
         (direct && (typeof borrow.maNhanVien !== "string" || borrow.maNhanVien.trim().length === 0))
     ) {
-        const error = new Error("Thieu thong tin nguoi muon");
+        const error = new Error("Vui lòng cung cấp thông tin độc giả mượn sách.");
         error.statusCode = 400;
         throw error;
     }
@@ -182,7 +182,7 @@ async function create(borrow) {
             maDocGia: borrow.maDocGia
         });
         if (!reader) {
-            const error = new Error("Khong tim thay doc gia");
+            const error = new Error("Không tìm thấy độc giả.");
             error.statusCode = 400;
             throw error;
         }
@@ -190,7 +190,7 @@ async function create(borrow) {
         if (!direct) {
             for (const detail of details) {
                 if (!await bookCollection.findOne({ maSach: detail.maSach })) {
-                    const error = new Error(`Khong tim thay sach ${detail.maSach}`);
+                    const error = new Error(`Không tìm thấy sách ${detail.maSach}.`);
                     error.statusCode = 404;
                     throw error;
                 }
@@ -214,13 +214,13 @@ async function create(borrow) {
                 details.some((detail) => detail.maSach === item.maSach)
             );
             if (duplicate) {
-                const error = new Error(`Sach ${duplicate.maSach} da co trong phieu dang hoat dong ${duplicate.maPhieu}`);
+                const error = new Error(`Sách đã có trong một phiếu mượn đang hoạt động.`);
                 error.statusCode = 400;
                 throw error;
             }
             const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
             if (activeBookCount + details.length > readerBorrowLimit) {
-                const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`);
+                const error = new Error(`Đã vượt quá giới hạn ${readerBorrowLimit} sách đang mượn được phép.`);
                 error.statusCode = 400;
                 throw error;
             }
@@ -327,7 +327,7 @@ async function create(borrow) {
                 const duplicateError = new Error("Ma phieu muon da ton tai");
                 duplicateError.code = "BORROW_CODE_ALREADY_EXISTS";
                 duplicateError.statusCode = 409;
-                duplicateError.publicMessage = "Ma phieu muon da ton tai; vui long thu lai";
+                duplicateError.publicMessage = "Mã phiếu mượn đã tồn tại. Vui lòng thử lại.";
                 throw duplicateError;
             }
             throw error;
@@ -337,7 +337,7 @@ async function create(borrow) {
 
 async function addBooks(maPhieu, requestedDetails, requester) {
     if (!Array.isArray(requestedDetails) || !requestedDetails.length) {
-        const error = new Error("borrowDetails phai co it nhat mot sach"); error.statusCode = 400; throw error;
+        const error = new Error("Vui lòng chọn ít nhất một cuốn sách để thêm vào phiếu."); error.statusCode = 400; throw error;
     }
     const details = normalizeDetails(requestedDetails);
     const db = await connectDB();
@@ -353,10 +353,10 @@ async function addBooks(maPhieu, requestedDetails, requester) {
         const readerBorrowLimit = getReaderBorrowLimit(readerProfile);
         const existing = await detailCollection.find({ maPhieu }).toArray();
         if (!Number.isSafeInteger(borrow.soLuong) || borrow.soLuong !== existing.length) {
-            const error = new Error("So luong sach trong phieu khong khop chi tiet; can doi soat"); error.statusCode = 409; throw error;
+            const error = new Error("Không thể cập nhật phiếu do thông tin sách chưa khớp. Vui lòng tải lại và thử lại."); error.statusCode = 409; throw error;
         }
         if (existing.length + details.length > MAX_BOOKS_PER_BORROW) {
-            const error = new Error("Moi phieu muon chi duoc toi da 5 sach"); error.statusCode = 400; throw error;
+            const error = new Error("Mỗi phiếu mượn chỉ được đăng ký tối đa 5 cuốn sách."); error.statusCode = 400; throw error;
         }
         const readerBorrows = await borrows.find({ maDocGia: borrow.maDocGia }, { projection: { maPhieu: 1 } }).toArray();
         const readerBorrowIds = readerBorrows.map((item) => item.maPhieu);
@@ -365,17 +365,17 @@ async function addBooks(maPhieu, requestedDetails, requester) {
             : [];
         const activeBookCount = new Set(activeDetails.map((item) => item.maSach)).size;
         if (activeBookCount + existing.length + details.length > readerBorrowLimit) {
-            const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`);
+            const error = new Error(`Đã vượt quá giới hạn ${readerBorrowLimit} sách đang mượn được phép.`);
             error.statusCode = 400;
             throw error;
         }
         const seen = new Set(existing.map((item) => item.maSach));
         if (details.some((item) => seen.has(item.maSach))) {
-            const error = new Error("Sach da co trong phieu muon"); error.statusCode = 409; throw error;
+            const error = new Error("Sách đã có trong phiếu mượn này."); error.statusCode = 409; throw error;
         }
         for (const detail of details) {
             if (!await db.collection(BOOK_COLLECTION).findOne({ maSach: detail.maSach })) {
-                const error = new Error(`Khong tim thay sach ${detail.maSach}`); error.statusCode = 404; throw error;
+                const error = new Error(`Không tìm thấy sách ${detail.maSach}.`); error.statusCode = 404; throw error;
             }
         }
         const newDetails = details.map((item) => ({ _id: new ObjectId(), maPhieu, maSach: item.maSach, hanTra: null, ngayTra: null, trangThai: STATUSES.DRAFT }));
@@ -384,7 +384,7 @@ async function addBooks(maPhieu, requestedDetails, requester) {
         try {
             await assertOwned(); insertAttempted = true;
             const inserted = await detailCollection.insertMany(newDetails);
-            if (!inserted.acknowledged || inserted.insertedCount !== newDetails.length) throw new Error("Khong the them day du sach vao phieu");
+            if (!inserted.acknowledged || inserted.insertedCount !== newDetails.length) throw new Error("Không thể thêm đầy đủ sách vào phiếu. Vui lòng thử lại.");
             await assertOwned(); parentAttempted = true;
             const updated = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: borrow.soLuong }, { $inc: { soLuong: newDetails.length } });
             if (updated.matchedCount !== 1) throw new Error("Phieu da thay doi; khong the cap nhat so luong sach");
@@ -434,13 +434,13 @@ async function submit(maPhieu, requester) {
         const ids = readerBorrows.map((item) => item.maPhieu);
         const active = ids.length ? await detailCollection.find({ maPhieu: { $in: ids }, trangThai: { $in: ACTIVE_STATUSES } }).toArray() : [];
         if (active.some((item) => details.some((detail) => detail.maSach === item.maSach))) {
-            const error = new Error("Sach da co trong phieu dang hoat dong"); error.statusCode = 400; throw error;
+            const error = new Error("Sách đã có trong một phiếu mượn đang hoạt động."); error.statusCode = 400; throw error;
         }
         if (new Set(active.map((item) => item.maSach)).size + details.length > readerBorrowLimit) {
-            const error = new Error(`Doc gia chi duoc co toi da ${readerBorrowLimit} sach dang hoat dong`); error.statusCode = 400; throw error;
+            const error = new Error(`Đã vượt quá giới hạn ${readerBorrowLimit} sách đang mượn được phép.`); error.statusCode = 400; throw error;
         }
         const pendingIds = new Set(active.filter((item) => item.trangThai === STATUSES.PENDING).map((item) => item.maPhieu));
-        if (pendingIds.size >= MAX_PENDING_BORROWS) { const error = new Error(`Moi doc gia chi duoc co toi da ${MAX_PENDING_BORROWS} phieu cho duyet`); error.statusCode = 400; throw error; }
+        if (pendingIds.size >= MAX_PENDING_BORROWS) { const error = new Error(`Mỗi độc giả chỉ được có tối đa ${MAX_PENDING_BORROWS} phiếu chờ duyệt.`); error.statusCode = 400; throw error; }
         const receipts = [];
         let detailWriteAttempted = false;
         let parentWriteAttempted = false;
@@ -546,7 +546,7 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
         lyDoTuChoi !== "" &&
         (typeof lyDoTuChoi !== "string" || lyDoTuChoi.trim().length === 0)
     ) {
-        const error = new Error("Ly do tu choi khong hop le");
+        const error = new Error("Lý do từ chối chưa hợp lệ.");
         error.statusCode = 400;
         throw error;
     }
