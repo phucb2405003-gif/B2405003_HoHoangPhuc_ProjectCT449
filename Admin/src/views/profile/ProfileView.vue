@@ -4,9 +4,15 @@ import '@/components/common/ManagementView.css'
 import '@/components/common/Dialog.css'
 import useStaffProfile from '@/composables/useStaffProfile'
 import { authState } from '@/services/authService'
+import ChangeOwnPasswordDialog from '@/components/common/ChangeOwnPasswordDialog.vue'
 import './ProfileView.css'
 
-const { code, role, form, errors, message, messageType, loading, updating, loadError, loadProfile, cancelChanges, saveChanges } = useStaffProfile()
+const {
+  code, role, form, errors, message, messageType, loading, updating, loadError,
+  passwordDialogOpen, passwordUpdating, passwordError, passwordNotice,
+  openPasswordDialog, closePasswordDialog, submitPasswordChange,
+  loadProfile, cancelChanges, saveChanges,
+} = useStaffProfile()
 const account = computed(() => authState.user?.tenDangNhap || '')
 const isEditing = ref(false)
 
@@ -50,8 +56,19 @@ function discardChanges() {
           <button class="button button--secondary" type="button" :disabled="loading || updating" @click="discardChanges">Hủy</button>
           <button class="button button--primary" type="submit" :disabled="loading || updating || loadError">{{ updating ? 'Đang lưu…' : 'Lưu thay đổi' }}</button>
         </template>
-        <button v-else-if="!loading && !loadError" class="button button--primary" type="button" @click="beginEditing">Chỉnh sửa</button>
+        <template v-else-if="!loading && !loadError">
+          <button class="button button--secondary" type="button" @click="openPasswordDialog">Đổi mật khẩu</button>
+          <button class="button button--primary" type="button" @click="beginEditing">Chỉnh sửa</button>
+        </template>
       </div>
     </form>
+    <p v-if="passwordNotice" class="profile-message profile-message--success" role="status">{{ passwordNotice }}</p>
+    <ChangeOwnPasswordDialog
+      :open="passwordDialogOpen"
+      :busy="passwordUpdating"
+      :error="passwordError"
+      @confirm="submitPasswordChange"
+      @close="closePasswordDialog"
+    />
   </section>
 </template>

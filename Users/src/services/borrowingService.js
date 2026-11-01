@@ -26,6 +26,16 @@ export function createBorrowWithBook(maSach, token) {
   return createBorrowWithBooks([maSach], token)
 }
 
+export function addBookToBorrow(maPhieu, maSach, token) {
+  return requestApi(`/api/borrows/${encodeURIComponent(maPhieu)}/borrow-details`, {
+    token,
+    options: {
+      method: 'POST',
+      body: JSON.stringify({ borrowDetails: [{ maSach }] }),
+    },
+  })
+}
+
 export function createBorrowWithBooks(maSachs, token) {
   return requestApi('/api/borrows', {
     token,

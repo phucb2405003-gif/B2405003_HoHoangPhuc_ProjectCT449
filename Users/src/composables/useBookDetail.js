@@ -2,7 +2,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authState, getReaderAccessToken, initializeAuth } from '@/services/authService'
 import { getBookByCode } from '@/services/bookCatalogService'
-import { createBorrowWithBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
+import { addBookToBorrow, createBorrowWithBook, getBorrowDetails, getMyBorrows } from '@/services/borrowingService'
 
 export default function useBookDetail() {
 
@@ -79,11 +79,14 @@ async function loadBorrowChoices(token) {
   isLoadingBorrows.value = true
   borrowError.value = ''
   borrowDetailsIncomplete.value = false
+  allBorrows.value = []
+  pendingBorrows.value = []
   borrowDetailsById.value = {}
+  selectedBorrowId.value = ''
   try {
     const borrows = await getMyBorrows(token)
     allBorrows.value = Array.isArray(borrows) ? borrows : []
-    pendingBorrows.value = allBorrows.value.filter((item) => item.trangThai === 'Chờ duyệt')
+    pendingBorrows.value = allBorrows.value.filter((item) => item.trangThai === 'Đang chọn sách')
 
     const details = await Promise.all(allBorrows.value.map(async (item) => {
       try {
@@ -99,13 +102,22 @@ async function loadBorrowChoices(token) {
     const failedBorrowCount = details.filter(([, rows]) => rows === null).length
     if (failedBorrowCount) {
       borrowDetailsIncomplete.value = true
-      borrowError.value = `Không thể tải chi tiết ${failedBorrowCount} phiếu mượn để kiểm tra sách. Vui lòng đóng hộp thoại rồi chọn lại để thử tải lại.`
+      borrowError.value = `Không thể tải chi tiết ${failedBorrowCount} phiếu mượn để kiểm tra sách. Vui lòng thử tải lại.`
     }
   } catch (error) {
     borrowError.value = error.message || 'Không thể tải các phiếu mượn của bạn.'
   } finally {
     isLoadingBorrows.value = false
   }
+}
+
+async function retryLoadBorrowChoices() {
+  const token = getReaderAccessToken()
+  if (!token) {
+    borrowError.value = 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.'
+    return
+  }
+  await loadBorrowChoices(token)
 }
 
 async function openBorrowDialog() {
@@ -135,8 +147,8 @@ async function createNewBorrow() {
   try {
     const created = await createBorrowWithBook(book.value.maSach, token)
     borrowNotice.value = created?.maPhieu
-      ? `Đã tạo phiếu ${created.maPhieu} ở trạng thái Chờ duyệt và thêm sách này vào phiếu.`
-      : 'Đã tạo phiếu mượn và thêm sách. Phiếu đang chờ duyệt.'
+      ? `Đã tạo phiếu nháp ${created.maPhieu} ở trạng thái Đang chọn sách và thêm sách này vào phiếu.`
+      : 'Đã tạo phiếu nháp ở trạng thái Đang chọn sách và thêm sách.'
     isBorrowDialogOpen.value = false
   } catch (error) {
     borrowError.value = error.message || 'Không thể tạo phiếu mượn.'
@@ -145,11 +157,35 @@ async function createNewBorrow() {
   }
 }
 
+async function addBookToSelectedBorrow() {
+  const token = getReaderAccessToken()
+  const maPhieu = selectedBorrowId.value
+  if (!token || !maPhieu || maPhieu === 'new' || borrowDetailsIncomplete.value || !book.value?.maSach || selectedBorrowHasBook.value || activeDuplicate.value || availableCopies.value === 0) return
+
+  isCreatingBorrow.value = true
+  borrowError.value = ''
+  try {
+    await addBookToBorrow(maPhieu, book.value.maSach, token)
+    borrowNotice.value = `Đã thêm sách vào phiếu nháp ${maPhieu}. Trạng thái phiếu được giữ nguyên.`
+    isBorrowDialogOpen.value = false
+  } catch (error) {
+    borrowError.value = error.message || 'Không thể thêm sách vào phiếu nháp.'
+  } finally {
+    isCreatingBorrow.value = false
+  }
+}
+
+function submitBorrowChoice() {
+  if (selectedBorrowId.value === 'new') return createNewBorrow()
+  return addBookToSelectedBorrow()
+}
+
 watch(() => route.params.maSach, loadBook)
 onMounted(loadBook)
 
   return {
     activeDuplicate,
+    addBookToSelectedBorrow,
     author,
     availableCopies,
     book,
@@ -167,10 +203,12 @@ onMounted(loadBook)
     loadError,
     openBorrowDialog,
     retryLoadBook: loadBook,
+    retryLoadBorrowChoices,
     pendingBorrows,
     publisher,
     selectedBorrowHasBook,
     selectedBorrowId,
+    submitBorrowChoice,
     title,
   }
 }

@@ -1,5 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 import { authState } from '@/services/authService'
+import { changeOwnPassword } from '@/services/accountService'
 import { getMyEmployeeProfile, updateMyEmployeeProfile } from '@/services/employeeService'
 
 const fields = ['hoTenNV', 'diaChi', 'soDienThoai']
@@ -15,6 +16,43 @@ export default function useStaffProfile() {
   const loading = ref(false)
   const updating = ref(false)
   const loadError = ref('')
+  const passwordDialogOpen = ref(false)
+  const passwordUpdating = ref(false)
+  const passwordError = ref('')
+  const passwordNotice = ref('')
+
+  function openPasswordDialog() {
+    passwordError.value = ''
+    passwordNotice.value = ''
+    passwordDialogOpen.value = true
+  }
+
+  function closePasswordDialog() {
+    if (passwordUpdating.value) return
+    passwordDialogOpen.value = false
+    passwordError.value = ''
+  }
+
+  async function submitPasswordChange({ currentPassword, newPassword }) {
+    if (passwordUpdating.value) return
+    passwordError.value = ''
+    passwordNotice.value = ''
+    if (!authState.token) {
+      passwordError.value = 'Vui lòng đăng nhập để đổi mật khẩu.'
+      return
+    }
+
+    passwordUpdating.value = true
+    try {
+      await changeOwnPassword(currentPassword, newPassword)
+      passwordDialogOpen.value = false
+      passwordNotice.value = 'Mật khẩu đã được đổi thành công.'
+    } catch (error) {
+      passwordError.value = error.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.'
+    } finally {
+      passwordUpdating.value = false
+    }
+  }
 
   async function loadProfile() {
     loading.value = true
@@ -82,5 +120,10 @@ export default function useStaffProfile() {
   }
 
   loadProfile()
-  return { code, role, form, errors, message, messageType, loading, updating, loadError, loadProfile, cancelChanges, saveChanges }
+  return {
+    code, role, form, errors, message, messageType, loading, updating, loadError,
+    passwordDialogOpen, passwordUpdating, passwordError, passwordNotice,
+    openPasswordDialog, closePasswordDialog, submitPasswordChange,
+    loadProfile, cancelChanges, saveChanges,
+  }
 }

@@ -1,4 +1,5 @@
 import apiClient, { ApiError } from './apiClient'
+import { authState } from './authService'
 
 const ACCOUNTS_PATH = '/api/accounts'
 
@@ -68,4 +69,29 @@ export async function resetAccountPassword(maTaiKhoan, password) {
     `${ACCOUNTS_PATH}/${encodeURIComponent(maTaiKhoan)}`,
     { password },
   )))
+}
+
+export async function changeOwnPassword(currentPassword, newPassword) {
+  return withAccountErrors('change-own-password', async () => {
+    if (!authState.token) throw new Error('Vui lòng đăng nhập để đổi mật khẩu.')
+
+    try {
+      return await apiClient.put(`${ACCOUNTS_PATH}/me/password`, { currentPassword, newPassword })
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 400) {
+        const backendMessage = error.backendMessage.toLocaleLowerCase('vi').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        if (backendMessage.includes('mat khau hien tai khong dung')) {
+          throw new Error('Mật khẩu hiện tại không chính xác.')
+        }
+        if (backendMessage.includes('mat khau phai') || backendMessage.includes('du lieu doi mat khau')) {
+          throw new Error('Mật khẩu mới không đáp ứng yêu cầu: tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, chữ số và ký tự đặc biệt.')
+        }
+        throw new Error('Thông tin đổi mật khẩu chưa hợp lệ. Vui lòng kiểm tra lại.')
+      }
+      if (error instanceof ApiError && error.status >= 500) {
+        throw new Error('Không thể đổi mật khẩu lúc này. Vui lòng thử lại sau.')
+      }
+      throw error
+    }
+  })
 }

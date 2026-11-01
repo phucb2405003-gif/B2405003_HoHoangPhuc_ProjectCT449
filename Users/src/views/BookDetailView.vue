@@ -27,7 +27,7 @@ const {
   borrowDetailsById,
   borrowError,
   borrowNotice,
-  createNewBorrow,
+  retryLoadBorrowChoices,
   genre,
   goBackToBooks,
   isBorrowDialogOpen,
@@ -42,6 +42,7 @@ const {
   publisher,
   selectedBorrowHasBook,
   selectedBorrowId,
+  submitBorrowChoice,
   title,
 } = useBookDetail()
 </script>
@@ -173,7 +174,10 @@ const {
 
               <p class="book-borrow-dialog__book">Sách đang chọn: <strong>{{ title }}</strong></p>
               <p v-if="isLoadingBorrows" class="book-detail-message" role="status">Đang tải phiếu mượn…</p>
-              <p v-else-if="borrowError" class="book-borrow-error" role="alert">{{ borrowError }}</p>
+              <div v-else-if="borrowError" class="book-borrow-error" role="alert">
+                <p>{{ borrowError }}</p>
+                <button type="button" :disabled="isLoadingBorrows" @click="retryLoadBorrowChoices">{{ isLoadingBorrows ? 'Đang tải phiếu…' : 'Tải lại phiếu' }}</button>
+              </div>
               <template v-else>
                   <p v-if="pendingBorrows.length" class="book-borrow-dialog__label">Chọn một phiếu Đang chọn sách hoặc tạo phiếu mới</p>
                   <label v-for="borrow in pendingBorrows" :key="borrow.maPhieu" class="book-borrow-option">
@@ -184,7 +188,7 @@ const {
                     <input v-model="selectedBorrowId" type="radio" value="new" />
                     <span><strong>Tạo phiếu mượn mới</strong><small>Tạo phiếu Đang chọn sách kèm sách đang chọn</small></span>
                   </label>
-                  <p v-if="selectedBorrowId && selectedBorrowId !== 'new'" class="book-borrow-error" role="status">
+                  <p v-if="selectedBorrowId && selectedBorrowId !== 'new' && selectedBorrowHasBook" class="book-borrow-error" role="alert">
                     {{ selectedBorrowHasBook ? 'Sách này đã có trong phiếu đang chọn.' : 'Phiếu này hiện chưa hỗ trợ thêm sách. Vui lòng tạo phiếu mượn mới để đăng ký sách này.' }}
                   </p>
                   <p v-else-if="!pendingBorrows.length" class="book-borrow-dialog__empty">Bạn chưa có phiếu Đang chọn sách.</p>
@@ -192,9 +196,9 @@ const {
                   <button
                     class="book-borrow-button"
                     type="button"
-                    :disabled="isCreatingBorrow || selectedBorrowId !== 'new' || activeDuplicate || availableCopies === 0"
-                    @click="createNewBorrow"
-                  >{{ isCreatingBorrow ? 'Đang tạo phiếu…' : selectedBorrowId === 'new' ? 'Tạo phiếu mới và thêm sách' : 'Thêm sách vào phiếu đã chọn' }}</button>
+                    :disabled="isCreatingBorrow || !selectedBorrowId || activeDuplicate || (selectedBorrowId !== 'new' && selectedBorrowHasBook) || availableCopies === 0"
+                    @click="submitBorrowChoice"
+                  >{{ isCreatingBorrow ? (selectedBorrowId === 'new' ? 'Đang tạo phiếu…' : 'Đang thêm sách…') : selectedBorrowId === 'new' ? 'Tạo phiếu mới và thêm sách' : 'Thêm sách vào phiếu đã chọn' }}</button>
               </template>
             </section>
           </div>
