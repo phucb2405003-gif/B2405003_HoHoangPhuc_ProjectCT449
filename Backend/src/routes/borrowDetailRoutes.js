@@ -16,14 +16,6 @@ router.get(
     borrowDetailController.findAll
 );
 
-// Xem các sách trong một phiếu
-router.get(
-    "/:maPhieu",
-    authenticateToken,
-    allowRoles("Quản lý", "Thủ thư"),
-    borrowDetailController.findByMaPhieu
-);
-
 // Xóa sách khỏi phiếu - chỉ dùng trường hợp đặc biệt khi đang Chờ duyệt
 router.delete(
     "/:maPhieu/:maSach",
