@@ -61,6 +61,7 @@ const {
           <div class="borrow-summary-grid">
             <div><span>Trạng thái phiếu</span><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></div>
             <div><span>Độc giả</span><strong>{{ borrow.tenDocGia }} · {{ borrow.maDocGia }}</strong></div>
+            <div><span>Mã nhân viên xử lý</span><strong>{{ borrow.maNhanVien || 'Chưa có' }}</strong></div>
             <div><span>Ngày yêu cầu</span><strong>{{ borrow.ngayYeuCau || '—' }}</strong></div>
             <div><span>Ngày mượn</span><strong>{{ borrow.ngayMuon || 'Chưa ghi nhận' }}</strong></div>
           </div>

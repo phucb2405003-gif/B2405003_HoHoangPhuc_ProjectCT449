@@ -345,11 +345,48 @@
 .reader-borrow-pagination button:hover:not(:disabled) { background: rgb(37 99 235 / 28%); }
 .reader-borrow-pagination button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.reader-borrow-card__summary {
+.reader-borrow-card__summary,
+.reader-borrow-card__footer {
   display: grid;
-  align-items: center;
-  grid-template-columns: minmax(8rem, 1.2fr) repeat(3, minmax(7rem, 1fr)) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.reader-borrow-card__summary {
+  align-items: center;
+}
+
+.reader-borrow-card__footer {
+  align-items: center;
+  margin-top: 0.9rem;
+}
+
+.reader-borrow-card__staff {
+  display: flex;
+  grid-column: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+  color: #9fb1c9;
+  font-size: 0.82rem;
+}
+
+.reader-borrow-card__staff img {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
+
+.reader-borrow-card__staff strong {
+  color: #cbd5e1;
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+
+.reader-borrow-card__actions {
+  grid-column: 4;
+  justify-content: flex-end;
 }
 
 .reader-borrow-card__summary > div,
@@ -596,14 +633,12 @@
 @media (max-width: 850px) {
   .reader-borrow-books { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-  .reader-borrow-card__summary {
+  .reader-borrow-card__summary,
+  .reader-borrow-card__footer {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .reader-borrow-card__actions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
+  .reader-borrow-card__actions { grid-column: 2; }
 }
 
 @media (max-width: 560px) {
@@ -623,7 +658,8 @@
 
   .reader-profile-fields,
   .reader-password-form,
-  .reader-borrow-card__summary {
+  .reader-borrow-card__summary,
+  .reader-borrow-card__footer {
     grid-template-columns: 1fr;
   }
 
@@ -631,7 +667,8 @@
     grid-column: auto;
   }
 
-  .reader-borrow-card__actions { justify-content: flex-start; }
+  .reader-borrow-card__footer { align-items: flex-start; }
+  .reader-borrow-card__actions { grid-column: 1; justify-content: flex-start; }
   .reader-borrow-books { grid-template-columns: minmax(0, 1fr); }
   .reader-borrow-book { grid-template-columns: minmax(0, 1fr); }
   .reader-borrow-delete-button { justify-self: start; }
