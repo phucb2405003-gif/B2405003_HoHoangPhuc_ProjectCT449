@@ -73,7 +73,7 @@ const {
           <div class="borrow-summary-grid">
             <div><span>Trạng thái phiếu</span><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></div>
             <div><span>Độc giả</span><strong>{{ borrow.tenDocGia }} · {{ borrow.maDocGia }}</strong></div>
-            <div><span>Nhân viên xử lý</span><strong>{{ borrow.maNhanVien || (borrow.trangThai === 'Hủy' && borrow.lyDo === 'Phiếu đã quá hạn gửi duyệt' ? 'Hệ thống tự động' : 'Chưa cập nhật') }}</strong></div>
+            <div><span>Nhân viên xử lý</span><strong>{{ borrow.maNhanVien || (borrow.trangThai === 'Hủy' && borrow.lyDo === 'Phiếu đã quá thời hạn gửi duyệt' ? 'Hệ thống tự động' : 'Chưa cập nhật') }}</strong></div>
             <div><span>Ngày yêu cầu</span><strong>{{ borrow.ngayYeuCau || '—' }}</strong></div>
             <div><span>Ngày xử lý</span><strong>{{ processingDate(borrow) }}</strong></div>
           </div>

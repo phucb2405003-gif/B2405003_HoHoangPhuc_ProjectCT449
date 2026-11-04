@@ -502,7 +502,7 @@ async function expireDraftBorrows(now = new Date()) {
             }
             let detailsWriteAttempted = false;
             let parentWriteAttempted = false;
-            const expiryReason = "Phiếu đã quá hạn gửi duyệt";
+            const expiryReason = "Phiếu đã quá thời hạn gửi duyệt";
             try {
                 await assertOwned();
                 if (details.length) {

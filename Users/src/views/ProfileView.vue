@@ -221,7 +221,7 @@ const {
               <div class="reader-borrow-card__processing">
                 <div class="reader-borrow-card__staff">
                   <span>Nhân viên xử lý</span>
-                  <strong>{{ borrow.maNhanVien || (borrow.trangThai === 'Hủy' && borrow.lyDo === 'Phiếu đã quá hạn gửi duyệt' ? 'Hệ thống tự động' : 'Chưa cập nhật') }}</strong>
+                  <strong>{{ borrow.maNhanVien || (borrow.trangThai === 'Hủy' && borrow.lyDo === 'Phiếu đã quá thời hạn gửi duyệt' ? 'Hệ thống tự động' : 'Chưa cập nhật') }}</strong>
                 </div>
                 <div>
                   <span>Ngày xử lý</span>
