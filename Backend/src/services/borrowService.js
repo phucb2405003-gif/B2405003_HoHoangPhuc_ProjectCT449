@@ -502,6 +502,7 @@ async function expireDraftBorrows(now = new Date()) {
             }
             let detailsWriteAttempted = false;
             let parentWriteAttempted = false;
+            const expiryReason = "Phiếu đã quá hạn gửi duyệt";
             try {
                 await assertOwned();
                 if (details.length) {
@@ -511,7 +512,6 @@ async function expireDraftBorrows(now = new Date()) {
                 }
                 await assertOwned();
                 parentWriteAttempted = true;
-                const expiryReason = "Phiếu đã quá hạn gửi duyệt";
                 const updatedBorrow = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDo: expiryReason } });
                 if (updatedBorrow.matchedCount !== 1) throw new Error("Phieu da thay doi trong luc xu ly het han");
                 count++;
