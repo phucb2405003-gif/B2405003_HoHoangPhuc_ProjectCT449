@@ -6,7 +6,7 @@ import RecentActivity from '@/components/dashboard/RecentActivity.vue'
 import useDashboard from '@/composables/useDashboard'
 import './DashboardView.css'
 
-const { loading, errors, recentRows, trendData, stats, overdueRows, loadDashboard } = useDashboard()
+const { loading, errors, recentRows, trendData, stats, overdueRows, activityItems, loadDashboard } = useDashboard()
 
 function formatOverdueDate(value) {
   if (!value) return '—'
@@ -36,7 +36,7 @@ function formatOverdueDate(value) {
 
     <div class="dashboard-main-grid">
       <BorrowTrendChart :data="trendData" :error="errors.borrows || ''" />
-      <RecentActivity :items="[]" />
+      <RecentActivity :items="activityItems" :loading="loading" :error="errors.borrowDetails || errors.borrows || ''" />
     </div>
     <RecentBorrows :rows="recentRows" :error="errors.borrows || errors.readers || ''" />
     <section class="dashboard-panel overdue-books" aria-labelledby="overdue-books-title">

@@ -9,6 +9,7 @@ import { getBooks } from '@/services/bookService'
 import { getReaders } from '@/services/readerService'
 import { getEmployees } from '@/services/employeeService'
 import { getBorrowDetails, getBorrows } from '@/services/borrowService'
+import { buildRecentActivity } from '@/utils/dashboardActivity'
 
 export default function useDashboard() {
   const canManage = computed(() => authState.user?.chucVu === ROLE_MANAGER)
@@ -18,6 +19,7 @@ export default function useDashboard() {
   const employeeCount = ref(null)
   const borrowRows = ref(null)
   const borrowDetails = ref(null)
+  const activityDetails = ref([])
   const bookRows = ref(null)
   const recentRows = ref([])
   const errors = ref({})
@@ -83,6 +85,12 @@ export default function useDashboard() {
     (total, detail) => total + (detail.trangThai === 'Đang mượn' ? 1 : 0), 0,
   ) ?? null)
   const overdueBookCount = computed(() => overdueRows.value?.length ?? null)
+  const activityItems = computed(() => buildRecentActivity({
+    borrows: borrowRows.value || [],
+    details: activityDetails.value,
+    readers: readerRows.value || [],
+    books: bookRows.value || [],
+  }))
   const pendingCount = computed(() => borrowRows.value?.filter((borrow) => borrow.trangThai === 'Chờ duyệt').length ?? null)
   const trendData = computed(() => {
     if (!borrowRows.value) return []
@@ -145,11 +153,15 @@ export default function useDashboard() {
       if (failedDetail) {
         errors.value.borrowDetails = failedDetail.reason?.message || 'Không thể tải chi tiết phiếu mượn.'
         borrowDetails.value = null
+        activityDetails.value = detailResults.flatMap((result) => result.status === 'fulfilled' && Array.isArray(result.value) ? result.value : [])
       } else {
-        borrowDetails.value = detailResults.flatMap((result) => result.value)
+        const details = detailResults.flatMap((result) => result.value)
+        borrowDetails.value = details
+        activityDetails.value = details
       }
     } else {
       borrowDetails.value = null
+      activityDetails.value = []
     }
 
     if (loaded.borrows && loaded.readers) {
@@ -175,6 +187,7 @@ export default function useDashboard() {
     employeeCount,
     borrowRows,
     borrowDetails,
+    activityItems,
     recentRows,
     errors,
     activeBookCount,
