@@ -16,6 +16,18 @@ const props = defineProps({
   createLoading: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'approve', 'reject-open', 'reject', 'return-book', 'create'])
+
+function processingDate(borrow) {
+  let value = null
+  if (borrow?.trangThai === 'Đã duyệt') value = borrow.ngayMuon
+  else if (['Từ chối', 'Hủy'].includes(borrow?.trangThai)) value = borrow.ngayHuy
+
+  if (!value) return 'Chưa xử lý'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Chưa xử lý'
+  return new Intl.DateTimeFormat('vi-VN').format(date)
+}
+
 const {
   rejectReason,
   rejectError,
@@ -63,7 +75,7 @@ const {
             <div><span>Độc giả</span><strong>{{ borrow.tenDocGia }} · {{ borrow.maDocGia }}</strong></div>
             <div><span>Mã nhân viên xử lý</span><strong>{{ borrow.maNhanVien || 'Chưa có' }}</strong></div>
             <div><span>Ngày yêu cầu</span><strong>{{ borrow.ngayYeuCau || '—' }}</strong></div>
-            <div><span>Ngày mượn</span><strong>{{ borrow.ngayMuon || 'Chưa ghi nhận' }}</strong></div>
+            <div><span>Ngày xử lý</span><strong>{{ processingDate(borrow) }}</strong></div>
           </div>
 
           <div v-if="mode === 'reject'" class="reject-form">

@@ -16,7 +16,6 @@ const {
   bookNames,
   borrowableBooks,
   borrowableBooksError,
-  borrowDate,
   borrowDetailErrors,
   borrowDetailLoaded,
   borrowDetailLoading,
@@ -189,15 +188,9 @@ const {
             <article v-for="borrow in paginatedBorrows" :key="borrow.maPhieu" class="reader-borrow-card">
               <div class="reader-borrow-card__summary">
                 <div class="reader-borrow-card__code"><span>Mã phiếu</span><strong>{{ borrow.maPhieu || 'Chưa cập nhật' }}</strong></div>
-                <div><span>{{ borrowDate(borrow).label }}</span><strong>{{ formatDate(borrowDate(borrow).value) }}</strong></div>
+                <div><span>Ngày yêu cầu</span><strong>{{ formatDate(borrow.ngayYeuCau) }}</strong></div>
                 <div><span>Số sách</span><strong>{{ Number.isSafeInteger(borrow.soLuong) ? borrow.soLuong : 'Chưa cập nhật' }}</strong></div>
                 <div><span>Trạng thái phiếu</span><strong class="reader-borrow-status" :class="`reader-borrow-status--${statusClass(borrow.trangThai)}`">{{ borrow.trangThai || 'Chưa cập nhật' }}</strong></div>
-              </div>
-              <div class="reader-borrow-card__footer">
-                <div v-if="borrow.maNhanVien" class="reader-borrow-card__staff">
-                  <span>Nhân viên xử lý</span>
-                  <strong>{{ borrow.maNhanVien }}</strong>
-                </div>
                 <div class="reader-borrow-card__actions">
                   <button type="button" class="reader-borrow-details-toggle" :aria-expanded="Boolean(expandedBorrows[borrow.maPhieu])" @click="toggleBorrowDetails(borrow)">
                     {{ expandedBorrows[borrow.maPhieu] ? 'Ẩn chi tiết' : 'Xem chi tiết' }}
@@ -223,6 +216,27 @@ const {
                     <img :src="trashIcon" alt="" aria-hidden="true" />
                     {{ deletingBorrowIds[borrow.maPhieu] ? 'Đang hủy…' : 'Hủy phiếu nháp' }}
                   </button>
+                </div>
+              </div>
+              <div
+                v-if="borrow.maNhanVien || (borrow.trangThai === 'Đã duyệt' && borrow.ngayMuon && formatDate(borrow.ngayMuon) !== 'Chưa cập nhật') || (['Từ chối', 'Hủy'].includes(borrow.trangThai) && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật')"
+                class="reader-borrow-card__processing"
+              >
+                <div v-if="borrow.maNhanVien" class="reader-borrow-card__staff">
+                  <span>Nhân viên xử lý</span>
+                  <strong>{{ borrow.maNhanVien }}</strong>
+                </div>
+                <div v-if="borrow.trangThai === 'Đã duyệt' && borrow.ngayMuon && formatDate(borrow.ngayMuon) !== 'Chưa cập nhật'">
+                  <span>Ngày xử lý</span>
+                  <strong>{{ formatDate(borrow.ngayMuon) }}</strong>
+                </div>
+                <div v-if="borrow.trangThai === 'Từ chối' && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật'">
+                  <span>Ngày xử lý</span>
+                  <strong>{{ formatDate(borrow.ngayHuy) }}</strong>
+                </div>
+                <div v-if="borrow.trangThai === 'Hủy' && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật'">
+                  <span>Ngày xử lý</span>
+                  <strong>{{ formatDate(borrow.ngayHuy) }}</strong>
                 </div>
               </div>
 
