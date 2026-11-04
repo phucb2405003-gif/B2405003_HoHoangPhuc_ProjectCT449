@@ -4,6 +4,7 @@ import { ROLE_LIBRARIAN, ROLE_MANAGER } from '@/data/permissions'
 import { getBooks } from '@/services/bookService'
 import { getReaders } from '@/services/readerService'
 import { approveBorrow as approveBorrowRequest, createDirectBorrow, getBorrow, getBorrowDetails, getBorrows, rejectBorrow as rejectBorrowRequest, returnBorrowBook } from '@/services/borrowService'
+import { formatVietnamCalendarDate, isOverdueBorrowDetail } from '@/utils/borrowDueDate'
 
 const PARENT_STATUSES = ['Đang chọn sách', 'Chờ duyệt', 'Đã duyệt', 'Từ chối', 'Hủy']
 
@@ -13,36 +14,14 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('vi-VN').format(date)
 }
 
-function isPastCalendarDay(value) {
-  if (!value) return false
-  let date = null
-  if (value instanceof Date) {
-    date = new Date(value.getFullYear(), value.getMonth(), value.getDate())
-  } else if (typeof value === 'string') {
-    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
-    if (dateOnly) {
-      date = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-      if (date.getFullYear() !== Number(dateOnly[1]) || date.getMonth() !== Number(dateOnly[2]) - 1 || date.getDate() !== Number(dateOnly[3])) date = null
-    }
-    else {
-      const parsed = new Date(value)
-      if (!Number.isNaN(parsed.getTime())) date = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
-    }
-  }
-  if (!date || Number.isNaN(date.getTime())) return false
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return date < today
-}
-
 function detailsForUi(details, books) {
   return details.map((detail) => ({
     ...detail,
     tenSach: books.find((book) => book.maSach === detail.maSach)?.tenSach || detail.maSach,
     trangThaiSach: detail.trangThai || '',
-    quaHan: detail.trangThai === 'Đang mượn' && isPastCalendarDay(detail.hanTra),
+    quaHan: isOverdueBorrowDetail(detail),
     ngayTra: formatDate(detail.ngayTra),
-    hanTra: formatDate(detail.hanTra),
+    hanTra: detail.hanTra ? formatVietnamCalendarDate(detail.hanTra) : '',
   }))
 }
 
@@ -65,6 +44,14 @@ export default function useBorrowManagement() {
   const rows = ref([])
   const readers = ref([])
   const books = ref([])
+  const borrowListDetails = ref({})
+  const borrowListDetailLoaded = ref({})
+  const borrowListDetailLoading = ref({})
+  const borrowListDetailErrors = ref({})
+  const bookCatalogError = ref('')
+  const detailRequests = new Map()
+  let booksRequest = null
+  let booksCatalogLoaded = false
   const listLoading = ref(false)
   const listError = ref('')
   const dialogOpen = ref(false)
@@ -101,6 +88,54 @@ export default function useBorrowManagement() {
   watch([search, statusFilter], () => { page.value = 1 })
   watch(pageCount, (count) => { if (page.value > count) page.value = count })
 
+  async function loadBookCatalog(retry = false) {
+    if (retry && bookCatalogError.value) booksCatalogLoaded = false
+    if (booksCatalogLoaded) return books.value
+    if (!booksRequest) {
+      booksRequest = getBooks().then((catalog) => {
+        books.value = catalog
+        booksCatalogLoaded = true
+        bookCatalogError.value = ''
+        return catalog
+      }).catch((error) => {
+        booksCatalogLoaded = true
+        bookCatalogError.value = error.message || 'Không thể tải danh mục sách.'
+        return books.value
+      }).finally(() => { booksRequest = null })
+    }
+    return booksRequest
+  }
+
+  async function loadListBorrowDetails(maPhieu, { retry = false } = {}) {
+    if (!maPhieu || borrowListDetailLoading.value[maPhieu]) return detailRequests.get(maPhieu)
+    if (!retry && (borrowListDetailLoaded.value[maPhieu] || borrowListDetailErrors.value[maPhieu])) return
+    borrowListDetailLoading.value[maPhieu] = true
+    borrowListDetailErrors.value[maPhieu] = ''
+    const request = Promise.all([
+      getBorrowDetails(maPhieu),
+      loadBookCatalog(retry),
+    ]).then(([details, catalog]) => {
+      if (!Array.isArray(details)) throw new Error('Máy chủ trả về chi tiết phiếu không hợp lệ.')
+      borrowListDetails.value = { ...borrowListDetails.value, [maPhieu]: detailsForUi(details, catalog) }
+      borrowListDetailLoaded.value = { ...borrowListDetailLoaded.value, [maPhieu]: true }
+    }).catch((error) => {
+      borrowListDetailErrors.value = { ...borrowListDetailErrors.value, [maPhieu]: error.message || 'Không thể tải chi tiết phiếu mượn.' }
+    }).finally(() => {
+      borrowListDetailLoading.value = { ...borrowListDetailLoading.value, [maPhieu]: false }
+      detailRequests.delete(maPhieu)
+    })
+    detailRequests.set(maPhieu, request)
+    return request
+  }
+
+  function overdueDetailsFor(maPhieu) {
+    return (borrowListDetails.value[maPhieu] || []).filter((detail) => detail.quaHan)
+  }
+
+  watch(pageRows, (visibleRows) => {
+    visibleRows.forEach((borrow) => { void loadListBorrowDetails(borrow.maPhieu) })
+  })
+
   async function loadBorrows() {
     listLoading.value = true
     listError.value = ''
@@ -124,13 +159,10 @@ export default function useBorrowManagement() {
     actionError.value = ''
     actionNotice.value = ''
     try {
-      const [freshBorrow, details, catalog] = await Promise.all([
-        getBorrow(borrow.maPhieu),
-        getBorrowDetails(borrow.maPhieu),
-        books.value.length ? Promise.resolve(books.value) : getBooks(),
-      ])
-      books.value = catalog
-      selectedBorrow.value = displayBorrow(freshBorrow, readers.value, detailsForUi(details, catalog))
+      const freshBorrow = await getBorrow(borrow.maPhieu)
+      await loadListBorrowDetails(borrow.maPhieu)
+      if (borrowListDetailErrors.value[borrow.maPhieu]) throw new Error(borrowListDetailErrors.value[borrow.maPhieu])
+      selectedBorrow.value = displayBorrow(freshBorrow, readers.value, borrowListDetails.value[borrow.maPhieu] || [])
       rows.value = rows.value.map((item) => item.maPhieu === freshBorrow.maPhieu ? displayBorrow(freshBorrow, readers.value) : item)
     } catch (error) {
       detailError.value = error.message || 'Không thể tải chi tiết phiếu mượn.'
@@ -195,9 +227,9 @@ export default function useBorrowManagement() {
     if (!dialogOpen.value || selectedBorrow.value?.maPhieu !== maPhieu) return
     detailError.value = ''
     try {
-      const [details, catalog] = await Promise.all([getBorrowDetails(maPhieu), books.value.length ? Promise.resolve(books.value) : getBooks()])
-      books.value = catalog
-      selectedBorrow.value = { ...selectedBorrow.value, chiTiet: detailsForUi(details, catalog) }
+      await loadListBorrowDetails(maPhieu, { retry: true })
+      if (borrowListDetailErrors.value[maPhieu]) throw new Error(borrowListDetailErrors.value[maPhieu])
+      selectedBorrow.value = { ...selectedBorrow.value, chiTiet: borrowListDetails.value[maPhieu] || [] }
     } catch (error) {
       detailError.value = `Trạng thái phiếu đã cập nhật; không tải được chi tiết mới: ${error.message}`
     }
@@ -227,8 +259,12 @@ export default function useBorrowManagement() {
     try {
       const result = await returnBorrowBook(borrow.maPhieu, book.maSach)
       mergeBorrow(result.borrow)
-      const updated = { ...result.detail, ...book, trangThaiSach: result.detail?.trangThai || 'Đã trả', ngayTra: formatDate(result.detail?.ngayTra) }
+      const updated = { ...result.detail, ...book, quaHan: false, trangThaiSach: result.detail?.trangThai || 'Đã trả', ngayTra: formatDate(result.detail?.ngayTra) }
       selectedBorrow.value.chiTiet = selectedBorrow.value.chiTiet.map((item) => item.maSach === book.maSach ? updated : item)
+      borrowListDetails.value = {
+        ...borrowListDetails.value,
+        [borrow.maPhieu]: (borrowListDetails.value[borrow.maPhieu] || []).map((item) => item.maSach === book.maSach ? { ...updated, quaHan: false } : item),
+      }
       actionNotice.value = `Đã ghi nhận trả sách ${book.maSach}.`
     } catch (error) { actionError.value = error.message || 'Không thể ghi nhận trả sách.' }
     finally { actionLoading.value = false }
@@ -251,6 +287,7 @@ export default function useBorrowManagement() {
   return {
     search, statusFilter, page, pageSize, statusOptions, filteredBorrows, pageRows, pageCount, canManage,
     rows, listLoading, listError, loadBorrows, dialogOpen, dialogMode, selectedBorrow, detailLoading, detailError,
+    borrowListDetailErrors, borrowListDetailLoaded, borrowListDetailLoading, bookCatalogError, overdueDetailsFor, retryListBorrowDetails: (maPhieu) => loadListBorrowDetails(maPhieu, { retry: true }),
     actionLoading, actionError, actionNotice, createLoading, confirmOpen, confirmation,
     openDetails, openCreate, openReject, closeDialog, askConfirmation, confirmBorrowAction, rejectBorrow, returnBook, createBorrow,
   }

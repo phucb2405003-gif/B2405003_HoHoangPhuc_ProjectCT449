@@ -20,6 +20,8 @@ const {
   borrowDetailLoaded,
   borrowDetailLoading,
   borrowDetails,
+  overdueDetailsByBorrow,
+  bookCatalogError,
   borrows,
   borrowsError,
   borrowsLoaded,
@@ -65,6 +67,8 @@ const {
   saveReaderProfile,
   removeDraftBook,
   removeDraftBorrow,
+  retryBorrowDetails,
+  formatVietnamCalendarDate,
   selectedBookIds,
   statusClass,
   submitPasswordChange,
@@ -229,6 +233,21 @@ const {
                 </div>
               </div>
 
+              <div v-if="borrowDetailErrors[borrow.maPhieu]" class="reader-borrow-overdue-error" role="status">
+                <span>Không tải được chi tiết để kiểm tra sách quá hạn.</span>
+                <button type="button" @click="retryBorrowDetails(borrow.maPhieu)">Thử lại</button>
+              </div>
+              <div v-else-if="overdueDetailsByBorrow[borrow.maPhieu]?.length" class="reader-borrow-overdue">
+                <strong class="reader-borrow-overdue__label">Có sách quá hạn</strong>
+                <ul>
+                  <li v-for="detail in overdueDetailsByBorrow[borrow.maPhieu]" :key="detail.maSach">
+                    <span>{{ bookNames[detail.maSach] || (bookCatalogError ? 'Chưa tải được tên sách' : detail.maSach) }}</span>
+                    <small>Mã sách {{ detail.maSach }} · Hạn trả {{ formatVietnamCalendarDate(detail.hanTra) }}</small>
+                  </li>
+                </ul>
+                <small v-if="bookCatalogError" class="reader-borrow-overdue__catalog-error">{{ bookCatalogError }}</small>
+              </div>
+
               <div v-if="borrow.trangThai === 'Từ chối'" class="reader-borrow-rejection-reason">
                 <strong>Lý do từ chối:</strong>
                 <span>{{ typeof borrow.lyDo === 'string' && borrow.lyDo.trim() ? borrow.lyDo : 'Chưa cập nhật' }}</span>
@@ -243,7 +262,7 @@ const {
                 <p v-if="borrowDetailLoading[borrow.maPhieu]" class="reader-profile-state" role="status">Đang tải chi tiết phiếu…</p>
                 <div v-else-if="borrowDetailErrors[borrow.maPhieu]" class="reader-profile-state reader-profile-state--error" role="alert">
                   <p>{{ borrowDetailErrors[borrow.maPhieu] }}</p>
-                  <button type="button" @click="borrowDetailLoaded[borrow.maPhieu] = false; expandedBorrows[borrow.maPhieu] = false; toggleBorrowDetails(borrow)">Thử tải lại</button>
+                  <button type="button" @click="retryBorrowDetails(borrow.maPhieu)">Thử tải lại</button>
                 </div>
                 <p v-else-if="borrowDetailLoaded[borrow.maPhieu] && !borrowDetails[borrow.maPhieu]?.length" class="reader-profile-state">Phiếu chưa có chi tiết sách.</p>
                 <div v-else class="reader-borrow-books">

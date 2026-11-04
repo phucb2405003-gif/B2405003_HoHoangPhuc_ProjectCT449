@@ -3,12 +3,12 @@ import {
   createBorrowWithBooks,
   deleteBorrow,
   deleteBorrowDetail,
-  getBook,
   getBooks,
   getBorrowDetails,
   getMyBorrows,
   submitBorrow,
 } from '@/services/borrowingService'
+import { formatVietnamCalendarDate, isOverdueBorrowDetail } from '@/utils/borrowDueDate'
 
 const BORROWS_PER_PAGE = 5
 
@@ -43,7 +43,9 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
   const borrowDetailLoaded = ref({})
   const borrowDetailErrors = ref({})
   const bookNames = ref({})
-  const bookNameRequests = new Map()
+  const bookCatalogLoaded = ref(false)
+  const bookCatalogError = ref('')
+  let bookCatalogRequest = null
   const borrowableBooks = ref([])
   const selectedBookIds = ref([])
   const isBorrowDialogOpen = ref(false)
@@ -59,6 +61,12 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
   watch(borrowPageCount, (pageCount) => {
     if (currentBorrowPage.value > pageCount) currentBorrowPage.value = pageCount
   }, { flush: 'sync' })
+
+  const overdueDetailsByBorrow = computed(() => Object.fromEntries(
+    Object.entries(borrowDetails.value)
+      .map(([maPhieu, details]) => [maPhieu, Array.isArray(details) ? details.filter((detail) => isOverdueBorrowDetail(detail)) : []])
+      .filter(([, details]) => details.length),
+  ))
 
   async function loadBorrows(force = false) {
     if ((!force && borrowsLoaded.value) || borrowsLoading.value) return
@@ -87,40 +95,38 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     }
   }
 
-  function hasBookName(value) {
-    return typeof value === 'string' && value.trim().length > 0
+  async function loadBookCatalog(token, retry = false) {
+    if (retry && bookCatalogError.value) bookCatalogLoaded.value = false
+    if (bookCatalogLoaded.value) return !bookCatalogError.value
+    if (bookCatalogRequest) return bookCatalogRequest
+    bookCatalogError.value = ''
+    bookCatalogRequest = getBooks(token)
+      .then((catalog) => {
+        if (!Array.isArray(catalog)) throw new Error('Máy chủ trả về danh mục sách không hợp lệ.')
+        const names = Object.fromEntries(catalog
+          .filter((book) => typeof book?.maSach === 'string' && typeof book?.tenSach === 'string' && book.tenSach.trim())
+          .map((book) => [book.maSach, book.tenSach]))
+        bookNames.value = { ...bookNames.value, ...names }
+        bookCatalogLoaded.value = true
+        return true
+      })
+      .catch(async (error) => {
+        if (await handleUnauthorized(error)) return false
+        bookCatalogError.value = error.message || 'Không thể tải danh mục sách.'
+        bookCatalogLoaded.value = true
+        return false
+      })
+      .finally(() => { bookCatalogRequest = null })
+    return bookCatalogRequest
   }
 
-  function loadBookName(maSach, token) {
-    const cachedName = bookNames.value[maSach]
-    if (hasBookName(cachedName)) return Promise.resolve(cachedName)
-
-    const existingRequest = bookNameRequests.get(maSach)
-    if (existingRequest) return existingRequest
-
-    let request
-    request = getBook(maSach, token)
-      .then((book) => {
-        const name = book?.tenSach
-        if (hasBookName(name)) {
-          bookNames.value = { ...bookNames.value, [maSach]: name }
-          return name
-        }
-        return null
-      })
-      .finally(() => {
-        if (bookNameRequests.get(maSach) === request) bookNameRequests.delete(maSach)
-      })
-
-    bookNameRequests.set(maSach, request)
-    return request
-  }
-
-  async function loadBorrowDetailRows(maPhieu, token = getAccessToken()) {
+  async function loadBorrowDetailRows(maPhieu, token = getAccessToken(), retry = false) {
     if (!token) {
       await redirectToLogin()
       return false
     }
+    if (borrowDetailLoading.value[maPhieu]) return false
+    if (!retry && (borrowDetailLoaded.value[maPhieu] || borrowDetailErrors.value[maPhieu])) return Boolean(borrowDetailLoaded.value[maPhieu])
     borrowDetailLoading.value[maPhieu] = true
     borrowDetailErrors.value[maPhieu] = ''
     try {
@@ -128,17 +134,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
       if (!Array.isArray(rows)) throw new Error('Máy chủ trả về chi tiết phiếu không hợp lệ.')
       borrowDetails.value[maPhieu] = rows
       borrowDetailLoaded.value[maPhieu] = true
-
-      const bookCodes = [...new Set(rows
-        .map((detail) => detail.maSach)
-        .filter((maSach) => typeof maSach === 'string' && maSach.trim()))]
-      await Promise.all(bookCodes.map(async (maSach) => {
-        try {
-          await loadBookName(maSach, token)
-        } catch (error) {
-          await handleUnauthorized(error)
-        }
-      }))
+      await loadBookCatalog(token, retry)
       return true
     } catch (error) {
       if (!await handleUnauthorized(error)) {
@@ -157,6 +153,15 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     if (!expandedBorrows.value[maPhieu] || borrowDetailLoaded.value[maPhieu] || borrowDetailLoading.value[maPhieu]) return
     await loadBorrowDetailRows(maPhieu)
   }
+
+  async function retryBorrowDetails(maPhieu) {
+    return loadBorrowDetailRows(maPhieu, getAccessToken(), true)
+  }
+
+  watch(paginatedBorrows, (visibleBorrows) => {
+    if (!borrowsLoaded.value) return
+    visibleBorrows.forEach((borrow) => { void loadBorrowDetailRows(borrow.maPhieu) })
+  })
 
   function availableBookCount(book) {
     const available = book?.soQuyenConLai
@@ -244,6 +249,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
   async function refreshBorrowAfterMutation(maPhieu) {
     borrowsLoaded.value = false
     borrowDetailLoaded.value[maPhieu] = false
+    borrowDetailErrors.value[maPhieu] = ''
     await loadBorrows(true)
     if (expandedBorrows.value[maPhieu]) await loadBorrowDetailRows(maPhieu)
   }
@@ -376,6 +382,8 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     borrowDetailLoaded,
     borrowDetailLoading,
     borrowDetails,
+    overdueDetailsByBorrow,
+    bookCatalogError,
     borrows,
     borrowsError,
     borrowsLoaded,
@@ -401,6 +409,8 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     removeDraftBorrow,
     selectedBookIds,
     statusClass,
+    retryBorrowDetails,
+    formatVietnamCalendarDate,
     toggleBorrowDetails,
     toggleBookSelection,
   }

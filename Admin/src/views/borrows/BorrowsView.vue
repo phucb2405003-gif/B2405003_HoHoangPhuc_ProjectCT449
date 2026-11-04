@@ -12,6 +12,7 @@ const {
   search, statusFilter, page, pageSize, statusOptions, filteredBorrows, pageRows, pageCount, canManage,
   listLoading, listError, loadBorrows, dialogOpen, dialogMode, selectedBorrow, detailLoading, detailError,
   actionLoading, actionError, actionNotice, createLoading, confirmOpen, confirmation,
+  borrowListDetailErrors, bookCatalogError, overdueDetailsFor, retryListBorrowDetails,
   openDetails, openCreate, openReject, closeDialog, askConfirmation, confirmBorrowAction, rejectBorrow, returnBook, createBorrow,
 } = useBorrowManagement()
 const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
@@ -38,13 +39,21 @@ const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warn
         <table class="data-table borrow-table">
           <thead><tr><th>Mã phiếu</th><th>Độc giả</th><th>Ngày yêu cầu</th><th>Ngày mượn</th><th>Trạng thái phiếu</th><th class="table-actions-heading">Thao tác</th></tr></thead>
           <tbody>
-            <tr v-for="borrow in pageRows" :key="borrow.maPhieu">
-              <td><strong class="table-strong">{{ borrow.maPhieu }}</strong></td>
-              <td><div class="table-primary-secondary"><strong>{{ borrow.tenDocGia }}</strong><small>{{ borrow.maDocGia }}</small></div></td>
-              <td>{{ borrow.ngayYeuCau }}</td><td>{{ borrow.ngayMuon || '—' }}</td>
-              <td><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></td>
-              <td class="table-actions"><button class="table-action" type="button" @click="openDetails(borrow)">Chi tiết</button></td>
-            </tr>
+            <template v-for="borrow in pageRows" :key="borrow.maPhieu">
+              <tr>
+                <td><strong class="table-strong">{{ borrow.maPhieu }}</strong></td>
+                <td><div class="table-primary-secondary"><strong>{{ borrow.tenDocGia }}</strong><small>{{ borrow.maDocGia }}</small></div></td>
+                <td>{{ borrow.ngayYeuCau }}</td><td>{{ borrow.ngayMuon || '—' }}</td>
+                <td><StatusBadge :value="borrow.trangThai" :variants="borrowVariants" /></td>
+                <td class="table-actions"><button class="table-action" type="button" @click="openDetails(borrow)">Chi tiết</button></td>
+              </tr>
+              <tr v-if="borrowListDetailErrors[borrow.maPhieu]" class="borrow-overdue-row borrow-overdue-row--error">
+                <td colspan="6"><div class="borrow-overdue-error" role="status"><span>Không tải được chi tiết để kiểm tra sách quá hạn.</span><button type="button" @click="retryListBorrowDetails(borrow.maPhieu)">Thử lại</button></div></td>
+              </tr>
+              <tr v-else-if="overdueDetailsFor(borrow.maPhieu).length" class="borrow-overdue-row">
+                <td colspan="6"><div class="borrow-overdue-alert"><strong>Có sách quá hạn</strong><ul><li v-for="book in overdueDetailsFor(borrow.maPhieu)" :key="book.maSach"><span>{{ bookCatalogError ? 'Chưa tải được tên sách' : book.tenSach }}</span><small>Mã sách {{ book.maSach }} · Hạn trả {{ book.hanTra }}</small></li></ul><small v-if="bookCatalogError" class="borrow-overdue-catalog-error">{{ bookCatalogError }}</small></div></td>
+              </tr>
+            </template>
             <tr v-if="!pageRows.length"><td class="table-empty" colspan="6"><strong>{{ filteredBorrows.length ? 'Không có phiếu phù hợp' : 'Chưa có phiếu mượn' }}</strong><span>{{ filteredBorrows.length ? 'Thử điều chỉnh từ khóa hoặc bộ lọc.' : 'Các phiếu sẽ xuất hiện tại đây khi có dữ liệu.' }}</span></td></tr>
           </tbody>
         </table>
