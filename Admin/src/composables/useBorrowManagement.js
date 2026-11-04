@@ -13,11 +13,34 @@ function formatDate(value) {
   return Number.isNaN(date.getTime()) ? String(value) : new Intl.DateTimeFormat('vi-VN').format(date)
 }
 
+function isPastCalendarDay(value) {
+  if (!value) return false
+  let date = null
+  if (value instanceof Date) {
+    date = new Date(value.getFullYear(), value.getMonth(), value.getDate())
+  } else if (typeof value === 'string') {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+    if (dateOnly) {
+      date = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+      if (date.getFullYear() !== Number(dateOnly[1]) || date.getMonth() !== Number(dateOnly[2]) - 1 || date.getDate() !== Number(dateOnly[3])) date = null
+    }
+    else {
+      const parsed = new Date(value)
+      if (!Number.isNaN(parsed.getTime())) date = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+    }
+  }
+  if (!date || Number.isNaN(date.getTime())) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return date < today
+}
+
 function detailsForUi(details, books) {
   return details.map((detail) => ({
     ...detail,
     tenSach: books.find((book) => book.maSach === detail.maSach)?.tenSach || detail.maSach,
     trangThaiSach: detail.trangThai || '',
+    quaHan: detail.trangThai === 'Đang mượn' && isPastCalendarDay(detail.hanTra),
     ngayTra: formatDate(detail.ngayTra),
     hanTra: formatDate(detail.hanTra),
   }))

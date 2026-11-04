@@ -18,6 +18,7 @@ export default function useDashboard() {
   const employeeCount = ref(null)
   const borrowRows = ref(null)
   const borrowDetails = ref(null)
+  const bookRows = ref(null)
   const recentRows = ref([])
   const errors = ref({})
 
@@ -45,9 +46,43 @@ export default function useDashboard() {
     return parsed ? new Intl.DateTimeFormat('vi-VN', { timeZone: 'UTC' }).format(parsed) : '—'
   }
 
+  function calendarDay(value) {
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : new Date(value.getFullYear(), value.getMonth(), value.getDate())
+    }
+    if (typeof value !== 'string' || !value.trim()) return null
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+    if (dateOnly) {
+      const parsed = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+      return parsed.getFullYear() === Number(dateOnly[1]) && parsed.getMonth() === Number(dateOnly[2]) - 1 && parsed.getDate() === Number(dateOnly[3]) ? parsed : null
+    }
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+  }
+
+  const overdueRows = computed(() => {
+    if (borrowDetails.value === null) return null
+    const today = calendarDay(new Date())
+    const booksByCode = new Map((bookRows.value || []).map((book) => [book.maSach, book]))
+    const readersByCode = new Map((readerRows.value || []).map((reader) => [reader.maDocGia, reader]))
+    const borrowsByCode = new Map((borrowRows.value || []).map((borrow) => [borrow.maPhieu, borrow]))
+    return borrowDetails.value.flatMap((detail) => {
+      const due = calendarDay(detail.hanTra)
+      if (detail.trangThai !== 'Đang mượn' || !due || due >= today) return []
+      const readerCode = detail.maDocGia || borrowsByCode.get(detail.maPhieu)?.maDocGia
+      return [{
+        ...detail,
+        tenSach: booksByCode.get(detail.maSach)?.tenSach || detail.maSach,
+        tenDocGia: readersByCode.get(readerCode)?.hoTen || readerCode || '—',
+        soNgayQuaHan: Math.floor((today - due) / 86400000),
+      }]
+    }).sort((a, b) => b.soNgayQuaHan - a.soNgayQuaHan)
+  })
+
   const activeBookCount = computed(() => borrowDetails.value?.reduce(
     (total, detail) => total + (detail.trangThai === 'Đang mượn' ? 1 : 0), 0,
   ) ?? null)
+  const overdueBookCount = computed(() => overdueRows.value?.length ?? null)
   const pendingCount = computed(() => borrowRows.value?.filter((borrow) => borrow.trangThai === 'Chờ duyệt').length ?? null)
   const trendData = computed(() => {
     if (!borrowRows.value) return []
@@ -69,7 +104,16 @@ export default function useDashboard() {
     ...(canManage.value ? [{ label: 'Nhân viên', value: employeeCount.value ?? '—', caption: 'Hồ sơ nhân viên', icon: employeeIcon }] : []),
     { label: 'Chờ duyệt', value: pendingCount.value ?? '—', caption: 'Phiếu cần xử lý', icon: borrowIcon },
     { label: 'Sách đang mượn', value: activeBookCount.value ?? '—', caption: 'Theo trạng thái từng sách', icon: borrowIcon },
-  ])
+    { label: 'Sách quá hạn trả', value: overdueBookCount.value ?? '—', caption: 'Đang mượn quá hạn', icon: borrowIcon },
+  ].map((stat) => ({
+    ...stat,
+    to: ({
+      [bookIcon]: '/books',
+      [readerIcon]: '/readers',
+      [employeeIcon]: '/employees',
+      [borrowIcon]: '/borrows',
+    })[stat.icon],
+  })))
 
   async function loadDashboard() {
     loading.value = true
@@ -90,6 +134,7 @@ export default function useDashboard() {
     })
 
     bookCount.value = loaded.books?.length ?? null
+    bookRows.value = loaded.books ?? null
     readerRows.value = loaded.readers ?? null
     employeeCount.value = loaded.employees?.length ?? null
     borrowRows.value = loaded.borrows ?? null
@@ -133,6 +178,8 @@ export default function useDashboard() {
     recentRows,
     errors,
     activeBookCount,
+    overdueBookCount,
+    overdueRows,
     pendingCount,
     trendData,
     stats,

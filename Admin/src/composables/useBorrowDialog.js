@@ -7,7 +7,7 @@ export default function useBorrowDialog({ open, mode, onReject, onCreate }) {
   const bookCodesInput = ref('')
   const createError = ref('')
   const borrowVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đã duyệt': 'info', 'Từ chối': 'danger', 'Hủy': 'neutral' }
-  const bookVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Đã trả': 'success', 'Từ chối': 'danger', 'Hủy': 'neutral' }
+  const bookVariants = { 'Đang chọn sách': 'neutral', 'Chờ duyệt': 'warning', 'Đang mượn': 'info', 'Quá hạn trả': 'danger', 'Đã trả': 'success', 'Từ chối': 'danger', 'Hủy': 'neutral' }
 
   watch(() => [unref(open), unref(mode)], () => {
     rejectReason.value = ''

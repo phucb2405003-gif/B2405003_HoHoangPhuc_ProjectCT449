@@ -96,7 +96,7 @@ const {
             <div class="borrow-books-list">
               <article v-for="book in borrow.chiTiet" :key="book.maSach" class="borrow-book-row">
                 <div class="borrow-book-copy"><strong>{{ book.tenSach }}</strong><small>Mã sách {{ book.maSach }}<template v-if="book.hanTra"> · Hạn {{ book.hanTra }}</template><template v-if="book.ngayTra"> · Trả {{ book.ngayTra }}</template></small></div>
-                <StatusBadge :value="book.trangThaiSach" :variants="bookVariants" />
+                <StatusBadge :value="book.quaHan ? 'Quá hạn trả' : book.trangThaiSach" :variants="bookVariants" />
                 <RowActionMenu
                   v-if="canManage && borrow.trangThai === 'Đã duyệt' && book.trangThaiSach === 'Đang mượn'"
                   :actions="[{ event: 'return-book', label: actionLoading ? 'Đang gửi…' : 'Ghi nhận trả', tone: 'positive' }]"

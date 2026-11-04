@@ -28,6 +28,10 @@ const title = computed(() => book.value?.tenSach || book.value?.title || 'Chi ti
 const author = computed(() => book.value?.tacGia || book.value?.author || '')
 const genre = computed(() => book.value?.genre || '')
 const publisher = computed(() => book.value?.tenNXB || '')
+const publicationYear = computed(() => {
+  const year = book.value?.namXuatBan
+  return Number.isInteger(year) && year >= 0 ? String(year) : 'Chưa cập nhật'
+})
 const availableCopies = computed(() => Number.isSafeInteger(book.value?.soQuyenConLai) ? book.value.soQuyenConLai : null)
 const activeDuplicate = computed(() => allBorrows.value.some((borrow) => {
   const details = borrowDetailsById.value[borrow.maPhieu]
@@ -206,6 +210,7 @@ onMounted(loadBook)
     retryLoadBorrowChoices,
     pendingBorrows,
     publisher,
+    publicationYear,
     selectedBorrowHasBook,
     selectedBorrowId,
     submitBorrowChoice,

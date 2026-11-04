@@ -40,6 +40,7 @@ const {
   retryLoadBook,
   pendingBorrows,
   publisher,
+  publicationYear,
   selectedBorrowHasBook,
   selectedBorrowId,
   submitBorrowChoice,
@@ -111,7 +112,7 @@ const {
                   </div>
                   <div>
                     <img :src="calendarIcon" alt="" aria-hidden="true" />
-                    <dt>Năm xuất bản</dt><dd>Chưa cập nhật</dd>
+                    <dt>Năm xuất bản</dt><dd>{{ publicationYear }}</dd>
                   </div>
                   <div>
                     <img :src="currencyIcon" alt="" aria-hidden="true" />

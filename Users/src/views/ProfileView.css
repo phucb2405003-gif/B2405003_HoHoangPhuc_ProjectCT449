@@ -390,12 +390,14 @@
 
 .reader-borrow-card__processing > div:not(.reader-borrow-card__staff) strong {
   color: #f1f5f9;
+  font-family: inherit;
   overflow-wrap: anywhere;
 }
 
 .reader-borrow-card__staff strong {
   color: #cbd5e1;
   font-size: inherit;
+  font-family: inherit;
   overflow-wrap: anywhere;
 }
 
