@@ -228,7 +228,12 @@ const {
 
               <div v-if="borrow.trangThai === 'Từ chối'" class="reader-borrow-rejection-reason">
                 <strong>Lý do từ chối:</strong>
-                <span>{{ typeof borrow.lyDoTuChoi === 'string' && borrow.lyDoTuChoi.trim() ? borrow.lyDoTuChoi : 'Chưa cập nhật' }}</span>
+                <span>{{ typeof borrow.lyDo === 'string' && borrow.lyDo.trim() ? borrow.lyDo : 'Chưa cập nhật' }}</span>
+              </div>
+
+              <div v-if="borrow.trangThai === 'Hủy'" class="reader-borrow-rejection-reason">
+                <strong>Lý do hủy:</strong>
+                <span>{{ typeof borrow.lyDo === 'string' && borrow.lyDo.trim() ? borrow.lyDo : 'Chưa cập nhật' }}</span>
               </div>
 
               <div v-if="expandedBorrows[borrow.maPhieu]" class="reader-borrow-details">

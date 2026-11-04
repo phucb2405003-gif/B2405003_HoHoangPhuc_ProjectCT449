@@ -75,8 +75,8 @@ const {
           </div>
 
           <template v-else>
-            <p v-if="borrow.lyDoTuChoi" class="borrow-rejection-note"><strong>Lý do từ chối:</strong> {{ borrow.lyDoTuChoi }}</p>
-            <p v-if="borrow.trangThai === 'Hủy' && borrow.lyDoHuy" class="borrow-cancellation-note"><strong>Lý do hủy:</strong> {{ borrow.lyDoHuy }}</p>
+            <p v-if="borrow.trangThai === 'Từ chối'" class="borrow-rejection-note"><strong>Lý do từ chối:</strong> {{ typeof borrow.lyDo === 'string' && borrow.lyDo.trim() ? borrow.lyDo : 'Chưa cập nhật' }}</p>
+            <p v-if="borrow.trangThai === 'Hủy'" class="borrow-cancellation-note"><strong>Lý do hủy:</strong> {{ typeof borrow.lyDo === 'string' && borrow.lyDo.trim() ? borrow.lyDo : 'Chưa cập nhật' }}</p>
             <p v-if="detailLoading" class="management-state">Đang tải chi tiết phiếu…</p>
             <p v-else-if="detailError" class="dialog-error" role="alert">{{ detailError }}</p>
             <p v-if="actionError" class="dialog-error" role="alert">{{ actionError }}</p>
