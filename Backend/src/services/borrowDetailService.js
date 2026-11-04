@@ -10,7 +10,7 @@ const CANCELLED = "Hủy";
 const DRAFT = "Đang chọn sách";
 const DETAIL_ROLLBACK_FIELDS = ["_id", "maPhieu", "maSach", "trangThai", "hanTra", "ngayTra"];
 const BORROW_ROLLBACK_FIELDS = [
-    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayMuon", "trangThai", "ngayHuy", "lyDoHuy"
+    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayMuon", "trangThai", "ngayHuy", "lyDo"
 ];
 
 function matchesFields(actual, expected, fields) {
@@ -144,7 +144,7 @@ async function remove(maPhieu, maSach, requester) {
         let detailDeleteAttempted = false;
         let parentUpdateAttempted = false;
         const parentFields = totalDetails === 1
-            ? { soLuong: 0, trangThai: CANCELLED, ngayHuy: new Date(), lyDoHuy: "Phiếu không còn sách" }
+            ? { soLuong: 0, trangThai: CANCELLED, ngayHuy: new Date(), lyDo: "Phiếu không còn sách" }
             : { soLuong: borrow.soLuong - 1 };
         const originalStatusFilter = Object.prototype.hasOwnProperty.call(borrow, "trangThai")
             ? { trangThai: borrow.trangThai }
@@ -186,7 +186,7 @@ async function remove(maPhieu, maSach, requester) {
                     if (!currentBorrow) {
                         throw new Error("Khong tim thay phieu de rollback so luong va trang thai");
                     }
-                    const parentRollbackFields = ["soLuong", "trangThai", "ngayHuy", "lyDoHuy"];
+                    const parentRollbackFields = ["soLuong", "trangThai", "ngayHuy", "lyDo"];
                     const isOriginal = matchesFields(currentBorrow, borrow, parentRollbackFields);
                     if (!isOriginal) {
                         const expectedBorrow = { ...borrow, ...parentFields };

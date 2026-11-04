@@ -194,7 +194,7 @@ async function reject(req, res) {
             req.params.maPhieu,
             borrowService.STATUSES.REJECTED,
             req.user.maTaiKhoan,
-            req.body?.lyDoTuChoi
+            req.body?.lyDo ?? req.body?.lyDoTuChoi
         );
 
         if (result.notFound) {

@@ -257,7 +257,8 @@ async function create(borrow) {
                 soLuong: details.length,
                 trangThai: direct ? BORROW_STATUSES.APPROVED : BORROW_STATUSES.DRAFT,
                 ngayYeuCau: direct ? null : new Date(),
-                ngayMuon
+                ngayMuon,
+                lyDo: null
             };
             await assertOwned();
             borrowInsertAttempted = true;
@@ -510,7 +511,8 @@ async function expireDraftBorrows(now = new Date()) {
                 }
                 await assertOwned();
                 parentWriteAttempted = true;
-                const updatedBorrow = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDoHuy: "Phiếu đã quá hạn" } });
+                const expiryReason = "Phiếu đã quá hạn gửi duyệt";
+                const updatedBorrow = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDo: expiryReason } });
                 if (updatedBorrow.matchedCount !== 1) throw new Error("Phieu da thay doi trong luc xu ly het han");
                 count++;
             } catch (error) {
@@ -518,8 +520,8 @@ async function expireDraftBorrows(now = new Date()) {
                 if (parentWriteAttempted) {
                     try {
                         const current = await borrows.findOne({ _id: borrow._id, maPhieu });
-                        if (current?.trangThai === BORROW_STATUSES.CANCELLED && current.lyDoHuy === "Phiếu đã quá hạn" && current.ngayHuy instanceof Date && current.ngayHuy.getTime() === now.getTime()) {
-                            const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDoHuy: "Phiếu đã quá hạn" }, { $set: { trangThai: BORROW_STATUSES.DRAFT }, $unset: { ngayHuy: "", lyDoHuy: "" } });
+                        if (current?.trangThai === BORROW_STATUSES.CANCELLED && current.lyDo === expiryReason && current.ngayHuy instanceof Date && current.ngayHuy.getTime() === now.getTime()) {
+                            const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDo: expiryReason }, { $set: { trangThai: BORROW_STATUSES.DRAFT, lyDo: borrow.lyDo ?? null }, $unset: { ngayHuy: "" } });
                             if (restored.matchedCount !== 1) throw new Error("Khong the rollback trang thai phieu het han");
                         } else if (current?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac dinh duoc trang thai phieu sau loi het han");
                     } catch (rollbackError) { rollbackErrors.push(rollbackError); }
@@ -539,12 +541,12 @@ async function expireDraftBorrows(now = new Date()) {
     });
 }
 
-async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
+async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDo) {
     if (
-        lyDoTuChoi !== undefined &&
-        lyDoTuChoi !== null &&
-        lyDoTuChoi !== "" &&
-        (typeof lyDoTuChoi !== "string" || lyDoTuChoi.trim().length === 0)
+        lyDo !== undefined &&
+        lyDo !== null &&
+        lyDo !== "" &&
+        (typeof lyDo !== "string" || lyDo.trim().length === 0)
     ) {
         const error = new Error("Lý do từ chối chưa hợp lệ.");
         error.statusCode = 400;
@@ -577,11 +579,11 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDoTuChoi) {
         const approvedAt = new Date();
         const dueAt = addOneCalendarMonth(approvedAt);
         const parentFields = nextStatus === STATUSES.BORROWED
-            ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt }
+            ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt, lyDo: null }
             : {
                 trangThai: BORROW_STATUSES.REJECTED,
                 maNhanVien,
-                ...(lyDoTuChoi ? { lyDoTuChoi } : {})
+                lyDo: typeof lyDo === "string" && lyDo.trim() ? lyDo.trim() : null
             };
         let stateUpdateAttempted = false;
         let parentUpdateAttempted = false;
@@ -886,7 +888,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                 _id: borrow._id,
                 maPhieu,
                 ...parentStatusFilter
-            }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: cancelledAt, ...(isDraft ? { lyDoHuy: "Độc giả đã hủy phiếu" } : {}) } });
+            }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: cancelledAt, lyDo: "Độc giả đã hủy phiếu" } });
             if (updateBorrow.matchedCount !== 1) {
                 throw new Error("Khong the cap nhat trang thai phieu muon");
             }
@@ -905,7 +907,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                         left instanceof Date && right instanceof Date
                             ? left.getTime() === right.getTime()
                             : left === right;
-                    const fields = ["trangThai", "ngayHuy", ...(isDraft ? ["lyDoHuy"] : [])];
+                    const fields = ["trangThai", "ngayHuy", "lyDo"];
                     const alreadyOriginal = fields.every((field) =>
                         Object.prototype.hasOwnProperty.call(currentBorrow, field) ===
                             Object.prototype.hasOwnProperty.call(borrow, field) &&
@@ -916,7 +918,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                         // The parent update failed before applying; nothing to restore.
                     } else if (currentBorrow.trangThai !== BORROW_STATUSES.CANCELLED ||
                         !sameValue(currentBorrow.ngayHuy, cancelledAt) ||
-                        (isDraft && currentBorrow.lyDoHuy !== "Độc giả đã hủy phiếu")) {
+                        currentBorrow.lyDo !== "Độc giả đã hủy phiếu") {
                         throw new Error("Trang thai phieu khong khop khi rollback");
                     } else {
                         const set = {};
@@ -937,7 +939,7 @@ async function deletePendingBorrow(maPhieu, requester) {
                                 maPhieu,
                                 trangThai: BORROW_STATUSES.CANCELLED,
                                 ngayHuy: cancelledAt,
-                                ...(isDraft ? { lyDoHuy: "Độc giả đã hủy phiếu" } : {})
+                                lyDo: "Độc giả đã hủy phiếu"
                             },
                             update
                         );
