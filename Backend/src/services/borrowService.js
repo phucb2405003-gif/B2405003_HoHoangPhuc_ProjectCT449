@@ -576,13 +576,14 @@ async function changeStatus(maPhieu, nextStatus, maNhanVien, lyDo) {
 
         const detailIds = pendingDetails.map((detail) => detail._id);
         const stockReceipts = [];
-        const approvedAt = new Date();
-        const dueAt = addOneCalendarMonth(approvedAt);
+        const processedAt = new Date();
+        const dueAt = addOneCalendarMonth(processedAt);
         const parentFields = nextStatus === STATUSES.BORROWED
-            ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: approvedAt, lyDo: null }
+            ? { trangThai: BORROW_STATUSES.APPROVED, maNhanVien, ngayMuon: processedAt, lyDo: null }
             : {
                 trangThai: BORROW_STATUSES.REJECTED,
                 maNhanVien,
+                ngayHuy: processedAt,
                 lyDo: typeof lyDo === "string" && lyDo.trim() ? lyDo.trim() : null
             };
         let stateUpdateAttempted = false;

@@ -218,25 +218,14 @@ const {
                   </button>
                 </div>
               </div>
-              <div
-                v-if="borrow.maNhanVien || (borrow.trangThai === 'Đã duyệt' && borrow.ngayMuon && formatDate(borrow.ngayMuon) !== 'Chưa cập nhật') || (['Từ chối', 'Hủy'].includes(borrow.trangThai) && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật')"
-                class="reader-borrow-card__processing"
-              >
-                <div v-if="borrow.maNhanVien" class="reader-borrow-card__staff">
+              <div class="reader-borrow-card__processing">
+                <div class="reader-borrow-card__staff">
                   <span>Nhân viên xử lý</span>
-                  <strong>{{ borrow.maNhanVien }}</strong>
+                  <strong>{{ borrow.maNhanVien || (borrow.trangThai === 'Hủy' && borrow.lyDo === 'Phiếu đã quá hạn gửi duyệt' ? 'Hệ thống tự động' : 'Chưa cập nhật') }}</strong>
                 </div>
-                <div v-if="borrow.trangThai === 'Đã duyệt' && borrow.ngayMuon && formatDate(borrow.ngayMuon) !== 'Chưa cập nhật'">
+                <div>
                   <span>Ngày xử lý</span>
-                  <strong>{{ formatDate(borrow.ngayMuon) }}</strong>
-                </div>
-                <div v-if="borrow.trangThai === 'Từ chối' && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật'">
-                  <span>Ngày xử lý</span>
-                  <strong>{{ formatDate(borrow.ngayHuy) }}</strong>
-                </div>
-                <div v-if="borrow.trangThai === 'Hủy' && borrow.ngayHuy && formatDate(borrow.ngayHuy) !== 'Chưa cập nhật'">
-                  <span>Ngày xử lý</span>
-                  <strong>{{ formatDate(borrow.ngayHuy) }}</strong>
+                  <strong>{{ formatDate(borrow.trangThai === 'Đã duyệt' ? borrow.ngayMuon : ['Từ chối', 'Hủy'].includes(borrow.trangThai) ? borrow.ngayHuy : null) }}</strong>
                 </div>
               </div>
 
