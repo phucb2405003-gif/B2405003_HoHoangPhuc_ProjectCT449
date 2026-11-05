@@ -17,7 +17,6 @@ const selectedGenre = ref('')
 const selectedAuthor = ref('')
 const sortOrder = ref('default')
 const currentPage = ref(1)
-const isSidebarOpen = ref(false)
 let booksLoadPending = false
 let pageSizeMediaQuery = null
 
@@ -32,13 +31,6 @@ function normalize(value) {
 
 const genres = computed(() => [...new Set(books.value.map((book) => book.genre).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
 const authors = computed(() => [...new Set(books.value.map((book) => book.author).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'vi')))
-const sidebarGenres = computed(() => genres.value.slice(0, 10))
-const sidebarAuthors = computed(() => authors.value.slice(0, 10))
-const genreCounts = computed(() => books.value.reduce((counts, book) => {
-  if (book.genre) counts[book.genre] = (counts[book.genre] || 0) + 1
-  return counts
-}, {}))
-
 const filteredBooks = computed(() => {
   const query = normalize(searchTerm.value)
   const result = books.value.filter((book) => {
@@ -99,17 +91,39 @@ onUnmounted(() => {
   pageSizeMediaQuery?.removeEventListener('change', handlePageSizeChange)
 })
 
+let applyingRouteQuery = false
+
 watch(() => route.query, (query) => {
+  applyingRouteQuery = true
   searchTerm.value = typeof query.q === 'string' ? query.q : ''
   selectedGenre.value = typeof query.genre === 'string' ? query.genre : ''
   selectedAuthor.value = typeof query.author === 'string' ? query.author : ''
   sortOrder.value = query.sort === 'title-asc' ? 'title-asc' : 'default'
   currentPage.value = Math.max(1, Number.parseInt(query.page, 10) || 1)
+  queueMicrotask(() => { applyingRouteQuery = false })
 }, { immediate: true })
 
 watch([searchTerm, selectedGenre, selectedAuthor, sortOrder], () => {
-  currentPage.value = 1
+  if (!applyingRouteQuery) currentPage.value = 1
 })
+
+watch([searchTerm, selectedGenre, selectedAuthor, sortOrder, currentPage], () => {
+  if (applyingRouteQuery) return
+
+  const query = {
+    q: searchTerm.value.trim() || undefined,
+    genre: selectedGenre.value || undefined,
+    author: selectedAuthor.value || undefined,
+    sort: sortOrder.value === 'default' ? undefined : sortOrder.value,
+    page: currentPage.value === 1 ? undefined : String(currentPage.value),
+  }
+  const queryKeys = Object.keys(query)
+  const hasQueryChanges = queryKeys.some((key) => {
+    const currentValue = typeof route.query[key] === 'string' ? route.query[key] : undefined
+    return query[key] !== currentValue
+  })
+  if (hasQueryChanges) void router.replace({ name: 'books', query })
+}, { flush: 'post' })
 
 function resetFilters() {
   searchTerm.value = ''
@@ -117,8 +131,6 @@ function resetFilters() {
   selectedAuthor.value = ''
   sortOrder.value = 'default'
   currentPage.value = 1
-  isSidebarOpen.value = false
-  if (route.query.q) void router.replace({ name: 'books' })
 }
 
   return {
@@ -127,10 +139,8 @@ function resetFilters() {
     booksLoadError,
     currentPage,
     filteredBooks,
-    genreCounts,
     genres,
     isLoadingBooks,
-    isSidebarOpen,
     loadBooks,
     pageCount,
     pageNumbers,
@@ -138,8 +148,6 @@ function resetFilters() {
     searchTerm,
     selectedAuthor,
     selectedGenre,
-    sidebarAuthors,
-    sidebarGenres,
     sortOrder,
     visibleBooks,
   }

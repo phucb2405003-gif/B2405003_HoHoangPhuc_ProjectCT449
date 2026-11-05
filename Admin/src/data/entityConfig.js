@@ -103,8 +103,6 @@ export const entityConfigs = {
     singular: 'tài khoản',
     codeField: 'maTaiKhoan',
     writeRoles: [ROLE_MANAGER],
-    searchKeys: ['maTaiKhoan', 'tenDangNhap'],
-    searchPlaceholder: 'Tìm theo mã tài khoản hoặc tên đăng nhập',
     columns: [
       { key: 'maTaiKhoan', label: 'Mã tài khoản', strong: true },
       { key: 'tenDangNhap', label: 'Tên đăng nhập' },
