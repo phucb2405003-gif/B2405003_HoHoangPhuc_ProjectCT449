@@ -131,63 +131,9 @@
 .books-toolbar__reset:hover { background: rgb(37 99 235 / 28%); }
 
 .books-layout {
-  display: grid;
+  display: block;
   margin-top: 1.5rem;
-  grid-template-columns: 15rem minmax(0, 1fr);
-  align-items: start;
-  gap: 1.5rem;
 }
-
-.books-sidebar {
-  position: sticky;
-  top: 1rem;
-  border: 1px solid rgb(148 163 184 / 17%);
-  border-radius: 0.9rem;
-  background: rgb(15 23 42 / 74%);
-}
-
-.books-sidebar__toggle {
-  display: none;
-  width: 100%;
-  padding: 0.85rem 1rem;
-  border: 0;
-  background: transparent;
-  color: #f8fafc;
-  font: inherit;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-
-.books-sidebar__content { padding: 1rem; }
-.books-sidebar__section + .books-sidebar__section { margin-top: 1.5rem; }
-.books-sidebar__section h2 { margin: 0 0 0.75rem; color: #f8fafc; font-size: 0.95rem; font-weight: 700; }
-.books-sidebar__section h2 small { color: #94a3b8; font-size: 0.72rem; font-weight: 400; }
-
-.books-sidebar__option,
-.books-sidebar__author {
-  display: flex;
-  width: 100%;
-  min-height: 2.35rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.45rem 0.55rem;
-  border: 0;
-  border-radius: 0.45rem;
-  background: transparent;
-  color: #cbd5e1;
-  font: inherit;
-  font-size: 0.82rem;
-  text-align: left;
-  cursor: pointer;
-}
-
-.books-sidebar__option span { flex: 0 0 auto; color: #94a3b8; font-size: 0.75rem; }
-.books-sidebar__option:hover,
-.books-sidebar__author:hover,
-.books-sidebar__option.is-selected,
-.books-sidebar__author.is-selected { background: rgb(37 99 235 / 18%); color: #bfdbfe; }
 
 .books-results { min-width: 0; }
 .books-results__heading { display: flex; margin: 0.1rem 0 1.1rem; align-items: flex-end; justify-content: space-between; gap: 1rem; }
@@ -197,7 +143,7 @@
 
 .books-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: stretch;
   gap: 1rem;
 }
@@ -256,11 +202,6 @@
 }
 
 @media (max-width: 760px) {
-  .books-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-  .books-sidebar { position: static; }
-  .books-sidebar__toggle { display: block; }
-  .books-sidebar__content { display: none; padding-top: 0; }
-  .books-sidebar--open .books-sidebar__content { display: block; }
   .books-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 

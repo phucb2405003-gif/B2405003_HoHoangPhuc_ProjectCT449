@@ -6,7 +6,7 @@ export default function useBooks() {
 
 const route = useRoute()
 const router = useRouter()
-const pageSize = 12
+const pageSize = 15
 const books = ref([])
 const isLoadingBooks = ref(true)
 const booksLoadError = ref('')

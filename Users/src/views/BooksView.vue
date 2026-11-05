@@ -13,10 +13,8 @@ const {
   booksLoadError,
   currentPage,
   filteredBooks,
-  genreCounts,
   genres,
   isLoadingBooks,
-  isSidebarOpen,
   loadBooks,
   pageCount,
   pageNumbers,
@@ -24,8 +22,6 @@ const {
   searchTerm,
   selectedAuthor,
   selectedGenre,
-  sidebarAuthors,
-  sidebarGenres,
   sortOrder,
   visibleBooks,
 } = useBooks()
@@ -78,47 +74,6 @@ const {
         </form>
 
         <div class="books-layout">
-          <aside class="books-sidebar" :class="{ 'books-sidebar--open': isSidebarOpen }">
-            <button
-              class="books-sidebar__toggle"
-              type="button"
-              :aria-expanded="isSidebarOpen"
-              @click="isSidebarOpen = !isSidebarOpen"
-            >{{ isSidebarOpen ? 'Ẩn bộ lọc' : 'Hiện bộ lọc' }}</button>
-
-            <div class="books-sidebar__content">
-              <section class="books-sidebar__section">
-                <h2>Thể loại</h2>
-                <button
-                  class="books-sidebar__option"
-                  :class="{ 'is-selected': !selectedGenre }"
-                  type="button"
-                  @click="selectedGenre = ''"
-                >Tất cả sách <span>{{ books.length }}</span></button>
-                <button
-                  v-for="genre in sidebarGenres"
-                  :key="genre"
-                  class="books-sidebar__option"
-                  :class="{ 'is-selected': selectedGenre === genre }"
-                  type="button"
-                  @click="selectedGenre = genre"
-                >{{ genre }} <span>{{ genreCounts[genre] || 0 }}</span></button>
-              </section>
-
-              <section class="books-sidebar__section">
-                <h2>Tác giả trong danh mục</h2>
-                <button
-                  v-for="author in sidebarAuthors"
-                  :key="author"
-                  class="books-sidebar__author"
-                  :class="{ 'is-selected': selectedAuthor === author }"
-                  type="button"
-                  @click="selectedAuthor = selectedAuthor === author ? '' : author"
-                >{{ author }}</button>
-              </section>
-            </div>
-          </aside>
-
           <section class="books-results" aria-labelledby="books-results-title">
             <div class="books-results__heading">
               <div>

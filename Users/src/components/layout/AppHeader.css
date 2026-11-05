@@ -8,6 +8,7 @@
 
 .app-header__inner {
   display: flex;
+  min-width: 0;
   width: min(100% - 2rem, 80rem);
   min-height: 5rem;
   margin-inline: auto;
@@ -52,7 +53,8 @@
 
 .app-header__nav {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
   gap: 0.5rem 1.5rem;
@@ -132,6 +134,7 @@
 
 .app-header__account-name {
   overflow: hidden;
+  min-width: 0;
   max-width: 9rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -169,6 +172,7 @@
   top: calc(100% + 0.65rem);
   right: 0;
   width: min(17rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
   padding: 1rem;
   border: 1px solid rgb(148 163 184 / 25%);
   border-radius: 0.85rem;
@@ -191,6 +195,7 @@
 .app-header__account-menu-label,
 .app-header__account-menu-name,
 .app-header__account-menu-id {
+  overflow-wrap: anywhere;
   margin: 0;
 }
 
@@ -220,6 +225,8 @@
 .app-header__account-status {
   display: flex;
   width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
   margin: 0.85rem 0 0;
   align-items: center;
   gap: 0.45rem;
@@ -239,8 +246,13 @@
   background: #4ade80;
 }
 
+.app-header__profile,
 .app-header__logout {
+  display: flex;
   width: 100%;
+  min-height: 2.65rem;
+  align-items: center;
+  gap: 0.55rem;
   margin-top: 0.9rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid rgb(248 113 113 / 32%);
@@ -250,9 +262,25 @@
   font: inherit;
   font-weight: 600;
   text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
+.app-header__profile {
+  margin-top: 1rem;
+  border-color: rgb(96 165 250 / 32%);
+  background: rgb(37 99 235 / 16%);
+  color: #dbeafe;
+}
+
+.app-header__profile img {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  filter: brightness(0) invert(1);
+}
+
+.app-header__profile:hover { background: rgb(37 99 235 / 30%); }
 .app-header__logout:hover {
   background: rgb(127 29 29 / 38%);
 }
@@ -267,8 +295,14 @@
 
   .app-header__nav {
     width: 100%;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 0.65rem 1rem;
+  }
+
+  .app-header__account-menu {
+    right: auto;
+    left: 0;
   }
 }
 

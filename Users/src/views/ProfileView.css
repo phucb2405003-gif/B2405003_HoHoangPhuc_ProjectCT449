@@ -63,6 +63,7 @@
 
 .reader-profile-content {
   width: min(100% - 2rem, 75rem);
+  min-width: 0;
   margin: 2rem auto 3rem;
   overflow: hidden;
   border: 1px solid rgb(59 130 246 / 32%);
@@ -73,6 +74,7 @@
 
 .reader-profile-tabs {
   display: flex;
+  min-width: 0;
   gap: 0.5rem;
   padding: 0.75rem;
   border-bottom: 1px solid rgb(148 163 184 / 16%);
@@ -93,6 +95,8 @@
   cursor: pointer;
 }
 
+.reader-profile-tabs button { min-width: 0; flex: 1 1 0; text-align: center; overflow-wrap: anywhere; }
+
 .reader-profile-tabs button:hover,
 .reader-password-toggle:hover,
 .reader-profile-state button:hover,
@@ -108,6 +112,7 @@
 }
 
 .reader-profile-panel {
+  min-width: 0;
   padding: clamp(1rem, 3vw, 2rem);
 }
 
@@ -135,6 +140,7 @@
 .reader-profile-section-heading__icon img {
   width: 1.45rem;
   height: 1.45rem;
+  filter: brightness(0) invert(1);
   object-fit: contain;
 }
 
@@ -284,6 +290,7 @@
 .reader-profile-edit-form { margin-bottom: 1.25rem; }
 .reader-profile-edit-form > p { grid-column: 1 / -1; margin: 0; }
 .reader-profile-edit-actions { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 0.6rem; }
+.reader-profile-edit-actions { flex-wrap: wrap; }
 .reader-profile-edit-actions .reader-profile-primary-button { align-self: auto; }
 
 .reader-profile-state,
@@ -317,11 +324,13 @@
 
 .reader-borrow-list {
   display: grid;
+  min-width: 0;
   gap: 0.85rem;
 }
 
 .reader-borrow-pagination {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.85rem;
@@ -693,12 +702,14 @@
   }
 
   .reader-profile-tabs {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.5rem;
   }
 
   .reader-profile-tabs button {
-    text-align: left;
+    padding-inline: 0.35rem;
+    font-size: 0.82rem;
   }
 
   .reader-profile-fields,
@@ -712,6 +723,7 @@
   }
 
   .reader-borrow-card__actions { grid-column: 1; justify-content: flex-start; }
+  .reader-borrow-card__actions > button { flex: 0 1 auto; }
   .reader-borrow-books { grid-template-columns: minmax(0, 1fr); }
   .reader-borrow-book { grid-template-columns: minmax(0, 1fr); }
   .reader-borrow-delete-button { justify-self: start; }
@@ -725,3 +737,20 @@
     flex-direction: column;
   }
 }
+
+.reader-profile-page,
+.reader-profile-banner__content,
+.reader-profile-fields > div,
+.reader-password-card,
+.reader-borrow-card,
+.reader-borrow-details,
+.reader-borrow-book,
+.reader-borrow-picker {
+  min-width: 0;
+}
+
+.reader-profile-page :is(p, strong, dd, h1, h2, h3, span) {
+  overflow-wrap: anywhere;
+}
+
+.reader-profile-page button { max-width: 100%; }

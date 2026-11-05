@@ -34,6 +34,11 @@ function handleLogout() {
   void router.replace({ name: 'home' })
 }
 
+function handleProfileNavigation() {
+  isAccountMenuOpen.value = false
+  void router.push('/trang-ca-nhan')
+}
+
 onMounted(() => {
   document.addEventListener('click', closeAccountMenu)
   document.addEventListener('keydown', handleAccountMenuKeydown)
@@ -97,6 +102,10 @@ onUnmounted(() => {
                 <span class="app-header__account-status-dot" aria-hidden="true"></span>
                 Tài khoản đang hoạt động
               </p>
+              <button class="app-header__profile" type="button" @click="handleProfileNavigation">
+                <img :src="userIcon" alt="" aria-hidden="true" />
+                Trang cá nhân
+              </button>
               <button class="app-header__logout" type="button" @click="handleLogout">Đăng xuất</button>
             </div>
           </Transition>
