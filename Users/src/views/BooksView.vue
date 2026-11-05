@@ -91,8 +91,8 @@ const {
             <div v-else-if="!books.length" class="books-empty" role="status">Thư viện chưa có sách để hiển thị.</div>
             <div v-else-if="visibleBooks.length" class="books-grid">
               <BookListCard
-                v-for="(book, index) in visibleBooks"
-                :key="`${book.id}-${index}`"
+                v-for="book in visibleBooks"
+                :key="book.id"
                 :book="book"
                 :detail-to="{
                   name: 'book-detail',
