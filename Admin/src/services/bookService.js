@@ -1,8 +1,8 @@
 import apiClient from './apiClient'
 
 const BOOKS_PATH = '/api/books'
-const CREATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'soQuyen', 'donGia', 'namXuatBan']
-const UPDATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'donGia', 'namXuatBan']
+const CREATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'soQuyen', 'donGia', 'namXuatBan', 'hinhAnh']
+const UPDATE_FIELDS = ['tenSach', 'tacGia', 'theLoai', 'maNXB', 'donGia', 'namXuatBan', 'hinhAnh']
 
 function pickFields(source, fields) {
   return Object.fromEntries(fields.filter((key) => Object.hasOwn(source || {}, key)).map((key) => [key, source[key]]))

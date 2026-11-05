@@ -33,6 +33,39 @@ function normalizeWhitespace(value) {
     return value.trim().replace(/\s+/g, " ");
 }
 
+function isValidBookImagePath(value) {
+    if (
+        typeof value !== "string" ||
+        value.length === 0 ||
+        value !== value.trim() ||
+        value.includes("\\") ||
+        /[?#\u0000-\u001f:]/.test(value)
+    ) {
+        return false;
+    }
+
+    const segments = value.split("/");
+    return segments.every((segment) =>
+        segment.length > 0 &&
+        segment === segment.trim() &&
+        segment !== "." &&
+        segment !== ".." &&
+        /^[\p{L}\p{N}._ -]+$/u.test(segment)
+    );
+}
+
+function validateBookImagePath(payload) {
+    if (
+        payload && typeof payload === "object" && !Array.isArray(payload) &&
+        Object.hasOwn(payload, "hinhAnh") &&
+        !isValidBookImagePath(payload.hinhAnh)
+    ) {
+        const error = new Error("Duong dan hinh anh sach khong hop le");
+        error.code = "INVALID_UPDATE";
+        throw error;
+    }
+}
+
 function duplicateNameError() {
     const error = new Error("Ten sach da ton tai");
     error.code = "DUPLICATE_NAME";
@@ -41,6 +74,7 @@ function duplicateNameError() {
 
 // Thêm sách
 async function create(book) {
+    validateBookImagePath(book);
     const bookToCreate = validateCreateFields(book, {
         tenSach: "string",
         tacGia: "string",
@@ -49,6 +83,7 @@ async function create(book) {
         soQuyen: "nonNegativeInteger",
         donGia: "nonNegativeNumber",
         namXuatBan: "nonNegativeInteger",
+        hinhAnh: "string",
     }, ["tenSach", "tacGia", "theLoai", "maNXB", "soQuyen"]);
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
@@ -119,6 +154,7 @@ async function createWithinLock(db, book, assertOwned) {
 
 // Cập nhật theo mã sách
 async function update(maSach, book) {
+    validateBookImagePath(book);
     const bookToUpdate = getUpdateFields(book, {
         tenSach: "string",
         tacGia: "string",
@@ -126,6 +162,7 @@ async function update(maSach, book) {
         maNXB: "string",
         donGia: "nonNegativeNumber",
         namXuatBan: "nonNegativeInteger",
+        hinhAnh: "string",
     });
     const db = await connectDB();
     const collection = db.collection(BOOK_COLLECTION);
