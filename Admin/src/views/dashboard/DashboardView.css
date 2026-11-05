@@ -32,15 +32,15 @@
 .trend-column > small { color: #8592a5; font-size: 9px; }
 .panel-link { color: #2860b3; font-size: 10px; font-weight: 650; text-decoration: none; white-space: nowrap; }
 .panel-link:hover { color: var(--admin-blue-hover); text-decoration: underline; }
-.activity-list { display: grid; margin: 0; padding: 4px 15px 8px; list-style: none; }
-.activity-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f3f7; }
+.activity-list { display: grid; min-width: 0; margin: 0; padding: 4px 15px 8px; list-style: none; }
+.activity-item { display: flex; min-width: 0; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f3f7; }
 .activity-item:last-child { border-bottom: 0; }
 .activity-dot { width: 8px; height: 8px; flex: 0 0 auto; margin: 4px 0 0 2px; border-radius: 50%; background: #3b82f6; box-shadow: 0 0 0 3px #eff6ff; }
 .activity-dot--success { background: #22a05a; box-shadow: 0 0 0 3px #f0fdf4; }
 .activity-dot--warning { background: #d49316; box-shadow: 0 0 0 3px #fffbeb; }
-.activity-item > div { min-width: 0; }
+.activity-item > div { flex: 1; width: 0; min-width: 0; }
 .activity-item strong { display: block; color: #36465e; font-size: 10px; font-weight: 650; }
-.activity-item p { overflow: hidden; margin: 3px 0; color: #7d8aa0; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.activity-item p { max-width: 100%; overflow: hidden; margin: 3px 0; color: #7d8aa0; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .activity-item small { color: #a0aaba; font-size: 9px; }
 .recent-borrows { margin-top: 0; }
 .recent-borrows__scroll { overflow-x: auto; }
