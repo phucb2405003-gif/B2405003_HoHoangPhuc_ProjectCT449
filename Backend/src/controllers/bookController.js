@@ -1,4 +1,18 @@
 const bookService = require("../services/bookService");
+const bookCoverUploadService = require("../services/bookCoverUploadService");
+
+async function createCoverUploadUrl(req, res) {
+    try {
+        const result = await bookCoverUploadService.createCoverUploadUrl(req.body);
+        return res.status(201).json(result);
+    } catch (error) {
+        const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 503;
+        return res.status(statusCode).json({
+            message: error.publicMessage || "Không thể tạo liên kết tải ảnh lúc này.",
+            code: error.code || "SUPABASE_SIGNED_URL_FAILED",
+        });
+    }
+}
 
 // Lấy tất cả sách
 async function findAll(req, res) {
@@ -214,6 +228,7 @@ async function remove(req, res) {
 }
 
 module.exports = {
+    createCoverUploadUrl,
     findAll,
     findOne,
     create,
