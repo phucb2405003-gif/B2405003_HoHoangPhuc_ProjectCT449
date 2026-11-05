@@ -1,4 +1,4 @@
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getBookCatalog } from '@/services/bookCatalogService'
 
@@ -6,7 +6,9 @@ export default function useBooks() {
 
 const route = useRoute()
 const router = useRouter()
-const pageSize = 15
+const pageSize = ref(
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches ? 14 : 15,
+)
 const books = ref([])
 const isLoadingBooks = ref(true)
 const booksLoadError = ref('')
@@ -17,6 +19,7 @@ const sortOrder = ref('default')
 const currentPage = ref(1)
 const isSidebarOpen = ref(false)
 let booksLoadPending = false
+let pageSizeMediaQuery = null
 
 function normalize(value) {
   return String(value || '')
@@ -51,12 +54,24 @@ const filteredBooks = computed(() => {
   return result
 })
 
-const pageCount = computed(() => Math.max(1, Math.ceil(filteredBooks.value.length / pageSize)))
+const pageCount = computed(() => Math.max(1, Math.ceil(filteredBooks.value.length / pageSize.value)))
 const pageNumbers = computed(() => Array.from({ length: pageCount.value }, (_, index) => index + 1))
 const visibleBooks = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredBooks.value.slice(start, start + pageSize)
+  const start = (currentPage.value - 1) * pageSize.value
+  return filteredBooks.value.slice(start, start + pageSize.value)
 })
+
+function updatePageSize(useTwoColumnGrid) {
+  const nextPageSize = useTwoColumnGrid ? 14 : 15
+  if (pageSize.value === nextPageSize) return
+
+  pageSize.value = nextPageSize
+  currentPage.value = Math.min(currentPage.value, pageCount.value)
+}
+
+function handlePageSizeChange(event) {
+  updatePageSize(event.matches)
+}
 
 async function loadBooks() {
   if (booksLoadPending) return
@@ -73,7 +88,16 @@ async function loadBooks() {
   }
 }
 
-onMounted(loadBooks)
+onMounted(() => {
+  pageSizeMediaQuery = window.matchMedia('(max-width: 760px)')
+  updatePageSize(pageSizeMediaQuery.matches)
+  pageSizeMediaQuery.addEventListener('change', handlePageSizeChange)
+  loadBooks()
+})
+
+onUnmounted(() => {
+  pageSizeMediaQuery?.removeEventListener('change', handlePageSizeChange)
+})
 
 watch(() => route.query, (query) => {
   searchTerm.value = typeof query.q === 'string' ? query.q : ''
