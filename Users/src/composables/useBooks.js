@@ -103,6 +103,12 @@ watch(() => route.query, (query) => {
   queueMicrotask(() => { applyingRouteQuery = false })
 }, { immediate: true })
 
+watch(currentPage, () => {
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+})
+
 watch([searchTerm, selectedGenre, selectedAuthor, sortOrder], () => {
   if (!applyingRouteQuery) currentPage.value = 1
 })
