@@ -31,6 +31,11 @@
   object-fit: contain;
 }
 
+.book-list-card__cover[src*="book-open-text"] {
+  padding: 22%;
+  opacity: 0.62;
+}
+
 .book-list-card__cover-placeholder {
   display: grid;
   width: 100%;

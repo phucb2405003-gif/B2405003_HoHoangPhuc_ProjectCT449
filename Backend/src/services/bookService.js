@@ -38,20 +38,15 @@ function isValidBookImagePath(value) {
         typeof value !== "string" ||
         value.length === 0 ||
         value !== value.trim() ||
+        value.includes("/") ||
         value.includes("\\") ||
+        value.includes("..") ||
         /[?#\u0000-\u001f:]/.test(value)
     ) {
         return false;
     }
 
-    const segments = value.split("/");
-    return segments.every((segment) =>
-        segment.length > 0 &&
-        segment === segment.trim() &&
-        segment !== "." &&
-        segment !== ".." &&
-        /^[\p{L}\p{N}._ -]+$/u.test(segment)
-    );
+    return /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(value);
 }
 
 function validateBookImagePath(payload) {

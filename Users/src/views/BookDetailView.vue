@@ -82,7 +82,7 @@ const {
           <div class="book-detail-layout">
             <article class="book-detail-card book-detail-main-card">
               <div class="book-detail-cover">
-                <img v-if="book.cover" :src="book.cover" :alt="`Bìa sách ${title}`" />
+                <img v-if="book.cover" :src="book.cover" :alt="`Bìa sách ${title}`" @error="$event.target.src = bookIcon" />
                 <img v-else class="book-detail-cover__placeholder" :src="bookIcon" alt="" aria-hidden="true" />
               </div>
 
@@ -159,7 +159,7 @@ const {
             </header>
             <div class="book-detail-long-intro__content">
               <p>Chưa có nội dung giới thiệu cho sách này.</p>
-              <img v-if="book.cover" class="book-detail-long-intro__image" :src="book.cover" :alt="`Bìa sách ${title}`" loading="lazy" />
+              <img v-if="book.cover" class="book-detail-long-intro__image" :src="book.cover" :alt="`Bìa sách ${title}`" loading="lazy" @error="$event.target.src = bookIcon" />
             </div>
           </section>
 

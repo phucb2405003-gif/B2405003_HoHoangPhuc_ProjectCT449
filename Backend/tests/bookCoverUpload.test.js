@@ -96,7 +96,7 @@ test("guest, librarian, and invalid JWT are denied", async () => {
 test("valid request creates a non-upserting URL in the books bucket", async () => {
     let received;
     const result = await coverService.createCoverUploadUrl(validPayload, {
-        env: { SUPABASE_URL: "https://project.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
+        env: { SUPABASE_BOOKS_PUBLIC_URL: "https://project.supabase.co/storage/v1/object/public/books/", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
         createClient: (...args) => {
             received = { args };
             return { storage: { from: (bucket) => ({
@@ -111,6 +111,7 @@ test("valid request creates a non-upserting URL in the books bucket", async () =
     });
 
     assert.equal(received.bucket, "books");
+    assert.equal(received.args[0], "https://project.supabase.co");
     assert.equal(received.path, validPayload.fileName);
     assert.deepEqual(received.options, { upsert: false });
     assert.equal(received.args[1], "server-only");
@@ -126,6 +127,8 @@ test("filename paths, empty or unsupported files, MIME mismatch, and files over 
     const invalidPayloads = [
         { ...validPayload, fileName: "../cover.jpg" },
         { ...validPayload, fileName: "books/cover.jpg" },
+        { ...validPayload, fileName: "folder\\cover.jpg" },
+        { ...validPayload, fileName: "cover..jpg" },
         { ...validPayload, fileName: "C:\\cover.jpg" },
         { ...validPayload, fileName: "cover.gif", contentType: "image/gif" },
         { ...validPayload, contentType: "image/png" },
@@ -134,7 +137,7 @@ test("filename paths, empty or unsupported files, MIME mismatch, and files over 
     ];
     for (const payload of invalidPayloads) {
         await assert.rejects(coverService.createCoverUploadUrl(payload, {
-            env: { SUPABASE_URL: "https://project.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
+            env: { SUPABASE_BOOKS_PUBLIC_URL: "https://project.supabase.co/storage/v1/object/public/books/", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
             createClient: () => assert.fail("invalid metadata must fail before creating a client"),
         }));
     }
@@ -147,7 +150,12 @@ test("missing Supabase config and existing object return safe service errors", a
     );
 
     await assert.rejects(coverService.createCoverUploadUrl(validPayload, {
-        env: { SUPABASE_URL: "https://project.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
+        env: { SUPABASE_BOOKS_PUBLIC_URL: "not a URL", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
+        createClient: () => assert.fail("invalid Supabase URL must fail before creating a client"),
+    }), { code: "SUPABASE_NOT_CONFIGURED", statusCode: 503 });
+
+    await assert.rejects(coverService.createCoverUploadUrl(validPayload, {
+        env: { SUPABASE_BOOKS_PUBLIC_URL: "https://project.supabase.co/storage/v1/object/public/books/", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
         createClient: () => ({ storage: { from: () => ({
             createSignedUploadUrl: async () => ({ data: null, error: { status: 409, message: "The resource already exists" } }),
         }) } }),
@@ -156,7 +164,7 @@ test("missing Supabase config and existing object return safe service errors", a
 
 test("Supabase connection and signed URL errors fail safely with 503", async () => {
     await assert.rejects(coverService.createCoverUploadUrl(validPayload, {
-        env: { SUPABASE_URL: "https://project.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
+        env: { SUPABASE_BOOKS_PUBLIC_URL: "https://project.supabase.co/storage/v1/object/public/books/", SUPABASE_SERVICE_ROLE_KEY: "server-only" },
         createClient: () => ({ storage: { from: () => ({
             createSignedUploadUrl: async () => { throw new Error("private upstream detail"); },
         }) } }),

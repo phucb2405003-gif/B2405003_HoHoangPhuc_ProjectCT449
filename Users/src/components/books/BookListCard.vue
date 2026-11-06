@@ -1,5 +1,6 @@
 <script setup>
 import './BookListCard.css'
+import bookFallback from '@/assets/icons/book-open-text.svg'
 
 defineProps({
   book: {
@@ -16,8 +17,7 @@ defineProps({
 <template>
   <RouterLink class="book-list-card" :to="detailTo">
     <div class="book-list-card__cover-frame">
-      <img v-if="book.cover" class="book-list-card__cover" :src="book.cover" :alt="`Bìa sách ${book.title}`" loading="lazy" decoding="async" />
-      <span v-else class="book-list-card__cover-placeholder">Chưa có ảnh bìa</span>
+      <img class="book-list-card__cover" :src="book.cover || bookFallback" :alt="book.cover ? `Bìa sách ${book.title}` : 'Chưa có ảnh bìa'" loading="lazy" decoding="async" @error="$event.target.src = bookFallback" />
     </div>
     <div class="book-list-card__body">
       <span class="book-list-card__status">{{ book.status }}</span>

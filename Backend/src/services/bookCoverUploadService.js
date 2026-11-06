@@ -62,15 +62,23 @@ async function createCoverUploadUrl(payload, dependencies = {}) {
     const { fileName } = validateCoverUpload(payload);
     const env = dependencies.env || process.env;
     if (
-        typeof env.SUPABASE_URL !== "string" || !env.SUPABASE_URL.trim() ||
+        typeof env.SUPABASE_BOOKS_PUBLIC_URL !== "string" || !env.SUPABASE_BOOKS_PUBLIC_URL.trim() ||
         typeof env.SUPABASE_SERVICE_ROLE_KEY !== "string" || !env.SUPABASE_SERVICE_ROLE_KEY.trim()
     ) {
         throw uploadError("SUPABASE_NOT_CONFIGURED", 503, "Dịch vụ lưu ảnh chưa được cấu hình.");
     }
 
     try {
+        let projectOrigin;
+        try {
+            const publicUrl = new URL(env.SUPABASE_BOOKS_PUBLIC_URL);
+            if (!/^https?:$/.test(publicUrl.protocol) || !publicUrl.origin) throw new Error("Invalid Supabase URL");
+            projectOrigin = publicUrl.origin;
+        } catch {
+            throw uploadError("SUPABASE_NOT_CONFIGURED", 503, "Dich vu luu anh chua duoc cau hinh.");
+        }
         const createClient = dependencies.createClient || require("@supabase/supabase-js").createClient;
-        const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+        const supabase = createClient(projectOrigin, env.SUPABASE_SERVICE_ROLE_KEY, {
             auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
         });
         const { data, error } = await supabase.storage

@@ -1,5 +1,18 @@
 import { getBook, getBooks } from './borrowingService'
 
+const booksPublicUrl = import.meta.env.SUPABASE_BOOKS_PUBLIC_URL || ''
+
+function getBookCoverUrl(fileName) {
+  if (
+    typeof fileName !== 'string' ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(fileName) ||
+    fileName.includes('..') ||
+    !booksPublicUrl
+  ) return null
+
+  return `${booksPublicUrl.replace(/\/+$/, '/')}${encodeURIComponent(fileName)}`
+}
+
 function invalidBookResponse() {
   return new Error('Máy chủ trả về thông tin sách không hợp lệ.')
 }
@@ -21,6 +34,7 @@ function normalizeBook(book) {
   const availableCopies = book.soQuyenConLai
   return {
     ...book,
+    cover: getBookCoverUrl(book.hinhAnh),
     id: book.maSach,
     title: book.tenSach,
     author: book.tacGia,
