@@ -1,16 +1,33 @@
 import { getBook, getBooks } from './borrowingService'
 
-const booksPublicUrl = import.meta.env.SUPABASE_BOOKS_PUBLIC_URL || ''
+function getBookCoverUrl(value) {
+  if (typeof value !== 'string' || !value.trim()) return null
 
-function getBookCoverUrl(fileName) {
-  if (
-    typeof fileName !== 'string' ||
-    !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(fileName) ||
-    fileName.includes('..') ||
-    !booksPublicUrl
-  ) return null
+  try {
+    const url = new URL(value)
+    const publicBooksPath = '/storage/v1/object/public/books/'
+    const objectPath = url.pathname.startsWith(publicBooksPath)
+      ? url.pathname.slice(publicBooksPath.length)
+      : ''
+    const fileName = decodeURIComponent(objectPath)
+    if (
+      url.protocol !== 'https:' ||
+      url.hostname !== 'hqrhegqqnndozrvzcgvt.supabase.co' ||
+      url.port ||
+      url.username ||
+      url.password ||
+      url.hash ||
+      !objectPath ||
+      objectPath.includes('/') ||
+      /[\\/\u0000-\u001f]/.test(fileName) ||
+      fileName.includes('..') ||
+      !/^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(fileName)
+    ) return null
 
-  return `${booksPublicUrl.replace(/\/+$/, '/')}${encodeURIComponent(fileName)}`
+    return value
+  } catch {
+    return null
+  }
 }
 
 function invalidBookResponse() {

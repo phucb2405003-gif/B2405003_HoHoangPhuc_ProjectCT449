@@ -46,6 +46,9 @@ function getUpdateFields(payload, allowedFields) {
         if (type === "string" && (typeof value !== "string" || value.trim().length === 0)) {
             throw invalidUpdateError();
         }
+        if (type === "stringOrEmpty" && (typeof value !== "string" || (value !== "" && value.trim().length === 0))) {
+            throw invalidUpdateError();
+        }
         if (type === "email" && (
             typeof value !== "string" ||
             !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())

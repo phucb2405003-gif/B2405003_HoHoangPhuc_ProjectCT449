@@ -7,8 +7,6 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  // Expose only the public books URL; the service role key is never exposed to Vite.
-  envPrefix: ['SUPABASE_BOOKS_PUBLIC_URL'],
   plugins: [
     vue(),
     vueDevTools(),

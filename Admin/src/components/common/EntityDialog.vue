@@ -50,6 +50,7 @@ const { values, optionsFor, fieldValue, submit } = useEntityDialog({
               </select>
               <textarea v-else-if="field.type === 'textarea'" v-model="values[field.key]" :disabled="busy" rows="3" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`"></textarea>
               <input v-else v-model="values[field.key]" :disabled="busy" :type="field.type || 'text'" :min="field.min" :max="field.max" :step="field.step" :placeholder="field.placeholder || `Nhập ${field.label.toLocaleLowerCase('vi')}`">
+              <small v-if="field.helpText" class="field-help">{{ field.helpText }}</small>
               <small v-if="errors[field.key]" class="field-error">{{ errors[field.key] }}</small>
             </label>
           </div>

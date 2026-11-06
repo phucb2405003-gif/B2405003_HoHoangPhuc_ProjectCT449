@@ -23,6 +23,7 @@
 .form-field textarea, .reject-reason { resize: vertical; }
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus, .reject-reason:focus { border-color: #8aaeea; box-shadow: 0 0 0 3px #2563eb16; }
 .field-error { color: var(--admin-error); font-size: 10px; font-weight: 500; }
+.field-help { color: var(--admin-muted); font-size: 10px; font-weight: 450; line-height: 1.5; }
 .dialog-error { margin: 0; padding: 9px 11px; border: 1px solid #f2c9c6; border-radius: 7px; color: var(--admin-error); background: #fff5f4; font-size: 11px; }
 .stock-book-summary { display: grid; gap: 5px; margin-bottom: 17px; padding: 12px; border: 1px solid var(--admin-line); border-radius: 8px; background: #f8fafd; }
 .stock-book-summary strong { color: var(--admin-ink); font-size: 13px; }

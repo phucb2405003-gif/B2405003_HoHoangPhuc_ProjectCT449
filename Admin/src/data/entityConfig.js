@@ -36,6 +36,7 @@ export const entityConfigs = {
       { key: 'maNXB', label: 'Nhà xuất bản', type: 'select', required: true, optionsFrom: 'publishers', optionLabel: 'tenNXB', optionValue: 'maNXB' },
       { key: 'donGia', label: 'Đơn giá', type: 'number', required: true, min: 0, step: 'any' },
       { key: 'namXuatBan', label: 'Năm xuất bản', type: 'number', required: true, min: 0, step: 1 },
+      { key: 'hinhAnh', label: 'URL hình ảnh bìa sách', type: 'url', wide: true, placeholder: 'Dán Public URL ảnh từ Supabase Storage', helpText: 'Upload ảnh trực tiếp lên Supabase Storage (bucket books), sau đó sao chép Public URL và dán vào đây.' },
       { key: 'soQuyen', label: 'Tổng số lượng', type: 'number', required: true, min: 0, createOnly: true },
     ],
   },

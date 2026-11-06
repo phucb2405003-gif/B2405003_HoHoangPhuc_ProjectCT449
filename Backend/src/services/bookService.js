@@ -34,19 +34,33 @@ function normalizeWhitespace(value) {
 }
 
 function isValidBookImagePath(value) {
-    if (
-        typeof value !== "string" ||
-        value.length === 0 ||
-        value !== value.trim() ||
-        value.includes("/") ||
-        value.includes("\\") ||
-        value.includes("..") ||
-        /[?#\u0000-\u001f:]/.test(value)
-    ) {
+    if (value === "") return true;
+    if (typeof value !== "string" || value !== value.trim()) return false;
+
+    const expectedPath = "/storage/v1/object/public/books/";
+    const publicUrlPattern = /^https:\/\/hqrhegqqnndozrvzcgvt\.supabase\.co\/storage\/v1\/object\/public\/books\/([^/?#]+)(?:\?[^#]*)?$/i;
+    const match = publicUrlPattern.exec(value);
+    if (!match) return false;
+
+    try {
+        const url = new URL(value);
+        if (
+            url.protocol !== "https:" ||
+            url.hostname !== "hqrhegqqnndozrvzcgvt.supabase.co" ||
+            url.port ||
+            url.username ||
+            url.password ||
+            url.hash ||
+            !url.pathname.startsWith(expectedPath)
+        ) return false;
+
+        const fileName = decodeURIComponent(match[1]);
+        return !fileName.includes("..") &&
+            !/[\\/\u0000-\u001f]/.test(fileName) &&
+            /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(fileName);
+    } catch {
         return false;
     }
-
-    return /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.(?:jpg|jpeg|png|webp)$/i.test(value);
 }
 
 function validateBookImagePath(payload) {
@@ -78,7 +92,7 @@ async function create(book) {
         soQuyen: "nonNegativeInteger",
         donGia: "nonNegativeNumber",
         namXuatBan: "nonNegativeInteger",
-        hinhAnh: "string",
+        hinhAnh: "stringOrEmpty",
     }, ["tenSach", "tacGia", "theLoai", "maNXB", "soQuyen"]);
     const db = await connectDB();
     return withBorrowOperationLock(db, async (assertOwned) => {
@@ -157,7 +171,7 @@ async function update(maSach, book) {
         maNXB: "string",
         donGia: "nonNegativeNumber",
         namXuatBan: "nonNegativeInteger",
-        hinhAnh: "string",
+        hinhAnh: "stringOrEmpty",
     });
     const db = await connectDB();
     const collection = db.collection(BOOK_COLLECTION);

@@ -239,6 +239,13 @@ export default function useEntityManagement(config) {
       if (field.type === 'number' && normalized[field.key] !== '') normalized[field.key] = Number(normalized[field.key])
       else if (isRemoteEntity && typeof normalized[field.key] === 'string') normalized[field.key] = normalized[field.key].trim()
     }
+    const currentBookCover = typeof currentRecord.value.hinhAnh === 'string'
+      ? currentRecord.value.hinhAnh.trim()
+      : ''
+    const nextBookCover = typeof normalized.hinhAnh === 'string' ? normalized.hinhAnh.trim() : ''
+    if (isBook && dialogMode.value === 'edit' && nextBookCover === currentBookCover) {
+      delete normalized.hinhAnh
+    }
 
     if (isPublisher) {
       isSaving.value = true

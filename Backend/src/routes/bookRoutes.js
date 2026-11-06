@@ -6,13 +6,6 @@ const { allowRoles } = require("../middlewares/roleMiddleware");
 
 const router = express.Router();
 
-router.post(
-    "/cover-upload-url",
-    authenticateToken,
-    allowRoles("Quản lý"),
-    bookController.createCoverUploadUrl
-);
-
 router.get(
     "/",
     bookController.findAll
