@@ -16,6 +16,7 @@ defineProps({
 
 const router = useRouter()
 const isAccountMenuOpen = ref(false)
+const isMobileNavOpen = ref(false)
 void initializeAuth()
 
 function closeAccountMenu(event) {
@@ -51,7 +52,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <header class="app-header">
+  <header class="app-header" :class="{ 'app-header--menu-open': isMobileNavOpen }">
     <div class="app-header__inner">
       <RouterLink to="/" class="app-header__brand">
         <span class="app-header__logo" aria-hidden="true">
@@ -59,7 +60,17 @@ onUnmounted(() => {
         </span>
         <span class="app-header__name">Thư viện trực tuyến</span>
       </RouterLink>
-      <nav class="app-header__nav" aria-label="Điều hướng chính">
+      <button
+        class="app-header__menu-toggle"
+        type="button"
+        :aria-expanded="isMobileNavOpen"
+        aria-controls="primary-navigation"
+        :aria-label="isMobileNavOpen ? 'Đóng điều hướng' : 'Mở điều hướng'"
+        @click="isMobileNavOpen = !isMobileNavOpen"
+      >
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="primary-navigation" class="app-header__nav" aria-label="Điều hướng chính">
         <template v-if="!minimal">
           <RouterLink to="/" class="app-header__link app-header__link--active">Trang chủ</RouterLink>
           <RouterLink to="/sach" class="app-header__link">Sách</RouterLink>

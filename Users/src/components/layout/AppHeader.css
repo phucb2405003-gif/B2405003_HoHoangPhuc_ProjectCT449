@@ -62,6 +62,10 @@
   font-weight: 500;
 }
 
+.app-header__menu-toggle {
+  display: none;
+}
+
 .app-header__link {
   color: #d1d5db;
   text-decoration: none;
@@ -288,16 +292,64 @@
 @media (max-width: 700px) {
   .app-header__inner {
     min-height: 0;
-    padding-block: 0.9rem;
-    align-items: flex-start;
+    padding-block: 0.65rem;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .app-header__brand {
+    flex: 1 1 auto;
+  }
+
+  .app-header__logo {
+    width: 2.4rem;
+    height: 2.4rem;
+  }
+
+  .app-header__menu-toggle {
+    display: flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
     flex-direction: column;
+    gap: 0.28rem;
+    padding: 0.5rem;
+    border: 1px solid rgb(147 197 253 / 38%);
+    border-radius: 0.65rem;
+    background: rgb(37 99 235 / 16%);
+    cursor: pointer;
+  }
+
+  .app-header__menu-toggle span {
+    display: block;
+    width: 1.1rem;
+    height: 2px;
+    border-radius: 2px;
+    background: #f8fafc;
   }
 
   .app-header__nav {
     width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
-    gap: 0.65rem 1rem;
+    display: none;
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .app-header--menu-open .app-header__nav {
+    display: flex;
+  }
+
+  .app-header__nav > .app-header__link {
+    padding: 0.65rem 0.25rem;
+  }
+
+  .app-header__nav > .app-header__login,
+  .app-header__nav > .app-header__account {
+    align-self: flex-start;
   }
 
   .app-header__account-menu {
@@ -311,10 +363,6 @@
     font-size: 1rem;
   }
 
-  .app-header__nav {
-    column-gap: 0.75rem;
-    font-size: 0.88rem;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

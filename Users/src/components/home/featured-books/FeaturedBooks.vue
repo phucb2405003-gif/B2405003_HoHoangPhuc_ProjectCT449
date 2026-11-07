@@ -26,6 +26,11 @@ const {
   viewport,
 } = useFeaturedBooks(featuredBooks)
 
+function moveFeaturedBooks(direction) {
+  const visibleCount = window.matchMedia('(max-width: 430px)').matches ? 1 : 4
+  moveOneBook(direction * visibleCount)
+}
+
 onMounted(async () => {
   try {
     featuredBooks.value = (await getBookCatalog()).slice(0, 10)
@@ -47,10 +52,10 @@ onMounted(async () => {
         <p v-else-if="!featuredBooks.length" class="featured-books__status-note" role="status">Chưa có sách để hiển thị.</p>
       </div>
       <div v-if="featuredBooks.length" class="featured-books__controls" role="group" aria-label="Điều khiển cuộn sách">
-        <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveOneBook(-4)">
+        <button class="featured-books__arrow" type="button" aria-label="Cuộn về trái" @click="moveFeaturedBooks(-1)">
           <img class="featured-books__arrow-icon" :src="chevronLeftIcon" alt="" aria-hidden="true" />
         </button>
-        <button class="featured-books__arrow" type="button" aria-label="Cuộn về phải" @click="moveOneBook(4)">
+        <button class="featured-books__arrow" type="button" aria-label="Cuộn về phải" @click="moveFeaturedBooks(1)">
           <img class="featured-books__arrow-icon" :src="chevronRightIcon" alt="" aria-hidden="true" />
         </button>
       </div>
