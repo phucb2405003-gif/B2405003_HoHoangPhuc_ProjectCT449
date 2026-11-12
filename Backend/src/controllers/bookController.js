@@ -15,7 +15,7 @@ async function findAll(req, res) {
 // Lấy một sách theo ID
 async function findOne(req, res) {
     try {
-        const book = await bookService.findOne(req.params.maSach);
+        const book = await bookService.findBookDetail(req.params.maSach);
 
         if (!book) {
             return res.status(404).json({
@@ -137,6 +137,14 @@ async function addStock(req, res) {
             return res.status(400).json({
                 message: "Số lượng bổ sung phải là số nguyên dương",
             });
+        }
+
+        if (error.code === "STOCK_LIMIT_EXCEEDED") {
+            return res.status(400).json({ message: "Số lượng bổ sung vượt quá giới hạn tồn kho an toàn." });
+        }
+
+        if (error.code === "STOCK_DATA_CHANGED") {
+            return res.status(409).json({ message: "Tồn kho vừa thay đổi. Vui lòng tải lại và thử lại." });
         }
 
         res.status(500).json({

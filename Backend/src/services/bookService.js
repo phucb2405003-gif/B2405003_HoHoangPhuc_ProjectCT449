@@ -23,10 +23,16 @@ async function findAll() {
 // Lấy sách theo mã sách
 async function findOne(maSach) {
     const collection = await getCollection();
+    return await collection.findOne({ maSach });
+}
 
-    return await collection.findOne({
-        maSach: maSach, // Tìm bằng mã sách
-    });
+async function findBookDetail(maSach) {
+    const db = await connectDB();
+    const book = await db.collection(BOOK_COLLECTION).findOne({ maSach });
+    if (!book) return book;
+
+    const publisher = await db.collection(PUBLISHER_COLLECTION).findOne({ maNXB: book.maNXB });
+    return publisher ? { ...book, tenNXB: publisher.tenNXB } : book;
 }
 
 function normalizeWhitespace(value) {
@@ -284,12 +290,18 @@ async function addStock(maSach, soLuong) {
         book.soQuyen < 0 ||
         !Number.isSafeInteger(book.soQuyenConLai) ||
         book.soQuyenConLai < 0 ||
-        book.soQuyenConLai > book.soQuyen ||
-        !Number.isSafeInteger(book.soQuyen + soLuong) ||
-        !Number.isSafeInteger(book.soQuyenConLai + soLuong)
+        book.soQuyenConLai > book.soQuyen
     ) {
         const error = new Error("Du lieu ton kho sach khong hop le");
         error.code = "INVALID_STOCK_DATA";
+        throw error;
+    }
+
+    if (book.soQuyen > Number.MAX_SAFE_INTEGER - soLuong ||
+        book.soQuyenConLai > Number.MAX_SAFE_INTEGER - soLuong) {
+        const error = new Error("So luong bo sung vuot qua gioi han ton kho an toan");
+        error.code = "STOCK_LIMIT_EXCEEDED";
+        error.statusCode = 400;
         throw error;
     }
 
@@ -305,7 +317,8 @@ async function addStock(maSach, soLuong) {
 
     if (updateResult.matchedCount !== 1) {
         const error = new Error("Du lieu ton kho sach da thay doi; vui long thu lai");
-        error.code = "INVALID_STOCK_DATA";
+        error.code = "STOCK_DATA_CHANGED";
+        error.statusCode = 409;
         throw error;
     }
 
@@ -396,6 +409,7 @@ async function remove(maSach) {
 module.exports = {
     findAll,
     findOne,
+    findBookDetail,
     create,
     update,
     addStock,

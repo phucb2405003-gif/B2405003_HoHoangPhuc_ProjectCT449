@@ -46,7 +46,7 @@ export function buildRecentActivity({ borrows = [], details = [], readers = [], 
     } else if (borrow.trangThai === 'Từ chối' && borrow.ngayHuy) {
       addEvent({ borrow, event: 'Từ chối phiếu mượn', date: borrow.ngayHuy, type: 'warning', description: borrow.maNhanVien ? `Nhân viên ${borrow.maNhanVien}` : '' })
     } else if (borrow.trangThai === 'Hủy' && borrow.ngayHuy) {
-      const actor = borrow.lyDo === 'Độc giả đã hủy phiếu' ? 'Độc giả hủy phiếu' : borrow.maNhanVien ? `Nhân viên ${borrow.maNhanVien}` : 'Phiếu bị hủy'
+      const actor = borrow.lyDo === 'Độc giả đã hủy phiếu' ? 'Độc giả hủy phiếu' : ['Phiếu đã quá thời hạn gửi duyệt', 'Phiếu đã quá thời hạn chờ duyệt'].includes(borrow.lyDo) ? 'Hệ thống tự động' : borrow.maNhanVien ? `Nhân viên ${borrow.maNhanVien}` : 'Phiếu bị hủy'
       addEvent({ borrow, event: 'Hủy phiếu mượn', date: borrow.ngayHuy, type: 'warning', description: actor })
     }
   }

@@ -253,7 +253,7 @@ function validateCreatePayload(account, { allowBcryptPassword = false } = {}) {
         trangThai: "boolean",
     });
     return {
-        ...account,
+        maTaiKhoan: account.maTaiKhoan,
         ...validated,
         password: validateNewPassword(account.password, { allowBcryptHash: allowBcryptPassword }),
     };

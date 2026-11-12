@@ -461,14 +461,17 @@ async function submit(maPhieu, requester) {
         const receipts = [];
         let detailWriteAttempted = false;
         let parentWriteAttempted = false;
+        let submittedAt;
         const dueStatus = BORROW_STATUSES.PENDING;
         try {
             for (const detail of details) receipts.push(await reserveBook(books, detail.maSach, assertOwned));
             await assertOwned(); detailWriteAttempted = true;
             const changed = await detailCollection.updateMany({ maPhieu, trangThai: STATUSES.DRAFT }, { $set: { trangThai: STATUSES.PENDING } });
             if (changed.modifiedCount !== details.length) throw new Error("Khong the cap nhat day du trang thai chi tiet");
-            await assertOwned(); parentWriteAttempted = true;
-            const changedParent = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: borrow.soLuong }, { $set: { trangThai: dueStatus } });
+            await assertOwned();
+            submittedAt = new Date();
+            parentWriteAttempted = true;
+            const changedParent = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.DRAFT, soLuong: borrow.soLuong }, { $set: { trangThai: dueStatus, ngayGuiDuyet: submittedAt } });
             if (changedParent.matchedCount !== 1) throw new Error("Phieu da thay doi; khong the gui");
             return { borrow: await borrows.findOne({ _id: borrow._id }) };
         } catch (error) {
@@ -477,13 +480,13 @@ async function submit(maPhieu, requester) {
             if (parentWriteAttempted) {
                 try {
                     const current = await borrows.findOne({ _id: borrow._id });
-                    if (current?.trangThai === BORROW_STATUSES.PENDING) {
-                        const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.PENDING }, { $set: { trangThai: BORROW_STATUSES.DRAFT } });
+                    if (current?.trangThai === BORROW_STATUSES.PENDING && current.ngayGuiDuyet instanceof Date && current.ngayGuiDuyet.getTime() === submittedAt.getTime()) {
+                        const restored = await borrows.updateOne({ _id: borrow._id, trangThai: BORROW_STATUSES.PENDING, ngayGuiDuyet: submittedAt }, { $set: { trangThai: BORROW_STATUSES.DRAFT }, $unset: { ngayGuiDuyet: "" } });
                         if (restored.matchedCount !== 1) throw new Error("Khong the rollback trang thai phieu");
                     }
-                    else if (current?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac dinh duoc trang thai phieu sau loi");
+                    else if (current?.trangThai !== BORROW_STATUSES.DRAFT || Object.hasOwn(current, "ngayGuiDuyet")) throw new Error("Khong xac dinh duoc trang thai phieu sau loi");
                     const verified = await borrows.findOne({ _id: borrow._id });
-                    if (verified?.trangThai !== BORROW_STATUSES.DRAFT) throw new Error("Khong xac minh duoc trang thai phieu sau rollback");
+                    if (verified?.trangThai !== BORROW_STATUSES.DRAFT || Object.hasOwn(verified, "ngayGuiDuyet")) throw new Error("Khong xac minh duoc trang thai phieu sau rollback");
                 } catch (rollbackError) { rollbackErrors.push(rollbackError); }
             }
             if (detailWriteAttempted && !rollbackErrors.length) {
@@ -505,6 +508,7 @@ async function expireDraftBorrows(now = new Date()) {
     const db = await connectDB();
     const borrows = db.collection(BORROW_COLLECTION);
     const detailCollection = db.collection(BORROW_DETAIL_COLLECTION);
+    const bookCollection = db.collection(BOOK_COLLECTION);
     const cutoff = new Date(now.getTime() - 3 * 86400000);
     return withBorrowOperationLock(db, async (assertOwned) => {
         const expired = await borrows.find({ trangThai: BORROW_STATUSES.DRAFT, ngayYeuCau: { $lte: cutoff } }).toArray();
@@ -550,6 +554,86 @@ async function expireDraftBorrows(now = new Date()) {
                     } catch (rollbackError) { rollbackErrors.push(rollbackError); }
                 }
                 if (rollbackErrors.length) throw makeRollbackError("Xu ly phieu het han that bai va rollback khong hoan tat", error, rollbackErrors);
+                throw error;
+            }
+        }
+
+        const pendingCutoff = cutoff;
+        const expiredPending = await borrows.find({
+            trangThai: BORROW_STATUSES.PENDING,
+            ngayGuiDuyet: { $lt: pendingCutoff }
+        }).toArray();
+        const expiryReason = "Phiếu đã quá thời hạn chờ duyệt";
+        for (const borrow of expiredPending) {
+            if (!(borrow.ngayGuiDuyet instanceof Date) || !Number.isSafeInteger(borrow.soLuong) || borrow.soLuong <= 0) continue;
+            const details = await detailCollection.find({ maPhieu: borrow.maPhieu }).toArray();
+            if (details.length !== borrow.soLuong || details.some((detail) => detail.trangThai !== STATUSES.PENDING || typeof detail.maSach !== "string" || !detail.maSach.trim()) || new Set(details.map((detail) => detail.maSach)).size !== details.length) {
+                console.error("Phieu cho duyet het han khong khop chi tiet; can doi soat:", borrow.maPhieu);
+                continue;
+            }
+
+            const receipts = [];
+            let detailsWriteAttempted = false;
+            let parentWriteAttempted = false;
+            try {
+                for (const detail of details) receipts.push(await restoreStock(bookCollection, detail.maSach, 1, assertOwned));
+                await assertOwned();
+                detailsWriteAttempted = true;
+                const updatedDetails = await detailCollection.updateMany({ maPhieu: borrow.maPhieu, trangThai: STATUSES.PENDING }, { $set: { trangThai: STATUSES.CANCELLED } });
+                if (updatedDetails.modifiedCount !== details.length) throw new Error("Khong the huy day du chi tiet phieu cho duyet het han");
+
+                await assertOwned();
+                parentWriteAttempted = true;
+                const updatedBorrow = await borrows.updateOne({
+                    _id: borrow._id,
+                    maPhieu: borrow.maPhieu,
+                    trangThai: BORROW_STATUSES.PENDING,
+                    ngayGuiDuyet: { $lt: pendingCutoff },
+                    soLuong: borrow.soLuong
+                }, { $set: { trangThai: BORROW_STATUSES.CANCELLED, ngayHuy: now, lyDo: expiryReason } });
+                if (updatedBorrow.matchedCount !== 1) throw new Error("Phieu da thay doi trong luc xu ly het han");
+
+                const verifiedBorrow = await borrows.findOne({ _id: borrow._id });
+                if (verifiedBorrow?.trangThai !== BORROW_STATUSES.CANCELLED || verifiedBorrow.lyDo !== expiryReason || !(verifiedBorrow.ngayHuy instanceof Date) || verifiedBorrow.ngayHuy.getTime() !== now.getTime()) throw new Error("Khong xac minh duoc phieu het han sau cap nhat");
+                if (await detailCollection.countDocuments({ maPhieu: borrow.maPhieu, trangThai: STATUSES.CANCELLED }) !== details.length || await detailCollection.countDocuments({ maPhieu: borrow.maPhieu, trangThai: STATUSES.PENDING }) !== 0) throw new Error("Khong xac minh duoc chi tiet phieu het han sau cap nhat");
+                count++;
+            } catch (error) {
+                stopOnUncertainStockChange(error);
+                const rollbackErrors = [];
+                if (parentWriteAttempted) {
+                    try {
+                        await assertOwned();
+                        const current = await borrows.findOne({ _id: borrow._id, maPhieu: borrow.maPhieu });
+                        const sameValue = (left, right) => left instanceof Date && right instanceof Date ? left.getTime() === right.getTime() : left === right;
+                        const fields = ["trangThai", "ngayHuy", "lyDo"];
+                        const alreadyOriginal = current && fields.every((field) => Object.hasOwn(current, field) === Object.hasOwn(borrow, field) && (!Object.hasOwn(borrow, field) || sameValue(current[field], borrow[field])));
+                        if (!alreadyOriginal) {
+                            if (current?.trangThai !== BORROW_STATUSES.CANCELLED || current.lyDo !== expiryReason || !sameValue(current.ngayHuy, now) || !sameValue(current.ngayGuiDuyet, borrow.ngayGuiDuyet)) throw new Error("Trang thai phieu khong khop khi rollback het han");
+                            const set = {};
+                            const unset = {};
+                            for (const field of fields) {
+                                if (Object.hasOwn(borrow, field)) set[field] = borrow[field];
+                                else unset[field] = "";
+                            }
+                            const update = {};
+                            if (Object.keys(set).length) update.$set = set;
+                            if (Object.keys(unset).length) update.$unset = unset;
+                            const restored = await borrows.updateOne({ _id: borrow._id, maPhieu: borrow.maPhieu, trangThai: BORROW_STATUSES.CANCELLED, ngayGuiDuyet: borrow.ngayGuiDuyet, ngayHuy: now, lyDo: expiryReason }, update);
+                            if (restored.matchedCount !== 1) throw new Error("Khong the rollback trang thai phieu het han");
+                        }
+                    } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+                }
+                if (detailsWriteAttempted && !rollbackErrors.length) {
+                    try {
+                        await assertOwned();
+                        await detailCollection.updateMany({ maPhieu: borrow.maPhieu, trangThai: STATUSES.CANCELLED }, { $set: { trangThai: STATUSES.PENDING } });
+                        if (await detailCollection.countDocuments({ maPhieu: borrow.maPhieu, trangThai: STATUSES.CANCELLED }) !== 0 || await detailCollection.countDocuments({ maPhieu: borrow.maPhieu, trangThai: STATUSES.PENDING }) !== details.length) throw new Error("Khong the rollback chi tiet phieu het han");
+                    } catch (rollbackError) { rollbackErrors.push(rollbackError); }
+                }
+                for (const receipt of rollbackErrors.length ? [] : receipts.reverse()) {
+                    try { await undoAvailableChange(bookCollection, receipt, assertOwned); } catch (rollbackError) { rollbackErrors.push(rollbackError); break; }
+                }
+                if (rollbackErrors.length) throw makeRollbackError("Xu ly phieu cho duyet het han that bai va rollback khong hoan tat", error, rollbackErrors);
                 throw error;
             }
         }

@@ -10,7 +10,7 @@ const CANCELLED = "Hủy";
 const DRAFT = "Đang chọn sách";
 const DETAIL_ROLLBACK_FIELDS = ["_id", "maPhieu", "maSach", "trangThai", "hanTra", "ngayTra"];
 const BORROW_ROLLBACK_FIELDS = [
-    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayMuon", "trangThai", "ngayHuy", "lyDo"
+    "_id", "maPhieu", "maDocGia", "maNhanVien", "soLuong", "ngayYeuCau", "ngayGuiDuyet", "ngayMuon", "trangThai", "ngayHuy", "lyDo"
 ];
 
 function matchesFields(actual, expected, fields) {
