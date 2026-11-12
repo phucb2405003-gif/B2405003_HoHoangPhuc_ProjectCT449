@@ -36,7 +36,7 @@ async function create(user) {
         ten: "string",
         ngaySinh: "date",
         phai: "gender",
-        diaChi: "string",
+        diaChi: "stringOrEmpty",
         dienThoai: "string",
     }, ["hoLot", "ten", "phai"]);
     userToCreate.trangThai = "Bình thường";
@@ -87,7 +87,7 @@ async function update(maDocGia, user) {
         ten: "string",
         ngaySinh: "date",
         phai: "gender",
-        diaChi: "string",
+        diaChi: "stringOrEmpty",
         dienThoai: "string",
     });
     const collection = await getCollection();

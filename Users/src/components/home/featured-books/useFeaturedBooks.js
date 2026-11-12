@@ -17,9 +17,9 @@ export default function useFeaturedBooks(featuredBooks) {
     transition: transitionEnabled.value ? 'transform 480ms cubic-bezier(0.22, 0.61, 0.36, 1)' : 'none',
   }))
   const displayBooks = computed(() => [
-    ...bookList.value.map((book) => ({ ...book, renderKey: `before-${book.id}` })),
-    ...bookList.value.map((book) => ({ ...book, renderKey: `source-${book.id}` })),
-    ...bookList.value.map((book) => ({ ...book, renderKey: `after-${book.id}` })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `before-${book.id}`, isClone: true })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `source-${book.id}`, isClone: false })),
+    ...bookList.value.map((book) => ({ ...book, renderKey: `after-${book.id}`, isClone: true })),
   ])
 
   const autoplayDelay = 10_000

@@ -18,7 +18,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
   const borrowsLoaded = ref(false)
   const borrowsError = ref('')
   const currentBorrowPage = ref(1)
-  const borrowPageCount = computed(() => Math.max(1, Math.ceil(borrows.value.length / BORROWS_PER_PAGE)))
+  const borrowStatusFilter = ref('')
   const sortedBorrows = computed(() => borrows.value
     .map((borrow, index) => {
       const timestamp = [borrow?.ngayYeuCau, borrow?.ngayMuon]
@@ -33,9 +33,11 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
       return right.timestamp - left.timestamp || left.index - right.index
     })
     .map(({ borrow }) => borrow))
+  const filteredBorrows = computed(() => sortedBorrows.value.filter((borrow) => !borrowStatusFilter.value || borrow.trangThai === borrowStatusFilter.value))
+  const borrowPageCount = computed(() => Math.max(1, Math.ceil(filteredBorrows.value.length / BORROWS_PER_PAGE)))
   const paginatedBorrows = computed(() => {
     const start = (currentBorrowPage.value - 1) * BORROWS_PER_PAGE
-    return sortedBorrows.value.slice(start, start + BORROWS_PER_PAGE)
+    return filteredBorrows.value.slice(start, start + BORROWS_PER_PAGE)
   })
   const expandedBorrows = ref({})
   const borrowDetails = ref({})
@@ -61,6 +63,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
   watch(borrowPageCount, (pageCount) => {
     if (currentBorrowPage.value > pageCount) currentBorrowPage.value = pageCount
   }, { flush: 'sync' })
+  watch(borrowStatusFilter, () => { currentBorrowPage.value = 1 }, { flush: 'sync' })
 
   const overdueDetailsByBorrow = computed(() => Object.fromEntries(
     Object.entries(borrowDetails.value)
@@ -324,10 +327,12 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     }
   }
 
-  async function removeDraftBorrow(borrow) {
+  async function cancelBorrow(borrow, expectedStatus) {
     const maPhieu = borrow?.maPhieu
-    if (borrow?.trangThai !== 'Đang chọn sách' || !maPhieu || deletingBorrowIds.value[maPhieu] || submittingBorrowIds.value[maPhieu]) return
-    if (!window.confirm(`Hủy phiếu nháp ${maPhieu}? Phiếu sẽ được lưu trong lịch sử với trạng thái Hủy.`)) return
+    if (borrow?.trangThai !== expectedStatus || !maPhieu || deletingBorrowIds.value[maPhieu] || submittingBorrowIds.value[maPhieu]) return
+    const draft = expectedStatus === 'Đang chọn sách'
+    const label = draft ? 'phiếu nháp' : 'phiếu chờ duyệt'
+    if (!window.confirm(`Hủy ${label} ${maPhieu}? Phiếu sẽ được lưu trong lịch sử với trạng thái Hủy.`)) return
 
     const token = getAccessToken()
     if (!token) {
@@ -340,17 +345,20 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     borrowActionNotice.value = ''
     try {
       await deleteBorrow(maPhieu, token)
-      borrowActionNotice.value = `Đã hủy phiếu nháp ${maPhieu}.`
+      borrowActionNotice.value = `Đã hủy ${label} ${maPhieu}.`
       await refreshBorrowAfterMutation(maPhieu)
     } catch (error) {
       if (!await handleUnauthorized(error)) {
-        borrowActionError.value = error.message || 'Không thể hủy phiếu nháp.'
+        borrowActionError.value = error.message || `Không thể hủy ${label}.`
         await refreshBorrowAfterMutation(maPhieu)
       }
     } finally {
       delete deletingBorrowIds.value[maPhieu]
     }
   }
+
+  function removeDraftBorrow(borrow) { return cancelBorrow(borrow, 'Đang chọn sách') }
+  function cancelPendingBorrow(borrow) { return cancelBorrow(borrow, 'Chờ duyệt') }
 
   function borrowDate(borrow) {
     if (borrow.ngayYeuCau) return { label: 'Ngày yêu cầu', value: borrow.ngayYeuCau }
@@ -390,6 +398,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     borrowsLoading,
     currentBorrowPage,
     borrowPageCount,
+    borrowStatusFilter,
     paginatedBorrows,
     previousBorrowPage,
     nextBorrowPage,
@@ -407,6 +416,7 @@ export default function useBorrowHistory({ getAccessToken, isReaderAccount, hand
     openBorrowDialog,
     removeDraftBook,
     removeDraftBorrow,
+    cancelPendingBorrow,
     selectedBookIds,
     statusClass,
     retryBorrowDetails,

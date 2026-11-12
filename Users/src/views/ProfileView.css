@@ -754,3 +754,5 @@
 }
 
 .reader-profile-page button { max-width: 100%; }
+.reader-borrow-status-filter { display: flex; width: fit-content; align-items: center; gap: 10px; margin: 0 0 14px auto; color: #475569; font-size: 13px; }
+.reader-borrow-status-filter select { min-height: 38px; padding: 0 30px 0 10px; border: 1px solid #cbd5e1; border-radius: 8px; color: #1e293b; background: #fff; font: inherit; }

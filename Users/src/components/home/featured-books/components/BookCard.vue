@@ -18,5 +18,5 @@ const detailTo = computed(() => ({
 </script>
 
 <template>
-  <BookListCard class="book-card" :book="cardBook" :detail-to="detailTo" />
+  <BookListCard class="book-card" :book="cardBook" :detail-to="detailTo" :aria-hidden="book.isClone ? 'true' : undefined" :inert="book.isClone" />
 </template>

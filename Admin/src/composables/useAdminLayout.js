@@ -7,10 +7,12 @@ export default function useAdminLayout() {
   const isTablet = () => typeof window !== 'undefined' && window.innerWidth > 760 && window.innerWidth <= 1024
   const isCollapsed = ref(isTablet())
   const isMobileMenuOpen = ref(false)
+  const isMobileViewport = ref(typeof window !== 'undefined' && window.innerWidth <= 760)
   const staffInitial = computed(() => authState.user?.tenDangNhap?.charAt(0)?.toLocaleUpperCase('vi') || 'N')
   let wasTablet = isTablet()
 
   function syncViewport() {
+    isMobileViewport.value = window.innerWidth <= 760
     const tabletNow = isTablet()
     if (tabletNow !== wasTablet) isCollapsed.value = tabletNow
     if (window.innerWidth > 760) isMobileMenuOpen.value = false
@@ -25,5 +27,5 @@ export default function useAdminLayout() {
   onMounted(() => window.addEventListener('resize', syncViewport))
   onUnmounted(() => window.removeEventListener('resize', syncViewport))
 
-  return { isCollapsed, isMobileMenuOpen, staffInitial, logout }
+  return { isCollapsed, isMobileMenuOpen, isMobileViewport, staffInitial, logout }
 }

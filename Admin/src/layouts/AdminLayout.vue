@@ -2,10 +2,20 @@
 import AdminHeader from '@/components/layout/AdminHeader.vue'
 import AdminSidebar from '@/components/layout/AdminSidebar.vue'
 import useAdminLayout from '@/composables/useAdminLayout'
+import { nextTick, watch } from 'vue'
 import { authState } from '@/services/authService'
 import '@/components/layout/AdminLayout.css'
 
-const { isCollapsed, isMobileMenuOpen, staffInitial, logout } = useAdminLayout()
+const { isCollapsed, isMobileMenuOpen, isMobileViewport, staffInitial, logout } = useAdminLayout()
+
+watch(isMobileMenuOpen, async (isOpen) => {
+  if (isOpen || !isMobileViewport.value) return
+  await nextTick()
+  const sidebar = document.querySelector('.admin-sidebar')
+  if (sidebar?.contains(document.activeElement)) {
+    document.querySelector('.mobile-toggle')?.focus()
+  }
+})
 </script>
 
 <template>
@@ -15,6 +25,8 @@ const { isCollapsed, isMobileMenuOpen, staffInitial, logout } = useAdminLayout()
     <AdminSidebar
       :user="authState.user"
       :staff-initial="staffInitial"
+      :inert="isMobileViewport && !isMobileMenuOpen"
+      :aria-hidden="isMobileViewport && !isMobileMenuOpen ? 'true' : undefined"
       @close-mobile="isMobileMenuOpen = false"
       @logout="logout"
     />

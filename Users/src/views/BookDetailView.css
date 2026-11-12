@@ -128,10 +128,11 @@
   object-fit: contain;
 }
 
-.book-detail-cover__placeholder {
+.book-detail-cover img.book-detail-cover__placeholder {
   width: 5rem;
   height: 5rem;
   opacity: 0.72;
+  object-fit: contain;
 }
 
 .book-detail-main-card__body { min-width: 0; }

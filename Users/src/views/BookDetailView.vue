@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { authState } from '@/services/authService'
@@ -46,6 +47,14 @@ const {
   submitBorrowChoice,
   title,
 } = useBookDetail()
+
+const coverFailed = ref(false)
+watch(() => book.value?.cover, () => { coverFailed.value = false })
+
+function handleCoverError(event) {
+  coverFailed.value = true
+  event.currentTarget.src = bookIcon
+}
 </script>
 
 <template>
@@ -82,7 +91,7 @@ const {
           <div class="book-detail-layout">
             <article class="book-detail-card book-detail-main-card">
               <div class="book-detail-cover">
-                <img v-if="book.cover" :src="book.cover" :alt="`Bìa sách ${title}`" @error="$event.target.src = bookIcon" />
+                <img v-if="book.cover" :class="{ 'book-detail-cover__placeholder': coverFailed }" :src="book.cover" :alt="coverFailed ? '' : `Bìa sách ${title}`" :aria-hidden="coverFailed ? 'true' : undefined" @error="handleCoverError" />
                 <img v-else class="book-detail-cover__placeholder" :src="bookIcon" alt="" aria-hidden="true" />
               </div>
 

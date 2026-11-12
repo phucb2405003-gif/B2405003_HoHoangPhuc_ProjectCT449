@@ -28,6 +28,8 @@ const {
   borrowsLoading,
   currentBorrowPage,
   borrowPageCount,
+  borrowStatusFilter,
+  cancelPendingBorrow,
   paginatedBorrows,
   previousBorrowPage,
   nextBorrowPage,
@@ -188,7 +190,17 @@ const {
             <button type="button" @click="borrowsLoaded = false; loadBorrows()">Thử tải lại</button>
           </div>
           <div v-else-if="borrowsLoaded && !borrows.length" class="reader-profile-state">Chưa có phiếu mượn.</div>
-          <div v-else class="reader-borrow-list">
+          <label v-else class="reader-borrow-status-filter">Lọc trạng thái phiếu
+            <select v-model="borrowStatusFilter" aria-label="Lọc phiếu theo trạng thái">
+              <option value="">Tất cả</option>
+              <option value="Chờ duyệt">Chờ duyệt</option>
+              <option value="Đã duyệt">Đã duyệt</option>
+              <option value="Từ chối">Từ chối</option>
+              <option value="Hủy">Hủy</option>
+            </select>
+          </label>
+          <div v-if="borrowsLoaded && borrows.length && !paginatedBorrows.length" class="reader-profile-state">Không có phiếu phù hợp với trạng thái đã chọn.</div>
+          <div v-else-if="paginatedBorrows.length" class="reader-borrow-list">
             <article v-for="borrow in paginatedBorrows" :key="borrow.maPhieu" class="reader-borrow-card">
               <div class="reader-borrow-card__summary">
                 <div class="reader-borrow-card__code"><span>Mã phiếu</span><strong>{{ borrow.maPhieu || 'Chưa cập nhật' }}</strong></div>
@@ -207,6 +219,17 @@ const {
                     @click="submitDraftBorrow(borrow)"
                   >
                     {{ submittingBorrowIds[borrow.maPhieu] ? 'Đang gửi…' : 'Gửi duyệt' }}
+                  </button>
+                  <button
+                    v-if="borrow.trangThai === 'Chờ duyệt'"
+                    type="button"
+                    class="reader-borrow-delete-button"
+                    :disabled="Boolean(deletingBorrowIds[borrow.maPhieu] || submittingBorrowIds[borrow.maPhieu])"
+                    :title="`Hủy phiếu ${borrow.maPhieu}`"
+                    @click="cancelPendingBorrow(borrow)"
+                  >
+                    <img :src="trashIcon" alt="" aria-hidden="true" />
+                    {{ deletingBorrowIds[borrow.maPhieu] ? 'Đang hủy…' : 'Hủy phiếu' }}
                   </button>
                   <button
                     v-if="borrow.trangThai === 'Đang chọn sách'"
@@ -291,7 +314,7 @@ const {
             </article>
           </div>
 
-          <nav v-if="!borrowsLoading && !borrowsError && borrowsLoaded && borrows.length" class="reader-borrow-pagination" aria-label="Phân trang phiếu mượn">
+          <nav v-if="!borrowsLoading && !borrowsError && borrowsLoaded && paginatedBorrows.length" class="reader-borrow-pagination" aria-label="Phân trang phiếu mượn">
             <button type="button" :disabled="currentBorrowPage <= 1" @click="previousBorrowPage">Trước</button>
             <span>Trang {{ currentBorrowPage }} / {{ borrowPageCount }}</span>
             <button type="button" :disabled="currentBorrowPage >= borrowPageCount" @click="nextBorrowPage">Sau</button>

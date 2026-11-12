@@ -106,7 +106,15 @@ async function getCollection() {
 }
 
 async function findAll() {
-    return (await getCollection()).find({}).toArray();
+    const borrows = await (await getCollection()).find({}).toArray();
+    return borrows.sort((left, right) => {
+        const timestamp = (borrow) => {
+            const value = borrow.ngayYeuCau ?? borrow.ngayMuon;
+            const parsed = value instanceof Date ? value.getTime() : new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+        };
+        return timestamp(right) - timestamp(left) || String(right._id || '').localeCompare(String(left._id || ''));
+    });
 }
 
 async function findOne(maPhieu) {
@@ -114,7 +122,15 @@ async function findOne(maPhieu) {
 }
 
 async function findByMaDocGia(maDocGia) {
-    return (await getCollection()).find({ maDocGia }).toArray();
+    const borrows = await (await getCollection()).find({ maDocGia }).toArray();
+    return borrows.sort((left, right) => {
+        const timestamp = (borrow) => {
+            const value = borrow.ngayYeuCau ?? borrow.ngayMuon;
+            const parsed = value instanceof Date ? value.getTime() : new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+        };
+        return timestamp(right) - timestamp(left) || String(right._id || '').localeCompare(String(left._id || ''));
+    });
 }
 
 async function getBorrowStatus(borrow, detailCollection) {
@@ -160,7 +176,7 @@ async function restoreStock(bookCollection, maSach, amount = 1, assertOwned) {
 
 async function create(borrow) {
     const direct = borrow.mode === "direct";
-    const details = normalizeDetails(borrow.borrowDetails || borrow.detaiMuon || (direct ? undefined : []), !direct);
+    const details = normalizeDetails(borrow.borrowDetails || borrow.detaiMuon);
 
     if (
         typeof borrow.maDocGia !== "string" ||
