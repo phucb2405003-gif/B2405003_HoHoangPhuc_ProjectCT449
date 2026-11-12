@@ -2,6 +2,7 @@
 import useLogin from '@/composables/useLogin'
 import bookLockIcon from '@/assets/icons/book-lock.svg'
 import bookOpenIcon from '@/assets/icons/book-open-text.svg'
+import libraryLogo from '@/assets/images/Logo.png'
 import './LoginView.css'
 
 const { errorMessage, isSubmitting, password, showPassword, submitLogin, tenDangNhap } = useLogin()
@@ -13,13 +14,13 @@ const { errorMessage, isSubmitting, password, showPassword, submitLogin, tenDang
     <div class="login-page__glow login-page__glow--two" aria-hidden="true"></div>
 
     <RouterLink class="login-brand" to="/" aria-label="Thư viện trực tuyến, về trang chủ">
-      <span class="login-brand__logo"><img src="@/assets/icons/square-library.svg" alt="" /></span>
+      <span class="login-brand__logo"><img :src="libraryLogo" alt="" /></span>
       <span>Thư viện trực tuyến</span>
     </RouterLink>
 
     <section class="login-card" aria-labelledby="login-title">
       <div class="login-card__mark" aria-hidden="true">
-        <img src="@/assets/icons/square-library.svg" alt="" />
+        <img :src="libraryLogo" alt="" />
       </div>
       <p class="login-card__eyebrow">KHÔNG GIAN ĐỌC CỦA BẠN</p>
       <h1 id="login-title">Đăng nhập</h1>

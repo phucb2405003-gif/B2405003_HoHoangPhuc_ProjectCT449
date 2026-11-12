@@ -25,7 +25,7 @@
   background: var(--admin-navy);
 }
 
-.login-brand-mark img { width: 25px; height: 25px; filter: brightness(0) invert(1); }
+.login-brand-mark img { width: 100%; height: 100%; padding: 8px; object-fit: contain; }
 .auth-card .eyebrow { margin: 26px 0 8px; color: var(--admin-blue); font-size: 11px; font-weight: 750; letter-spacing: .15em; }
 .auth-card h1 { margin: 0; color: var(--admin-ink); font-size: clamp(27px, 5vw, 32px); font-weight: 700; letter-spacing: -.04em; }
 .intro { margin: 9px 0 27px; color: var(--admin-muted); font-size: 14px; line-height: 1.6; }

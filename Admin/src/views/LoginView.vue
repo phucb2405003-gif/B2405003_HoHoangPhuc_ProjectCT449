@@ -1,5 +1,5 @@
 <script setup>
-import libraryIcon from '@/assets/icons/square-library.svg'
+import libraryLogo from '@/assets/images/Logo.png'
 import useStaffLogin from '@/composables/useStaffLogin'
 import { authState } from '@/services/authService'
 import './LoginView.css'
@@ -19,7 +19,7 @@ const {
 <template>
   <main class="auth-page">
     <section class="auth-card" aria-labelledby="login-title">
-      <div class="login-brand-mark"><img :src="libraryIcon" alt="" aria-hidden="true"></div>
+      <div class="login-brand-mark"><img :src="libraryLogo" alt="" aria-hidden="true"></div>
       <p class="eyebrow">QUẢN LÝ THƯ VIỆN</p>
       <h1 id="login-title">Cổng nhân viên</h1>
       <p class="intro">Đăng nhập bằng tài khoản nhân viên để tiếp tục.</p>

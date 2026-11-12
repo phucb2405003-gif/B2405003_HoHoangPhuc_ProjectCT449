@@ -2,7 +2,7 @@
 .admin-sidebar { position: fixed; z-index: 30; inset: 0 auto 0 0; display: flex; width: var(--sidebar-width); flex-direction: column; padding: 20px 14px 14px; color: #f8fafc; background: var(--admin-navy); transition: width .2s ease, transform .2s ease; }
 .sidebar-brand { display: flex; min-height: 56px; align-items: center; gap: 11px; padding: 0 7px; color: #f8fafc; text-decoration: none; }
 .sidebar-logo { width: 40px; height: 40px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid #93c5fd66; border-radius: 12px; background: #2563eb33; }
-.sidebar-logo img { width: 22px; height: 22px; filter: brightness(0) invert(1); }
+.sidebar-logo img { width: 100%; height: 100%; padding: 4px; object-fit: contain; }
 .sidebar-brand-copy, .staff-copy { min-width: 0; display: grid; gap: 3px; overflow: hidden; white-space: nowrap; }
 .sidebar-brand-copy strong { font-size: 16px; letter-spacing: .03em; }
 .sidebar-brand-copy small { color: #94a3b8; font-size: 9px; letter-spacing: .1em; }

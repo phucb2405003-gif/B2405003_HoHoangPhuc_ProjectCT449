@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authState, initializeAuth, logoutReader } from '@/services/authService'
+import libraryLogo from '@/assets/images/Logo.png'
 import userIcon from '@/assets/icons/user.svg'
 import chevronDownIcon from '@/assets/icons/chevron-down.svg'
 import chevronUpIcon from '@/assets/icons/chevron-up.svg'
@@ -56,7 +57,7 @@ onUnmounted(() => {
     <div class="app-header__inner">
       <RouterLink to="/" class="app-header__brand">
         <span class="app-header__logo" aria-hidden="true">
-          <img class="app-header__logo-image" src="@/assets/icons/square-library.svg" alt="" />
+          <img class="app-header__logo-image" :src="libraryLogo" alt="" />
         </span>
         <span class="app-header__name">Thư viện trực tuyến</span>
       </RouterLink>

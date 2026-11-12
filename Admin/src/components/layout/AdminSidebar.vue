@@ -1,7 +1,7 @@
 <script setup>
 import { toRef } from 'vue'
 import useAdminSidebar from '@/composables/useAdminSidebar'
-import libraryIcon from '@/assets/icons/square-library.svg'
+import libraryLogo from '@/assets/images/Logo.png'
 
 const props = defineProps({
   user: { type: Object, default: null },
@@ -15,7 +15,7 @@ const { visibleSections, iconByName } = useAdminSidebar(toRef(props, 'user'))
 <template>
   <aside class="admin-sidebar" aria-label="Điều hướng quản trị">
     <RouterLink class="sidebar-brand" to="/dashboard" aria-label="QLMS - Tổng quan" @click="emit('close-mobile')">
-      <span class="sidebar-logo"><img :src="libraryIcon" alt="" aria-hidden="true"></span>
+      <span class="sidebar-logo"><img :src="libraryLogo" alt="" aria-hidden="true"></span>
       <span class="sidebar-brand-copy"><strong>QLMS</strong><small>QUẢN LÝ THƯ VIỆN</small></span>
     </RouterLink>
 
